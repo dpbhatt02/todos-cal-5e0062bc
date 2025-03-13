@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ButtonCustom } from '@/components/ui/button-custom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TaskListFiltersProps {
   viewOption: string;
@@ -22,6 +23,20 @@ const TaskListFilters = ({
   setViewOption, 
   setSortOption 
 }: TaskListFiltersProps) => {
+  const isMobile = useIsMobile();
+
+  // Get the filter icon based on current view option
+  const getFilterIcon = () => (
+    <Filter className="h-4 w-4 mr-1" />
+  );
+
+  // Get the sort icon based on current sort option
+  const getSortIcon = () => {
+    if (sortOption === 'date') return <ArrowDownAZ className="h-4 w-4 mr-1" />;
+    if (sortOption === 'priority') return <ArrowUpAZ className="h-4 w-4 mr-1" />;
+    return <Move className="h-4 w-4 mr-1" />;
+  };
+
   return (
     <div className="mb-6 flex justify-between items-center">
       <h1 className="text-2xl font-semibold">Tasks</h1>
@@ -30,15 +45,25 @@ const TaskListFilters = ({
         {/* Filter Dropdown Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <ButtonCustom 
-              variant="outline" 
-              className="flex items-center gap-1"
-              icon={<Filter className="h-4 w-4 mr-1" />}
-            >
-              {viewOption === 'all' ? 'All Tasks' : 
-               viewOption === 'active' ? 'Active Tasks' : 'Completed Tasks'}
-              <ChevronDown className="h-4 w-4 ml-1" />
-            </ButtonCustom>
+            {isMobile ? (
+              <ButtonCustom 
+                variant="outline" 
+                className="flex items-center px-2"
+                icon={getFilterIcon()}
+              >
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </ButtonCustom>
+            ) : (
+              <ButtonCustom 
+                variant="outline" 
+                className="flex items-center gap-1"
+                icon={getFilterIcon()}
+              >
+                {viewOption === 'all' ? 'All Tasks' : 
+                 viewOption === 'active' ? 'Active Tasks' : 'Completed Tasks'}
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </ButtonCustom>
+            )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setViewOption('all')}>
@@ -56,20 +81,26 @@ const TaskListFilters = ({
         {/* Sort Dropdown Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <ButtonCustom 
-              variant="outline" 
-              className="flex items-center gap-1"
-              icon={
-                sortOption === 'date' ? <ArrowDownAZ className="h-4 w-4 mr-1" /> : 
-                sortOption === 'priority' ? <ArrowUpAZ className="h-4 w-4 mr-1" /> :
-                <Move className="h-4 w-4 mr-1" />
-              }
-            >
-              {sortOption === 'date' ? 'Sort by Date' : 
-               sortOption === 'priority' ? 'Sort by Priority' : 
-               'Custom Order'}
-              <ChevronDown className="h-4 w-4 ml-1" />
-            </ButtonCustom>
+            {isMobile ? (
+              <ButtonCustom 
+                variant="outline" 
+                className="flex items-center px-2"
+                icon={getSortIcon()}
+              >
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </ButtonCustom>
+            ) : (
+              <ButtonCustom 
+                variant="outline" 
+                className="flex items-center gap-1"
+                icon={getSortIcon()}
+              >
+                {sortOption === 'date' ? 'Sort by Date' : 
+                 sortOption === 'priority' ? 'Sort by Priority' : 
+                 'Custom Order'}
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </ButtonCustom>
+            )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setSortOption('date')}>

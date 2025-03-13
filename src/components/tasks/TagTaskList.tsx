@@ -1,4 +1,3 @@
-
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -11,6 +10,7 @@ import { formatFullDate } from './utils';
 import { TasksProvider } from '@/contexts/TasksContext';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { mockTasks } from './mockData';
 
 interface TagTaskListProps {
@@ -126,6 +126,7 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
 // Wrapper component to get the tag from URL params
 const TagTaskListWrapper = () => {
   const { tagId } = useParams<{ tagId: string }>();
+  const isMobile = useIsMobile();
   
   // Format the tag name for display (capitalize first letter)
   const formatTagName = (tag: string) => {
@@ -133,13 +134,13 @@ const TagTaskListWrapper = () => {
   };
 
   return (
-    <div className="container py-6">
+    <>
       <div className="mb-6 flex items-center">
         <div className={cn("h-3 w-3 rounded-full mr-2", tagColors[tagId || ''] || 'bg-gray-400')} />
         <h1 className="text-2xl font-semibold">{formatTagName(tagId || '')}</h1>
       </div>
       <TagTaskList tagFilter={tagId || ''} />
-    </div>
+    </>
   );
 };
 
