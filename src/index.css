@@ -124,12 +124,13 @@
     @apply space-y-3;
   }
   
-  html.compact .space-y-6 {
-    @apply space-y-4;
+  /* Fix for circular dependency - use direct child selectors instead of @apply */
+  html.compact .space-y-6 > * + * {
+    margin-top: 1rem; /* equivalent to space-y-4 */
   }
   
-  html.compact .space-y-4 {
-    @apply space-y-3;
+  html.compact .space-y-4 > * + * {
+    margin-top: 0.75rem; /* equivalent to space-y-3 */
   }
   
   html.compact .p-4 {
