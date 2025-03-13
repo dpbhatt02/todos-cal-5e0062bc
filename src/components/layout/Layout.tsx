@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
+import MobileNavigation from './MobileNavigation';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +14,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -54,7 +57,7 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
-        <div ref={sidebarRef}>
+        <div ref={sidebarRef} className="hidden md:block">
           <Sidebar 
             isSidebarOpen={isSidebarOpen} 
             toggleSidebar={toggleSidebar}
@@ -65,11 +68,13 @@ const Layout = ({ children }: LayoutProps) => {
         <main 
           ref={mainRef}
           className={`flex-1 transition-all duration-300 ease-in-out p-4 md:p-6 
-            ${isSidebarOpen ? 'md:ml-64' : 'md:ml-20'}`}
+            ${isMobile ? 'pb-20' : ''} ${isSidebarOpen ? 'md:ml-64' : 'md:ml-20'}`}
         >
           {children}
         </main>
       </div>
+
+      {isMobile && <MobileNavigation toggleCreateModal={toggleCreateModal} />}
 
       <CreateTaskModal
         isOpen={isCreateModalOpen}

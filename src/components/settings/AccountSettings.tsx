@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { User, Mail, Key, Upload, AlertTriangle, Save } from "lucide-react";
 import { ChangePasswordModal } from "./ChangePasswordModal";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const AccountSettings = () => {
   const [formData, setFormData] = useState({
@@ -17,6 +18,7 @@ export const AccountSettings = () => {
     avatar: "/placeholder.svg"
   });
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -57,7 +59,7 @@ export const AccountSettings = () => {
         <CardContent className="space-y-6">
           <div className="flex flex-col md:flex-row gap-6 items-center">
             <div className="flex flex-col items-center gap-2">
-              <Avatar className="h-24 w-24">
+              <Avatar className="h-20 w-20 md:h-24 md:w-24">
                 <AvatarImage src={formData.avatar} alt={formData.name} />
                 <AvatarFallback>{formData.name.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
@@ -72,7 +74,7 @@ export const AccountSettings = () => {
               </Button>
             </div>
             
-            <div className="space-y-4 flex-1">
+            <div className="space-y-4 flex-1 w-full">
               <div className="space-y-2">
                 <Label htmlFor="name">Display Name</Label>
                 <Input 
@@ -96,8 +98,8 @@ export const AccountSettings = () => {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="justify-end">
-          <Button onClick={handleSave} className="gap-2">
+        <CardFooter className={`${isMobile ? 'flex-col space-y-2 items-stretch' : 'justify-end'}`}>
+          <Button onClick={handleSave} className="gap-2 w-full md:w-auto">
             <Save className="h-4 w-4" />
             Save Changes
           </Button>
@@ -115,14 +117,18 @@ export const AccountSettings = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className={`${isMobile ? 'flex flex-col space-y-3' : 'flex items-center justify-between'}`}>
             <div>
               <h4 className="font-medium">Password</h4>
               <p className="text-sm text-muted-foreground">
                 Last changed 3 months ago
               </p>
             </div>
-            <Button variant="outline" onClick={handleChangePassword}>
+            <Button 
+              variant="outline" 
+              onClick={handleChangePassword}
+              className={isMobile ? 'w-full mt-2' : ''}
+            >
               Change Password
             </Button>
           </div>
@@ -134,7 +140,10 @@ export const AccountSettings = () => {
             <p className="text-sm text-muted-foreground">
               Add an extra layer of security to your account
             </p>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              className={isMobile ? 'w-full' : ''}
+            >
               Set up 2FA
             </Button>
           </div>
@@ -161,6 +170,7 @@ export const AccountSettings = () => {
               <Button 
                 variant="destructive" 
                 onClick={handleDeleteAccount}
+                className={isMobile ? 'w-full' : ''}
               >
                 Delete Account
               </Button>

@@ -4,9 +4,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GeneralSettings } from "@/components/settings/GeneralSettings";
 import { AccountSettings } from "@/components/settings/AccountSettings";
 import { CalendarSettings } from "@/components/settings/CalendarSettings";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Check localStorage for an active tab setting
@@ -19,8 +21,8 @@ const Settings = () => {
   }, []);
 
   return (
-    <div className="container max-w-4xl mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+    <div className="container mx-auto py-4 md:py-6 px-2 md:px-6 max-w-4xl">
+      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Settings</h1>
       
       <Tabs 
         defaultValue="general" 
@@ -28,7 +30,7 @@ const Settings = () => {
         onValueChange={setActiveTab}
         className="w-full"
       >
-        <TabsList className="grid grid-cols-3 w-full mb-8">
+        <TabsList className={`grid grid-cols-3 w-full mb-6 ${isMobile ? 'sticky top-0 z-10' : ''}`}>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="calendars">Calendars</TabsTrigger>
