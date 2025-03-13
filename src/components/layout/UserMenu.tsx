@@ -11,17 +11,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface UserMenuProps {
-  isSidebarOpen: boolean;
+interface MenuItemType {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  path: string;
 }
 
-const UserMenu = ({ isSidebarOpen }: UserMenuProps) => {
+interface UserMenuProps {
+  isSidebarOpen: boolean;
+  menuItems?: MenuItemType[];
+}
+
+const UserMenu = ({ isSidebarOpen, menuItems = [] }: UserMenuProps) => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
 
   const handleEditProfile = () => {
     navigate('/settings');
     window.localStorage.setItem('settings-active-tab', 'account');
+  };
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
   };
 
   const handleLogout = async () => {
@@ -43,14 +54,25 @@ const UserMenu = ({ isSidebarOpen }: UserMenuProps) => {
         />
       );
     }
-    return <User className="h-4 w-4" />;
+    return <User className="h-5 w-5" />;
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className={`${isSidebarOpen ? 'w-8 h-8' : 'w-10 h-10'} rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200 overflow-hidden`}>
-          {renderUserIcon()}
+        <button className={`${isSidebarOpen ? 'w-full' : 'w-10 h-10'} rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200 overflow-hidden ${isSidebarOpen ? 'p-2' : ''}`}>
+          {isSidebarOpen ? (
+            <div className="flex items-center space-x-2 w-full">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden">
+                {renderUserIcon()}
+              </div>
+              <span className="text-sm font-medium truncate flex-1">
+                {user?.name || 'User'}
+              </span>
+            </div>
+          ) : (
+            renderUserIcon()
+          )}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 z-50 bg-popover">
@@ -67,6 +89,24 @@ const UserMenu = ({ isSidebarOpen }: UserMenuProps) => {
           <UserCog className="mr-2 h-4 w-4" />
           <span>Edit Profile</span>
         </DropdownMenuItem>
+        
+        {/* Additional menu items from props */}
+        {menuItems.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            {menuItems.map((item) => (
+              <DropdownMenuItem 
+                key={item.path}
+                onClick={() => handleNavigation(item.path)}
+                className="cursor-pointer"
+              >
+                <item.icon className="mr-2 h-4 w-4" />
+                <span>{item.label}</span>
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
+        
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
           <LogOut className="mr-2 h-4 w-4" />

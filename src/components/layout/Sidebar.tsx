@@ -10,6 +10,7 @@ import { ButtonCustom } from '@/components/ui/button-custom';
 import SidebarHeader from './SidebarHeader';
 import NavigationLinks from './NavigationLinks';
 import TagsList from './TagsList';
+import UserMenu from './UserMenu';
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -22,6 +23,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
   const navigate = useNavigate();
   const location = useLocation();
   
+  // These items are now passed to UserMenu
   const footerNavItems = [
     { icon: Settings, label: 'Settings', path: '/settings' },
     { icon: HelpCircle, label: 'Help & Support', path: '/help' },
@@ -55,25 +57,18 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
           <Separator className="my-4" />
           <TagsList isSidebarOpen={isSidebarOpen} />
           
-          {/* Spacer to push footer nav to bottom */}
+          {/* Spacer to push user menu to bottom */}
           <div className="flex-1" />
           
-          {/* Footer with settings and help links */}
-          <div className="space-y-1 pb-4">
-            {footerNavItems.map((item) => (
-              <ButtonCustom
-                key={item.path}
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start text-left mb-1",
-                  !isSidebarOpen && "justify-center p-2"
-                )}
-                onClick={() => navigate(item.path)}
-                icon={<item.icon className="h-5 w-5" />}
-              >
-                {isSidebarOpen && <span>{item.label}</span>}
-              </ButtonCustom>
-            ))}
+          {/* User menu with settings and help now integrated */}
+          <div className={cn(
+            "pb-4",
+            isSidebarOpen ? "px-2" : "flex justify-center"
+          )}>
+            <UserMenu 
+              isSidebarOpen={isSidebarOpen}
+              menuItems={footerNavItems}
+            />
           </div>
         </div>
       </div>
