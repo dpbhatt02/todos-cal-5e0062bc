@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Bold, Italic, Link, List, Underline, Repeat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -151,15 +150,15 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
     setTextSelection({ start: 0, end: 0, text: '' });
   };
 
-  // Get background color based on priority
+  // Update background color to use 20% tint of priority color instead of 80% transparency
   const getPriorityBackgroundColor = () => {
     switch (taskData.priority) {
       case 'low':
-        return 'rgba(74, 222, 128, 0.1)'; // light green
+        return 'rgba(74, 222, 128, 0.2)'; // light green at 20% opacity
       case 'medium':
-        return 'rgba(251, 191, 36, 0.1)'; // light amber
+        return 'rgba(251, 191, 36, 0.2)'; // light amber at 20% opacity
       case 'high':
-        return 'rgba(239, 68, 68, 0.1)'; // light red
+        return 'rgba(239, 68, 68, 0.2)'; // light red at 20% opacity
       default:
         return 'transparent';
     }
