@@ -1,0 +1,58 @@
+
+import { useState } from 'react';
+import { Tag } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ButtonCustom } from '@/components/ui/button-custom';
+
+interface TagsListProps {
+  isSidebarOpen: boolean;
+}
+
+const TagsList = ({ isSidebarOpen }: TagsListProps) => {
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+
+  const tags = [
+    { id: 'work', label: 'Work', color: 'bg-blue-500' },
+    { id: 'personal', label: 'Personal', color: 'bg-purple-500' },
+    { id: 'health', label: 'Health', color: 'bg-green-500' },
+    { id: 'learning', label: 'Learning', color: 'bg-amber-500' },
+  ];
+
+  if (!isSidebarOpen) return null;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center">
+          <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
+          <h3 className="text-sm font-medium text-muted-foreground">Tags</h3>
+        </div>
+        <ButtonCustom
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          aria-label="Add tag"
+          icon={<span className="text-xs">+</span>}
+        />
+      </div>
+      
+      <div className="space-y-1">
+        {tags.map((tag) => (
+          <div 
+            key={tag.id}
+            className={cn(
+              "flex items-center px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/50 transition-colors",
+              activeTag === tag.id && "bg-muted/70"
+            )}
+            onClick={() => setActiveTag(tag.id === activeTag ? null : tag.id)}
+          >
+            <div className={cn("h-2.5 w-2.5 rounded-full mr-2", tag.color)} />
+            <span className="text-sm">{tag.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default TagsList;
