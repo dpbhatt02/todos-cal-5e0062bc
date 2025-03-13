@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 // Define user type
 export interface User {
@@ -33,6 +35,18 @@ const AuthContext = createContext<AuthContextType>({
 // Custom hook to use auth context
 export const useAuth = () => useContext(AuthContext);
 
+// Helper to convert Supabase user to our User type
+const formatUser = (supabaseUser: SupabaseUser | null): User | null => {
+  if (!supabaseUser) return null;
+  
+  return {
+    id: supabaseUser.id,
+    email: supabaseUser.email || '',
+    name: supabaseUser.user_metadata?.name,
+    photoURL: supabaseUser.user_metadata?.avatar_url,
+  };
+};
+
 // Auth provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -40,11 +54,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check for existing user session on mount
   useEffect(() => {
-    const checkAuthState = () => {
+    const checkAuthState = async () => {
       try {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        setLoading(true);
+        
+        // Get current session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // Set user if session exists
+        if (session?.user) {
+          setUser(formatUser(session.user));
         }
       } catch (error) {
         console.error('Error checking auth state:', error);
@@ -54,30 +73,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     checkAuthState();
+    
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(formatUser(session?.user || null));
+      setLoading(false);
+    });
+    
+    // Clean up subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Mock login function (replace with real auth later)
+  // Login with email and password
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // For demo purposes, just check if email and password exist
-      if (!email || !password) {
-        throw new Error('Please provide both email and password');
+      // Sign in with Supabase
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        throw new Error(error.message);
       }
       
-      // Create mock user
-      const newUser: User = {
-        id: Math.random().toString(36).substring(2, 9),
-        email,
-        name: email.split('@')[0],
-      };
-      
-      // Save to localStorage for persistence
-      localStorage.setItem('user', JSON.stringify(newUser));
-      setUser(newUser);
       toast.success('Successfully logged in');
     } catch (error) {
       console.error('Login error:', error);
@@ -88,29 +111,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Mock signup function
+  // Sign up with email
   const signupWithEmail = async (email: string, password: string, name: string) => {
     try {
       setLoading(true);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Validate inputs
-      if (!email || !password || !name) {
-        throw new Error('Please provide all required information');
+      // Sign up with Supabase
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          }
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
       }
       
-      // Create mock user
-      const newUser: User = {
-        id: Math.random().toString(36).substring(2, 9),
-        email,
-        name,
-      };
-      
-      // Save to localStorage for persistence
-      localStorage.setItem('user', JSON.stringify(newUser));
-      setUser(newUser);
-      toast.success('Account created successfully');
+      toast.success('Account created successfully. Please check your email for verification.');
     } catch (error) {
       console.error('Signup error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create account');
@@ -120,25 +141,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Mock Google login
+  // Login with Google
   const loginWithGoogle = async () => {
     try {
       setLoading(true);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Create mock Google user
-      const newUser: User = {
-        id: Math.random().toString(36).substring(2, 9),
-        email: 'user@example.com',
-        name: 'Google User',
-        photoURL: 'https://i.pravatar.cc/150?img=3',
-      };
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/tasks`
+        }
+      });
       
-      // Save to localStorage for persistence
-      localStorage.setItem('user', JSON.stringify(newUser));
-      setUser(newUser);
-      toast.success('Successfully logged in with Google');
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Success message will be shown after redirect completion
     } catch (error) {
       console.error('Google login error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to login with Google');
@@ -148,16 +167,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Logout function
+  // Logout
   const logout = async () => {
     try {
       setLoading(true);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Clear localStorage and state
-      localStorage.removeItem('user');
-      setUser(null);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
       toast.success('Successfully logged out');
     } catch (error) {
       console.error('Logout error:', error);

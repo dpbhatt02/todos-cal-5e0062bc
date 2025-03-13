@@ -1,6 +1,8 @@
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TaskProps } from '@/components/tasks/types';
+import { useTasks } from '@/hooks/use-tasks';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TasksContextType {
   tasks: TaskProps[];
@@ -13,6 +15,10 @@ interface TasksContextType {
   handleDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
   handleDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
+  createTask: (taskData: Omit<TaskProps, 'id'>) => Promise<TaskProps | null>;
+  updateTask: (id: string, updates: Partial<TaskProps>) => Promise<TaskProps | null>;
+  deleteTask: (id: string) => Promise<boolean>;
+  loading: boolean;
 }
 
 const TasksContext = createContext<TasksContextType | undefined>(undefined);
@@ -27,16 +33,29 @@ export const useTasks = () => {
 
 interface TasksProviderProps {
   children: React.ReactNode;
-  initialTasks: TaskProps[];
 }
 
 export const TasksProvider: React.FC<TasksProviderProps> = ({ 
-  children, 
-  initialTasks 
+  children 
 }) => {
-  const [tasks] = useState<TaskProps[]>(initialTasks);
+  const { user } = useAuth();
+  const { 
+    tasks: dbTasks,
+    createTask,
+    updateTask,
+    deleteTask,
+    loading
+  } = useTasks();
+  
   const [isOverdueOpen, setIsOverdueOpen] = useState(true);
-  const [customOrder, setCustomOrder] = useState<string[]>(initialTasks.map(task => task.id));
+  const [customOrder, setCustomOrder] = useState<string[]>([]);
+
+  // Update customOrder when tasks change
+  useEffect(() => {
+    if (dbTasks.length > 0) {
+      setCustomOrder(dbTasks.map(task => task.id));
+    }
+  }, [dbTasks]);
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
@@ -76,7 +95,7 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
 
   return (
     <TasksContext.Provider value={{
-      tasks,
+      tasks: dbTasks,
       customOrder,
       isOverdueOpen,
       setIsOverdueOpen,
@@ -85,7 +104,11 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
       handleDragOver,
       handleDragLeave,
       handleDrop,
-      handleDragEnd
+      handleDragEnd,
+      createTask,
+      updateTask,
+      deleteTask,
+      loading
     }}>
       {children}
     </TasksContext.Provider>
