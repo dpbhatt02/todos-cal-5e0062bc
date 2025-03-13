@@ -1,10 +1,11 @@
 
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Bell } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import SearchBar from './SearchBar';
 import UserMenu from './UserMenu';
+import NotificationsPopover from '../notifications/NotificationsPopover';
 
 interface SidebarHeaderProps {
   isSidebarOpen: boolean;
@@ -83,36 +84,12 @@ const SidebarHeader = ({
         
         {isSidebarOpen ? (
           <div className="flex items-center gap-2">
-            <ButtonCustom
-              variant="ghost"
-              size="icon"
-              className="relative"
-              aria-label="Notifications"
-              icon={
-                <>
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-priority-high rounded-full" />
-                </>
-              }
-            />
-
+            <NotificationsPopover isSidebarOpen={isSidebarOpen} />
             <UserMenu isSidebarOpen={isSidebarOpen} />
           </div>
         ) : (
           <>
-            <ButtonCustom
-              variant="ghost"
-              size="icon"
-              className="relative w-10 h-10"
-              aria-label="Notifications"
-              icon={
-                <>
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-priority-high rounded-full" />
-                </>
-              }
-            />
-
+            <NotificationsPopover isSidebarOpen={isSidebarOpen} />
             <UserMenu isSidebarOpen={isSidebarOpen} />
           </>
         )}
