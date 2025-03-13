@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { Tag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ButtonCustom } from '@/components/ui/button-custom';
 
@@ -10,6 +11,7 @@ interface TagsListProps {
 
 const TagsList = ({ isSidebarOpen }: TagsListProps) => {
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const tags = [
     { id: 'work', label: 'Work', color: 'bg-blue-500' },
@@ -17,6 +19,11 @@ const TagsList = ({ isSidebarOpen }: TagsListProps) => {
     { id: 'health', label: 'Health', color: 'bg-green-500' },
     { id: 'learning', label: 'Learning', color: 'bg-amber-500' },
   ];
+
+  const handleTagClick = (tagId: string) => {
+    setActiveTag(tagId === activeTag ? null : tagId);
+    navigate(`/tag/${tagId}`);
+  };
 
   if (!isSidebarOpen) return null;
 
@@ -44,7 +51,7 @@ const TagsList = ({ isSidebarOpen }: TagsListProps) => {
               "flex items-center px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/50 transition-colors",
               activeTag === tag.id && "bg-muted/70"
             )}
-            onClick={() => setActiveTag(tag.id === activeTag ? null : tag.id)}
+            onClick={() => handleTagClick(tag.id)}
           >
             <div className={cn("h-2.5 w-2.5 rounded-full mr-2", tag.color)} />
             <span className="text-sm">{tag.label}</span>
