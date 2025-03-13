@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Filter, ChevronDown, ChevronRight, ChevronUp, ChevronLeft } from 'lucide-react';
+import { Filter, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, addMonths, subMonths, parse } from 'date-fns';
 import { 
   Collapsible,
@@ -184,31 +184,55 @@ const TaskList = () => {
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Tasks</h1>
         
-        {/* Filter Dropdown Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <ButtonCustom 
-              variant="outline" 
-              className="flex items-center gap-1"
-              icon={<Filter className="h-4 w-4 mr-1" />}
-            >
-              {viewOption === 'all' ? 'All Tasks' : 
-               viewOption === 'active' ? 'Active Tasks' : 'Completed Tasks'}
-              <ChevronDown className="h-4 w-4 ml-1" />
-            </ButtonCustom>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setViewOption('all')}>
-              All Tasks
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setViewOption('active')}>
-              Active Tasks
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setViewOption('completed')}>
-              Completed Tasks
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex gap-2">
+          {/* Filter Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <ButtonCustom 
+                variant="outline" 
+                className="flex items-center gap-1"
+                icon={<Filter className="h-4 w-4 mr-1" />}
+              >
+                {viewOption === 'all' ? 'All Tasks' : 
+                 viewOption === 'active' ? 'Active Tasks' : 'Completed Tasks'}
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </ButtonCustom>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setViewOption('all')}>
+                All Tasks
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewOption('active')}>
+                Active Tasks
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewOption('completed')}>
+                Completed Tasks
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Sort Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <ButtonCustom 
+                variant="outline" 
+                className="flex items-center gap-1"
+                icon={sortOption === 'date' ? <ArrowDownAZ className="h-4 w-4 mr-1" /> : <ArrowUpAZ className="h-4 w-4 mr-1" />}
+              >
+                {sortOption === 'date' ? 'Sort by Date' : 'Sort by Priority'}
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </ButtonCustom>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSortOption('date')}>
+                Sort by Date
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortOption('priority')}>
+                Sort by Priority
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       
       {/* Date header with month picker */}
