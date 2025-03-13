@@ -97,16 +97,21 @@ export function useTasks() {
     }
 
     try {
+      // Convert date to ISO string if it's a Date object
+      const dueDate = taskData.dueDate instanceof Date 
+        ? taskData.dueDate.toISOString() 
+        : taskData.dueDate;
+
       const { data, error } = await supabase
         .from('tasks')
-        .insert([{
+        .insert({
           user_id: user.id,
           title: taskData.title,
           description: taskData.description,
           priority: taskData.priority,
-          due_date: taskData.dueDate,
+          due_date: dueDate,
           completed: taskData.completed || false,
-        }])
+        })
         .select()
         .single();
 
@@ -136,7 +141,14 @@ export function useTasks() {
       if (updates.title !== undefined) dbUpdates.title = updates.title;
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
-      if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
+      
+      // Convert date to ISO string if it's a Date object
+      if (updates.dueDate !== undefined) {
+        dbUpdates.due_date = updates.dueDate instanceof Date 
+          ? updates.dueDate.toISOString() 
+          : updates.dueDate;
+      }
+      
       if (updates.completed !== undefined) dbUpdates.completed = updates.completed;
 
       const { data, error } = await supabase

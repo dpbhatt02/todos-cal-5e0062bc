@@ -5,7 +5,7 @@ import OverdueTasksSection from './OverdueTasksSection';
 import TaskSection from './TaskSection';
 import WeekView from './WeekView';
 import { formatFullDate } from './utils';
-import { TasksProvider } from '@/contexts/TasksContext';
+import { TasksProvider, useTasksContext } from '@/contexts/TasksContext';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
 import { useTasks } from '@/hooks/use-tasks';

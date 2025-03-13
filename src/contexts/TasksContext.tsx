@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TaskProps } from '@/components/tasks/types';
-import { useTasks } from '@/hooks/use-tasks';
+import { useTasks as useTasksHook } from '@/hooks/use-tasks';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface TasksContextType {
@@ -23,20 +23,22 @@ interface TasksContextType {
 
 const TasksContext = createContext<TasksContextType | undefined>(undefined);
 
-export const useTasks = () => {
+export const useTasksContext = () => {
   const context = useContext(TasksContext);
   if (!context) {
-    throw new Error('useTasks must be used within a TasksProvider');
+    throw new Error('useTasksContext must be used within a TasksProvider');
   }
   return context;
 };
 
 interface TasksProviderProps {
   children: React.ReactNode;
+  initialTasks?: TaskProps[]; // Added for compatibility with SearchTasksSheet and TagTaskList
 }
 
 export const TasksProvider: React.FC<TasksProviderProps> = ({ 
-  children 
+  children,
+  initialTasks
 }) => {
   const { user } = useAuth();
   const { 
@@ -45,17 +47,20 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
     updateTask,
     deleteTask,
     loading
-  } = useTasks();
+  } = useTasksHook();
   
   const [isOverdueOpen, setIsOverdueOpen] = useState(true);
   const [customOrder, setCustomOrder] = useState<string[]>([]);
+  
+  // Use initialTasks if provided, otherwise use dbTasks
+  const tasksToUse = initialTasks || dbTasks;
 
   // Update customOrder when tasks change
   useEffect(() => {
-    if (dbTasks.length > 0) {
-      setCustomOrder(dbTasks.map(task => task.id));
+    if (tasksToUse.length > 0) {
+      setCustomOrder(tasksToUse.map(task => task.id));
     }
-  }, [dbTasks]);
+  }, [tasksToUse]);
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
@@ -95,7 +100,7 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
 
   return (
     <TasksContext.Provider value={{
-      tasks: dbTasks,
+      tasks: tasksToUse,
       customOrder,
       isOverdueOpen,
       setIsOverdueOpen,
