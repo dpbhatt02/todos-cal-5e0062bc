@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Check, Clock, Tag, ArrowRight } from 'lucide-react';
+import { Check, Clock, Tag, Edit, Trash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
@@ -17,6 +17,7 @@ export interface TaskProps {
   dueDate: Date | string;
   completed: boolean;
   tags?: string[];
+  onClick?: () => void;
 }
 
 const TaskCard = ({ 
@@ -26,9 +27,11 @@ const TaskCard = ({
   priority, 
   dueDate, 
   completed, 
-  tags = [] 
+  tags = [],
+  onClick
 }: TaskProps) => {
   const [isCompleted, setIsCompleted] = useState(completed);
+  const [isHovered, setIsHovered] = useState(false);
 
   const priorityClasses = {
     low: 'bg-priority-low',
@@ -51,22 +54,44 @@ const TaskCard = ({
     });
   };
 
-  const handleCheckboxChange = () => {
+  const handleCheckboxChange = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setIsCompleted(!isCompleted);
     // In a real app, you would trigger API calls here
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('Edit task:', id);
+    // In a real app, this would open edit form
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('Delete task:', id);
+    // In a real app, this would show confirmation and delete
+  };
+
   return (
-    <div className={cn(
-      "w-full border border-border/40 rounded-lg p-4 transition-all hover:shadow-md",
-      isCompleted && "opacity-70 bg-muted/30"
-    )}>
+    <div 
+      className={cn(
+        "w-full border border-border/40 rounded-lg p-4 transition-all hover:shadow-md cursor-pointer",
+        isCompleted && "opacity-70 bg-muted/30"
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
+    >
       <div className="flex items-start gap-3">
-        <Checkbox 
-          checked={isCompleted} 
-          onCheckedChange={handleCheckboxChange}
-          className={cn("mt-0.5", isCompleted && "opacity-50")}
-        />
+        <div 
+          className="mt-0.5" 
+          onClick={handleCheckboxChange}
+        >
+          <Checkbox 
+            checked={isCompleted} 
+            className={cn(isCompleted && "opacity-50")}
+          />
+        </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center mb-1.5">
@@ -122,12 +147,29 @@ const TaskCard = ({
           </div>
         </div>
 
-        <button 
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="View task"
-        >
-          <ArrowRight className="h-4 w-4" />
-        </button>
+        <div className={`flex gap-1 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+          <button 
+            className="text-muted-foreground hover:text-green-500 transition-colors p-1 rounded-full hover:bg-green-100/20"
+            aria-label="Mark as completed"
+            onClick={handleCheckboxChange}
+          >
+            <Check className="h-4 w-4" />
+          </button>
+          <button 
+            className="text-muted-foreground hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-blue-100/20"
+            aria-label="Edit task"
+            onClick={handleEdit}
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button 
+            className="text-muted-foreground hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-100/20"
+            aria-label="Delete task"
+            onClick={handleDelete}
+          >
+            <Trash className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

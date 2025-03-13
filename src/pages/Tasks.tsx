@@ -8,6 +8,7 @@ const Tasks = () => {
 
   const handleCreateTask = (taskData: any) => {
     console.log('New task created:', taskData);
+    setIsCreateModalOpen(false);
     // In a real app, you would dispatch an action or call an API
   };
 
