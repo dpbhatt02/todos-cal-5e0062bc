@@ -6,7 +6,15 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarIcon, CheckCircle2, Calendar, Plus, RefreshCw } from "lucide-react";
+import { 
+  CalendarIcon, 
+  CheckCircle2, 
+  Calendar, 
+  Plus, 
+  RefreshCw, 
+  Eye, 
+  EyeOff 
+} from "lucide-react";
 
 // Types for calendar data
 interface CalendarItem {
@@ -18,11 +26,14 @@ interface CalendarItem {
 
 export const CalendarSettings = () => {
   const [isConnected, setIsConnected] = useState(false);
+  const [showEvents, setShowEvents] = useState(true);
   const [calendars, setCalendars] = useState<CalendarItem[]>([
     { id: "1", name: "Personal", color: "#4285F4", enabled: true },
     { id: "2", name: "Work", color: "#DB4437", enabled: true },
     { id: "3", name: "Family", color: "#0F9D58", enabled: false },
     { id: "4", name: "Holidays", color: "#F4B400", enabled: true },
+    { id: "5", name: "DB Job", color: "#795548", enabled: true },
+    { id: "6", name: "DB Routine", color: "#9E9E9E", enabled: false },
   ]);
   
   const handleConnect = () => {
@@ -52,10 +63,7 @@ export const CalendarSettings = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            <span>Calendar Integration</span>
-          </CardTitle>
+          <CardTitle className="text-2xl">Calendars</CardTitle>
           <CardDescription>
             Connect and sync your calendars to manage all your events in one place.
           </CardDescription>
@@ -86,69 +94,76 @@ export const CalendarSettings = () => {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <div className="bg-green-100 p-2 rounded-full">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium">Connected to Google Calendar</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Using john.doe@gmail.com
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-1 rounded">
+                    <CalendarIcon className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">dpbhatt02@gmail.com</div>
+                    <div className="flex items-center text-sm text-green-600">
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      Live
+                    </div>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={handleSync}
-                    className="gap-2"
                   >
-                    <RefreshCw className="h-4 w-4" />
-                    Sync
+                    Resync
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={handleDisconnect}
+                    className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
                   >
                     Disconnect
                   </Button>
                 </div>
               </div>
               
+              <p className="text-sm text-muted-foreground">Resync if calendars aren't up-to-date.</p>
+              
               <Separator />
               
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="font-medium">Calendar Selection</h3>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Calendar
-                  </Button>
+                  <h3 className="text-lg font-medium">Show events in Todoist</h3>
+                  <Switch 
+                    checked={showEvents} 
+                    onCheckedChange={setShowEvents}
+                  />
                 </div>
                 
-                <div className="space-y-4">
-                  {calendars.map((calendar) => (
-                    <div key={calendar.id} className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Events are shown in Today and Upcoming. <a href="#" className="text-red-500 hover:underline">Learn more</a>.
+                </p>
+                
+                <div className="space-y-2 mt-6">
+                  {calendars.slice(4).map((calendar) => (
+                    <div key={calendar.id} className="flex items-center justify-between py-2 border-t">
                       <div className="flex items-center gap-3">
                         <div 
-                          className="w-4 h-4 rounded-full" 
+                          className="w-4 h-4 rounded-sm" 
                           style={{ backgroundColor: calendar.color }}
                         />
                         <span>{calendar.name}</span>
                       </div>
-                      <Switch 
-                        checked={calendar.enabled} 
-                        onCheckedChange={() => handleSyncToggle(calendar.id)}
-                      />
+                      <button className="text-gray-400 hover:text-gray-600">
+                        {calendar.enabled ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
               
-              <Separator />
+              <Separator className="mt-6" />
               
-              <div className="space-y-4">
+              <div className="space-y-4 hidden">
                 <h3 className="font-medium">Sync Settings</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
