@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
-import Header from './Header';
 import Sidebar from './Sidebar';
+import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,23 +9,42 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const toggleCreateModal = () => {
+    setIsCreateModalOpen(!isCreateModalOpen);
+  };
+
+  const handleCreateTask = (taskData: any) => {
+    console.log('New task created:', taskData);
+    // In a real app, you would dispatch an action or call an API
+    setIsCreateModalOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Header toggleSidebar={toggleSidebar} />
       <div className="flex flex-1">
-        <Sidebar isSidebarOpen={isSidebarOpen} />
+        <Sidebar 
+          isSidebarOpen={isSidebarOpen} 
+          toggleCreateModal={toggleCreateModal}
+        />
         <main 
-          className={`flex-1 transition-all duration-300 ease-in-out mt-16 p-4 md:p-6 
+          className={`flex-1 transition-all duration-300 ease-in-out p-4 md:p-6 
             ${isSidebarOpen ? 'md:ml-64' : ''}`}
         >
           {children}
         </main>
       </div>
+
+      <CreateTaskModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateTask}
+      />
     </div>
   );
 };

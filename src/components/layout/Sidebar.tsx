@@ -9,7 +9,12 @@ import {
   Settings,
   Clock,
   HelpCircle,
-  Tag
+  Tag,
+  Search,
+  Plus,
+  Bell,
+  User,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ButtonCustom } from '@/components/ui/button-custom';
@@ -17,12 +22,14 @@ import { Separator } from '@/components/ui/separator';
 
 interface SidebarProps {
   isSidebarOpen: boolean;
+  toggleCreateModal: () => void;
 }
 
-const Sidebar = ({ isSidebarOpen }: SidebarProps) => {
+const Sidebar = ({ isSidebarOpen, toggleCreateModal }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const mainNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -41,13 +48,73 @@ const Sidebar = ({ isSidebarOpen }: SidebarProps) => {
   return (
     <aside 
       className={cn(
-        "fixed top-16 left-0 z-30 h-[calc(100vh-4rem)] w-64 border-r border-border/40 bg-sidebar shadow-sm transition-all duration-300 ease-in-out",
+        "fixed top-0 left-0 z-30 h-screen w-64 border-r border-border/40 bg-sidebar shadow-sm transition-all duration-300 ease-in-out",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-64"
       )}
     >
       <div className="flex h-full flex-col overflow-hidden">
+        {/* Header Elements moved to top of sidebar */}
+        <div className="p-4 border-b border-border/40">
+          <div 
+            className="flex items-center gap-2 cursor-pointer mb-4" 
+            onClick={() => navigate('/')}
+          >
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+              TC
+            </div>
+            <span className="text-lg font-medium">TodoCal</span>
+          </div>
+          
+          {/* Search Bar */}
+          <div className={cn(
+            "w-full transition-all duration-300 ease-in-out mb-3",
+            isSearchOpen ? "opacity-100" : "opacity-100"
+          )}>
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input 
+                type="text" 
+                placeholder="Search tasks..." 
+                className="w-full h-10 pl-9 pr-4 rounded-md bg-muted/50 border border-border/50 focus:border-primary/30 focus:ring-4 focus:ring-primary/10 transition-all duration-200 text-sm outline-none"
+              />
+            </div>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between">
+            <ButtonCustom
+              variant="primary"
+              size="sm"
+              className="rounded-full shadow-sm"
+              icon={<Plus className="h-4 w-4" />}
+              onClick={toggleCreateModal}
+            >
+              <span>New Task</span>
+            </ButtonCustom>
+            
+            <div className="flex items-center gap-2">
+              <ButtonCustom
+                variant="ghost"
+                size="icon"
+                className="relative"
+                aria-label="Notifications"
+                icon={
+                  <>
+                    <Bell className="h-5 w-5" />
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-priority-high rounded-full" />
+                  </>
+                }
+              />
+
+              <button className="w-8 h-8 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200">
+                <User className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto p-4 subtle-scroll">
-          <nav className="space-y-1">
+          <nav className="space-y-1 mt-2">
             {mainNavItems.map((item) => (
               <ButtonCustom
                 key={item.path}
