@@ -41,7 +41,7 @@ const SearchTasksSheet = ({ isOpen, onOpenChange }: SearchTasksSheetProps) => {
     const filtered = tasks.filter(task => 
       task.title.toLowerCase().includes(term) || 
       (task.description && task.description.toLowerCase().includes(term)) ||
-      (task.tags && task.tags.some(tag => tag.label.toLowerCase().includes(term)))
+      (task.tags && task.tags.some(tag => tag.toLowerCase().includes(term)))
     );
     
     setSearchResults(filtered);
