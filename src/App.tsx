@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Calendar from "./pages/Calendar";
 import Kanban from "./pages/Kanban";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/tasks" element={<Layout><Tasks /></Layout>} />
           <Route path="/calendar" element={<Layout><Calendar /></Layout>} />
           <Route path="/kanban" element={<Layout><Kanban /></Layout>} />
+          <Route path="/settings" element={<Layout><Settings /></Layout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
