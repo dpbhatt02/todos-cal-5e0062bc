@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -65,7 +64,11 @@ const TagsList = ({ isSidebarOpen }: TagsListProps) => {
               {hoveredTag === tag.id && (
                 <div 
                   className="absolute left-full top-0 z-50 ml-1 whitespace-nowrap rounded-md bg-sidebar-primary px-3 py-1.5 text-xs font-medium text-sidebar-primary-foreground shadow-md animate-fade-in"
-                  style={{ marginTop: "2px" }}
+                  style={{ 
+                    marginTop: "2px",
+                    transform: "translateX(0)",
+                    position: "absolute",
+                  }}
                 >
                   {tag.label}
                 </div>
