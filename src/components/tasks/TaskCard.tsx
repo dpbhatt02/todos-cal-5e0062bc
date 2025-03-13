@@ -15,6 +15,8 @@ export interface TaskProps {
   description?: string;
   priority: 'low' | 'medium' | 'high';
   dueDate: Date | string;
+  startTime?: string;
+  endTime?: string;
   completed: boolean;
   tags?: string[];
   onClick?: () => void;
@@ -26,6 +28,8 @@ const TaskCard = ({
   description, 
   priority, 
   dueDate, 
+  startTime,
+  endTime,
   completed, 
   tags = [],
   onClick
@@ -43,7 +47,8 @@ const TaskCard = ({
     work: 'bg-blue-500',
     personal: 'bg-purple-500',
     health: 'bg-green-500',
-    learning: 'bg-amber-500'
+    learning: 'bg-amber-500',
+    meeting: 'bg-red-500'
   };
 
   const formatDate = (date: Date | string) => {
@@ -71,6 +76,20 @@ const TaskCard = ({
     console.log('Delete task:', id);
     // In a real app, this would show confirmation and delete
   };
+
+  // Format time for display (16:00 -> 4:00 PM)
+  const formatTime = (time: string) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  // Create time range display if both start and end times exist
+  const timeDisplay = startTime && endTime 
+    ? `${formatTime(startTime)} - ${formatTime(endTime)}`
+    : '';
 
   return (
     <div 
@@ -110,13 +129,18 @@ const TaskCard = ({
           {description && (
             <HoverCard>
               <HoverCardTrigger asChild>
-                <p className="text-sm text-muted-foreground truncate mb-2 cursor-help">
-                  {description.substring(0, 60)}
-                  {description.length > 60 && '...'}
+                <p className="text-sm text-muted-foreground mb-2 cursor-help">
+                  {description.includes('<a href=') 
+                    ? <span dangerouslySetInnerHTML={{ __html: description.substring(0, 60) + (description.length > 60 ? '...' : '') }} />
+                    : description.substring(0, 60) + (description.length > 60 ? '...' : '')
+                  }
                 </p>
               </HoverCardTrigger>
               <HoverCardContent className="w-80">
-                <p className="text-sm">{description}</p>
+                {description.includes('<a href=') 
+                  ? <p className="text-sm" dangerouslySetInnerHTML={{ __html: description }} />
+                  : <p className="text-sm">{description}</p>
+                }
               </HoverCardContent>
             </HoverCard>
           )}
@@ -126,6 +150,14 @@ const TaskCard = ({
               <Clock className="h-3 w-3 mr-1" />
               <span>{formatDate(dueDate)}</span>
             </div>
+            
+            {timeDisplay && (
+              <div className="flex items-center text-xs text-muted-foreground ml-2">
+                <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+                  {timeDisplay}
+                </span>
+              </div>
+            )}
             
             {tags.length > 0 && tags.slice(0, 2).map((tag) => (
               <div 

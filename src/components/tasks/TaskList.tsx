@@ -1,6 +1,5 @@
-
-import { useState } from 'react';
-import { Plus, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Search, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { 
@@ -14,6 +13,7 @@ import {
 } from '@/components/ui/collapsible';
 import TaskCard, { TaskProps } from './TaskCard';
 import TaskDetailModal from './TaskDetailModal';
+import { toast } from 'sonner';
 
 // Sample tasks data for demonstration
 const mockTasks: TaskProps[] = [
@@ -61,6 +61,18 @@ const mockTasks: TaskProps[] = [
     dueDate: '2023-09-19',
     completed: false,
     tags: ['personal']
+  },
+  // Adding the new task with time duration and link
+  {
+    id: '6',
+    title: 'Project review meeting',
+    description: 'Review project progress and discuss next steps. Check the <a href="https://example.com/project-docs" class="text-blue-500 underline hover:text-blue-700">project documentation</a> before the meeting.',
+    priority: 'high',
+    dueDate: new Date().toISOString().split('T')[0], // Today's date
+    startTime: '16:00', // 4:00 PM
+    endTime: '17:00',   // 5:00 PM
+    completed: false,
+    tags: ['work', 'meeting']
   }
 ];
 
@@ -71,6 +83,9 @@ const TaskList = () => {
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskProps | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [tasks, setTasks] = useState(mockTasks);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const draggedOverId = useRef<string | null>(null);
   
   // Collapsible section states
   const [overdueOpen, setOverdueOpen] = useState(true);
@@ -80,7 +95,7 @@ const TaskList = () => {
   const [completedOpen, setCompletedOpen] = useState(false);
 
   // Filter tasks based on search query and view option
-  const filteredTasks = mockTasks.filter(task => {
+  const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesViewOption = viewOption === 'all' 
       || (viewOption === 'completed' && task.completed)
@@ -102,6 +117,7 @@ const TaskList = () => {
       const bTag = b.tags && b.tags.length > 0 ? b.tags[0] : '';
       return aTag.localeCompare(bTag);
     }
+    // If custom sort, use the current order (which is maintained by drag and drop)
     return 0;
   });
   
@@ -144,6 +160,40 @@ const TaskList = () => {
   const handleRescheduleOverdue = () => {
     console.log('Reschedule overdue tasks');
     // In a real app, this would open a modal to reschedule all overdue tasks
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (id: string) => {
+    if (sortOption === 'custom') {
+      setDraggingId(id);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    draggedOverId.current = id;
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    
+    if (draggingId && draggedOverId.current && sortOption === 'custom') {
+      const newTasks = [...tasks];
+      const draggedIndex = newTasks.findIndex(task => task.id === draggingId);
+      const dropIndex = newTasks.findIndex(task => task.id === draggedOverId.current);
+      
+      if (draggedIndex !== -1 && dropIndex !== -1) {
+        // Remove the dragged item
+        const [draggedTask] = newTasks.splice(draggedIndex, 1);
+        // Insert it at the new position
+        newTasks.splice(dropIndex, 0, draggedTask);
+        setTasks(newTasks);
+        toast.success("Task reordered successfully");
+      }
+      
+      setDraggingId(null);
+      draggedOverId.current = null;
+    }
   };
 
   return (
@@ -189,7 +239,8 @@ const TaskList = () => {
             >
               {sortOption === 'date' ? 'Sort by Date' : 
                sortOption === 'priority' ? 'Sort by Priority' : 
-               'Sort by Tags'}
+               sortOption === 'tags' ? 'Sort by Tags' : 
+               'Custom Order'}
             </ButtonCustom>
             <div className={`absolute right-0 mt-1 w-40 bg-popover shadow-lg rounded-md p-1 border border-border ${isSortMenuOpen ? 'block' : 'hidden'}`}>
               <button 
@@ -218,6 +269,16 @@ const TaskList = () => {
                 }}
               >
                 Sort by Tags
+              </button>
+              <button 
+                className="w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent"
+                onClick={() => {
+                  setSortOption('custom');
+                  setIsSortMenuOpen(false);
+                  toast.info("Drag tasks to reorder them");
+                }}
+              >
+                Custom Order
               </button>
             </div>
           </div>
@@ -252,11 +313,34 @@ const TaskList = () => {
             <CollapsibleContent>
               <div className="px-4 py-2 space-y-2">
                 {groupedTasks.overdue.map(task => (
-                  <TaskCard 
-                    key={task.id} 
-                    {...task} 
-                    onClick={() => handleTaskClick(task)}
-                  />
+                  <div 
+                    key={task.id}
+                    draggable={sortOption === 'custom'}
+                    onDragStart={() => handleDragStart(task.id)}
+                    onDragOver={(e) => handleDragOver(e, task.id)}
+                    onDrop={handleDrop}
+                    className={`${draggingId === task.id ? 'opacity-50' : 'opacity-100'} ${sortOption === 'custom' ? 'cursor-move' : ''}`}
+                  >
+                    {sortOption === 'custom' && (
+                      <div className="flex items-center">
+                        <div className="p-1 text-muted-foreground">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1">
+                          <TaskCard 
+                            {...task} 
+                            onClick={() => handleTaskClick(task)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {sortOption !== 'custom' && (
+                      <TaskCard 
+                        {...task} 
+                        onClick={() => handleTaskClick(task)}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             </CollapsibleContent>
@@ -284,11 +368,34 @@ const TaskList = () => {
             <CollapsibleContent>
               <div className="px-4 py-2 space-y-2">
                 {groupedTasks.today.map(task => (
-                  <TaskCard 
-                    key={task.id} 
-                    {...task} 
-                    onClick={() => handleTaskClick(task)}
-                  />
+                  <div 
+                    key={task.id}
+                    draggable={sortOption === 'custom'}
+                    onDragStart={() => handleDragStart(task.id)}
+                    onDragOver={(e) => handleDragOver(e, task.id)}
+                    onDrop={handleDrop}
+                    className={`${draggingId === task.id ? 'opacity-50' : 'opacity-100'} ${sortOption === 'custom' ? 'cursor-move' : ''}`}
+                  >
+                    {sortOption === 'custom' && (
+                      <div className="flex items-center">
+                        <div className="p-1 text-muted-foreground">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1">
+                          <TaskCard 
+                            {...task} 
+                            onClick={() => handleTaskClick(task)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {sortOption !== 'custom' && (
+                      <TaskCard 
+                        {...task} 
+                        onClick={() => handleTaskClick(task)}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             </CollapsibleContent>
@@ -316,11 +423,34 @@ const TaskList = () => {
             <CollapsibleContent>
               <div className="px-4 py-2 space-y-2">
                 {groupedTasks.tomorrow.map(task => (
-                  <TaskCard 
-                    key={task.id} 
-                    {...task} 
-                    onClick={() => handleTaskClick(task)}
-                  />
+                  <div 
+                    key={task.id}
+                    draggable={sortOption === 'custom'}
+                    onDragStart={() => handleDragStart(task.id)}
+                    onDragOver={(e) => handleDragOver(e, task.id)}
+                    onDrop={handleDrop}
+                    className={`${draggingId === task.id ? 'opacity-50' : 'opacity-100'} ${sortOption === 'custom' ? 'cursor-move' : ''}`}
+                  >
+                    {sortOption === 'custom' && (
+                      <div className="flex items-center">
+                        <div className="p-1 text-muted-foreground">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1">
+                          <TaskCard 
+                            {...task} 
+                            onClick={() => handleTaskClick(task)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {sortOption !== 'custom' && (
+                      <TaskCard 
+                        {...task} 
+                        onClick={() => handleTaskClick(task)}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             </CollapsibleContent>
@@ -348,11 +478,34 @@ const TaskList = () => {
             <CollapsibleContent>
               <div className="px-4 py-2 space-y-2">
                 {groupedTasks.upcoming.map(task => (
-                  <TaskCard 
-                    key={task.id} 
-                    {...task} 
-                    onClick={() => handleTaskClick(task)}
-                  />
+                  <div 
+                    key={task.id}
+                    draggable={sortOption === 'custom'}
+                    onDragStart={() => handleDragStart(task.id)}
+                    onDragOver={(e) => handleDragOver(e, task.id)}
+                    onDrop={handleDrop}
+                    className={`${draggingId === task.id ? 'opacity-50' : 'opacity-100'} ${sortOption === 'custom' ? 'cursor-move' : ''}`}
+                  >
+                    {sortOption === 'custom' && (
+                      <div className="flex items-center">
+                        <div className="p-1 text-muted-foreground">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1">
+                          <TaskCard 
+                            {...task} 
+                            onClick={() => handleTaskClick(task)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {sortOption !== 'custom' && (
+                      <TaskCard 
+                        {...task} 
+                        onClick={() => handleTaskClick(task)}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             </CollapsibleContent>
@@ -380,11 +533,34 @@ const TaskList = () => {
             <CollapsibleContent>
               <div className="px-4 py-2 space-y-2">
                 {groupedTasks.completed.map(task => (
-                  <TaskCard 
-                    key={task.id} 
-                    {...task} 
-                    onClick={() => handleTaskClick(task)}
-                  />
+                  <div 
+                    key={task.id}
+                    draggable={sortOption === 'custom'}
+                    onDragStart={() => handleDragStart(task.id)}
+                    onDragOver={(e) => handleDragOver(e, task.id)}
+                    onDrop={handleDrop}
+                    className={`${draggingId === task.id ? 'opacity-50' : 'opacity-100'} ${sortOption === 'custom' ? 'cursor-move' : ''}`}
+                  >
+                    {sortOption === 'custom' && (
+                      <div className="flex items-center">
+                        <div className="p-1 text-muted-foreground">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1">
+                          <TaskCard 
+                            {...task} 
+                            onClick={() => handleTaskClick(task)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {sortOption !== 'custom' && (
+                      <TaskCard 
+                        {...task} 
+                        onClick={() => handleTaskClick(task)}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             </CollapsibleContent>

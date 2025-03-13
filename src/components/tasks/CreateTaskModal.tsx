@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { X, Calendar as CalendarIcon } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +23,8 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
     description: '',
     priority: 'medium',
     dueDate: formatDate(new Date()),
+    startTime: '',
+    endTime: '',
     tags: [] as string[]
   });
 
@@ -30,7 +32,8 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
     { id: 'work', label: 'Work' },
     { id: 'personal', label: 'Personal' },
     { id: 'health', label: 'Health' },
-    { id: 'learning', label: 'Learning' }
+    { id: 'learning', label: 'Learning' },
+    { id: 'meeting', label: 'Meeting' }
   ];
 
   function formatDate(date: Date) {
@@ -65,6 +68,8 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
       description: '',
       priority: 'medium',
       dueDate: formatDate(new Date()),
+      startTime: '',
+      endTime: '',
       tags: []
     });
     onClose();
@@ -155,6 +160,39 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
                     High
                   </ToggleGroupItem>
                 </ToggleGroup>
+              </div>
+            </div>
+            
+            {/* Time duration fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime">Start Time (Optional)</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="startTime"
+                    name="startTime"
+                    type="time"
+                    value={taskData.startTime}
+                    onChange={handleChange}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="endTime">End Time (Optional)</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="endTime"
+                    name="endTime"
+                    type="time"
+                    value={taskData.endTime}
+                    onChange={handleChange}
+                    className="pl-9"
+                  />
+                </div>
               </div>
             </div>
             

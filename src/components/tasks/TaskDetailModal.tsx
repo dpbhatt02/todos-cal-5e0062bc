@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Check, Edit, Trash, X, Calendar, Tag, Clock } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { cn } from '@/lib/utils';
 import { TaskProps } from './TaskCard';
@@ -39,7 +39,8 @@ const TaskDetailModal = ({
     work: 'bg-blue-100 text-blue-700',
     personal: 'bg-purple-100 text-purple-700',
     health: 'bg-green-100 text-green-700',
-    learning: 'bg-amber-100 text-amber-700'
+    learning: 'bg-amber-100 text-amber-700',
+    meeting: 'bg-red-100 text-red-700'
   };
 
   const formatDate = (date: Date | string) => {
@@ -51,12 +52,27 @@ const TaskDetailModal = ({
       year: 'numeric'
     });
   };
+
+  // Format time for display (16:00 -> 4:00 PM)
+  const formatTime = (time: string) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  // Create time range display if both start and end times exist
+  const timeDisplay = task.startTime && task.endTime 
+    ? `${formatTime(task.startTime)} - ${formatTime(task.endTime)}`
+    : '';
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">{task.title}</DialogTitle>
+          <DialogDescription className="sr-only">Task details</DialogDescription>
         </DialogHeader>
         
         <div className="mt-4 space-y-6">
@@ -64,7 +80,7 @@ const TaskDetailModal = ({
           {task.description && (
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
-              <p className="text-sm">{task.description}</p>
+              <div className="text-sm" dangerouslySetInnerHTML={{ __html: task.description }} />
             </div>
           )}
           
@@ -89,6 +105,17 @@ const TaskDetailModal = ({
               </div>
             </div>
           </div>
+          
+          {/* Time duration */}
+          {timeDisplay && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Time</h3>
+              <div className="flex items-center text-sm">
+                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span>{timeDisplay}</span>
+              </div>
+            </div>
+          )}
           
           {/* Tags */}
           {task.tags && task.tags.length > 0 && (
