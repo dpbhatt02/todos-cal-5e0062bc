@@ -1,12 +1,21 @@
 
 import { useState } from 'react';
-import { Plus, Search, ChevronDown } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { ButtonCustom } from '@/components/ui/button-custom';
+import { Filter, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
+import { format } from 'date-fns';
 import { 
-  ToggleGroup, 
-  ToggleGroupItem 
-} from '@/components/ui/toggle-group';
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Calendar } from "@/components/ui/calendar";
+import { ButtonCustom } from '@/components/ui/button-custom';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TaskCard, { TaskProps } from './TaskCard';
 
 // Sample tasks data for demonstration
@@ -60,8 +69,10 @@ const mockTasks: TaskProps[] = [
 
 const TaskList = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewOption, setViewOption] = useState('all');
+  const [viewOption, setViewOption] = useState('active');
   const [sortOption, setSortOption] = useState('date');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [isOverdueOpen, setIsOverdueOpen] = useState(true);
 
   // Filter tasks based on search query and view option
   const filteredTasks = mockTasks.filter(task => {
@@ -112,84 +123,168 @@ const TaskList = () => {
       taskDate.setHours(0, 0, 0, 0);
       return taskDate > tomorrow;
     }),
-    completed: sortedTasks.filter(task => task.completed)
+  };
+
+  // The visible days of the current month for the day selection
+  const getDaysOfCurrentMonth = () => {
+    if (!selectedDate) return [];
+    
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      const date = new Date(year, month, day);
+      return {
+        date,
+        day,
+        isToday: date.getTime() === today.getTime(),
+        hasTask: sortedTasks.some(task => {
+          const taskDate = new Date(task.dueDate);
+          return taskDate.getDate() === day && 
+                 taskDate.getMonth() === month && 
+                 taskDate.getFullYear() === year;
+        })
+      };
+    });
   };
 
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Tasks</h1>
-        <ButtonCustom 
-          variant="primary"
-          className="rounded-full"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => {/* Open task creation modal */}}
-        >
-          New Task
-        </ButtonCustom>
-      </div>
-      
-      <div className="mb-6 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search tasks..."
-            className="pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
         
         <div className="flex gap-2">
-          <ToggleGroup type="single" value={viewOption} onValueChange={(value) => value && setViewOption(value)}>
-            <ToggleGroupItem value="all" aria-label="Show all tasks">All</ToggleGroupItem>
-            <ToggleGroupItem value="active" aria-label="Show active tasks">Active</ToggleGroupItem>
-            <ToggleGroupItem value="completed" aria-label="Show completed tasks">Completed</ToggleGroupItem>
-          </ToggleGroup>
+          {/* Filter Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <ButtonCustom 
+                variant="outline" 
+                className="flex items-center gap-1"
+                icon={<Filter className="h-4 w-4 mr-1" />}
+              >
+                {viewOption === 'all' ? 'All Tasks' : 
+                 viewOption === 'active' ? 'Active Tasks' : 'Completed Tasks'}
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </ButtonCustom>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setViewOption('all')}>
+                All Tasks
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewOption('active')}>
+                Active Tasks
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewOption('completed')}>
+                Completed Tasks
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           
-          <div className="relative">
-            <ButtonCustom 
-              variant="outline" 
-              className="flex items-center gap-1"
-              icon={<ChevronDown className="h-4 w-4 ml-1" />}
-              iconPosition="right"
-            >
-              {sortOption === 'date' ? 'Sort by Date' : 'Sort by Priority'}
-            </ButtonCustom>
-            <div className="absolute right-0 mt-1 w-40 bg-popover shadow-lg rounded-md p-1 border border-border hidden">
-              <button 
-                className="w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent"
-                onClick={() => setSortOption('date')}
+          {/* Sort Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <ButtonCustom 
+                variant="outline" 
+                className="flex items-center gap-1"
+                icon={<ChevronDown className="h-4 w-4 ml-1" />}
+                iconPosition="right"
               >
+                {sortOption === 'date' ? 'Sort by Date' : 'Sort by Priority'}
+              </ButtonCustom>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSortOption('date')}>
                 Sort by Date
-              </button>
-              <button 
-                className="w-full text-left px-3 py-1.5 text-sm rounded-sm hover:bg-accent"
-                onClick={() => setSortOption('priority')}
-              >
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortOption('priority')}>
                 Sort by Priority
-              </button>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+      
+      {/* Date Selection with Month */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-medium">{format(selectedDate || new Date(), 'MMMM yyyy')}</h2>
+          <Popover>
+            <PopoverTrigger asChild>
+              <ButtonCustom variant="outline" size="sm">
+                Select Month
+              </ButtonCustom>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        
+        {/* Days of month row */}
+        <div className="grid grid-cols-7 gap-1 mb-4">
+          {getDaysOfCurrentMonth().slice(0, 7).map((_, index) => (
+            <div key={`day-name-${index}`} className="text-center text-xs text-muted-foreground">
+              {format(new Date(2023, 0, index + 2), 'EEE')}
             </div>
-          </div>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1">
+          {/* Add any padding days at the start of the month */}
+          {selectedDate && Array.from({ length: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay() }, (_, i) => (
+            <div key={`padding-start-${i}`} className="h-9 w-full"></div>
+          ))}
+          
+          {getDaysOfCurrentMonth().map((dayInfo) => (
+            <button
+              key={`day-${dayInfo.day}`}
+              className={`h-9 w-full rounded-full flex items-center justify-center text-sm relative ${
+                dayInfo.isToday ? 'bg-primary text-primary-foreground' : 
+                dayInfo.hasTask ? 'font-medium' : ''
+              }`}
+              onClick={() => setSelectedDate(dayInfo.date)}
+            >
+              {dayInfo.day}
+              {dayInfo.hasTask && !dayInfo.isToday && (
+                <span className="absolute bottom-1 w-1 h-1 bg-primary rounded-full"></span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
       
       <div className="space-y-6">
+        {/* Collapsible Overdue Section */}
         {groupedTasks.overdue.length > 0 && (
-          <div>
-            <h2 className="flex items-center mb-3 text-destructive">
-              <span className="text-sm font-medium">Overdue</span>
-              <span className="ml-2 px-1.5 py-0.5 bg-destructive/10 text-destructive rounded text-xs">
-                {groupedTasks.overdue.length}
-              </span>
-            </h2>
-            <div className="space-y-2">
-              {groupedTasks.overdue.map(task => (
-                <TaskCard key={task.id} {...task} />
-              ))}
-            </div>
-          </div>
+          <Collapsible open={isOverdueOpen} onOpenChange={setIsOverdueOpen}>
+            <CollapsibleTrigger className="flex items-center w-full justify-between text-left mb-3">
+              <div className="flex items-center">
+                <span className="text-sm font-medium text-destructive">Overdue</span>
+                <span className="ml-2 px-1.5 py-0.5 bg-destructive/10 text-destructive rounded text-xs">
+                  {groupedTasks.overdue.length}
+                </span>
+              </div>
+              {isOverdueOpen ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-2">
+                {groupedTasks.overdue.map(task => (
+                  <TaskCard key={task.id} {...task} />
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
         
         {groupedTasks.today.length > 0 && (
@@ -234,22 +329,6 @@ const TaskList = () => {
             </h2>
             <div className="space-y-2">
               {groupedTasks.upcoming.map(task => (
-                <TaskCard key={task.id} {...task} />
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {viewOption !== 'active' && groupedTasks.completed.length > 0 && (
-          <div>
-            <h2 className="flex items-center mb-3">
-              <span className="text-sm font-medium">Completed</span>
-              <span className="ml-2 px-1.5 py-0.5 bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400 rounded text-xs">
-                {groupedTasks.completed.length}
-              </span>
-            </h2>
-            <div className="space-y-2">
-              {groupedTasks.completed.map(task => (
                 <TaskCard key={task.id} {...task} />
               ))}
             </div>
