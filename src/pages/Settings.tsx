@@ -1,13 +1,22 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GeneralSettings } from "@/components/settings/GeneralSettings";
 import { AccountSettings } from "@/components/settings/AccountSettings";
 import { CalendarSettings } from "@/components/settings/CalendarSettings";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
+
+  useEffect(() => {
+    // Check localStorage for an active tab setting
+    const savedTab = window.localStorage.getItem('settings-active-tab');
+    if (savedTab) {
+      setActiveTab(savedTab);
+      // Clear the localStorage item after using it
+      window.localStorage.removeItem('settings-active-tab');
+    }
+  }, []);
 
   return (
     <div className="container max-w-4xl mx-auto py-6">

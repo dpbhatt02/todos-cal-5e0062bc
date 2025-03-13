@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -71,7 +72,11 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
 
   // Handle profile actions
   const handleEditProfile = () => {
+    // Navigate to the account tab in settings instead of just the settings page
     navigate('/settings');
+    // Set the active tab to account in the Settings component
+    // We'll update the Settings.tsx to check for this parameter
+    window.localStorage.setItem('settings-active-tab', 'account');
   };
 
   const handleLogout = () => {
