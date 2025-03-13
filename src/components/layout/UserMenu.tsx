@@ -75,70 +75,74 @@ const UserMenu = ({ isSidebarOpen, menuItems = [] }: UserMenuProps) => {
           </span>
         </div>
       ) : (
-        renderUserIcon()
+        <div className="w-10 h-10 flex items-center justify-center">
+          {renderUserIcon()}
+        </div>
       )}
     </button>
   );
 
   return (
-    <DropdownMenu>
-      {isSidebarOpen ? (
-        <DropdownMenuTrigger asChild>
-          {userButton}
-        </DropdownMenuTrigger>
-      ) : (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                {userButton}
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              User Profile
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-      <DropdownMenuContent align="end" className="w-56 z-50 bg-popover">
-        {user && (
-          <>
-            <div className="px-2 py-1.5 text-sm">
-              <div className="font-medium">{user.name || 'User'}</div>
-              <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-            </div>
-            <DropdownMenuSeparator />
-          </>
+    <div className="h-10">
+      <DropdownMenu>
+        {isSidebarOpen ? (
+          <DropdownMenuTrigger asChild>
+            {userButton}
+          </DropdownMenuTrigger>
+        ) : (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  {userButton}
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                User Profile
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
-        <DropdownMenuItem onClick={handleEditProfile} className="cursor-pointer">
-          <UserCog className="mr-2 h-4 w-4" />
-          <span>Edit Profile</span>
-        </DropdownMenuItem>
-        
-        {/* Additional menu items from props */}
-        {menuItems.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            {menuItems.map((item) => (
-              <DropdownMenuItem 
-                key={item.path}
-                onClick={() => handleNavigation(item.path)}
-                className="cursor-pointer"
-              >
-                <item.icon className="mr-2 h-4 w-4" />
-                <span>{item.label}</span>
-              </DropdownMenuItem>
-            ))}
-          </>
-        )}
-        
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Logout</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <DropdownMenuContent align="end" className="w-56 z-50 bg-popover">
+          {user && (
+            <>
+              <div className="px-2 py-1.5 text-sm">
+                <div className="font-medium">{user.name || 'User'}</div>
+                <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+              </div>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          <DropdownMenuItem onClick={handleEditProfile} className="cursor-pointer">
+            <UserCog className="mr-2 h-4 w-4" />
+            <span>Edit Profile</span>
+          </DropdownMenuItem>
+          
+          {/* Additional menu items from props */}
+          {menuItems.length > 0 && (
+            <>
+              <DropdownMenuSeparator />
+              {menuItems.map((item) => (
+                <DropdownMenuItem 
+                  key={item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  className="cursor-pointer"
+                >
+                  <item.icon className="mr-2 h-4 w-4" />
+                  <span>{item.label}</span>
+                </DropdownMenuItem>
+              ))}
+            </>
+          )}
+          
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Logout</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 };
 

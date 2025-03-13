@@ -67,11 +67,9 @@ const NavigationLinks = ({ isSidebarOpen }: NavigationLinksProps) => {
               />
               {hoveredItem === item.path && (
                 <div 
-                  className="absolute left-full top-0 z-50 ml-1 whitespace-nowrap rounded-md bg-sidebar-primary px-3 py-1.5 text-xs font-medium text-sidebar-primary-foreground shadow-md animate-fade-in"
+                  className="fixed left-[4.5rem] z-[100] ml-1 whitespace-nowrap rounded-md bg-sidebar-primary px-3 py-1.5 text-xs font-medium text-sidebar-primary-foreground shadow-md animate-fade-in"
                   style={{ 
-                    marginTop: "2px",
-                    transform: "translateX(0)",
-                    position: "absolute",
+                    top: `${document.getElementById(item.path)?.getBoundingClientRect().top || 0}px`,
                   }}
                 >
                   {item.label}
@@ -81,7 +79,7 @@ const NavigationLinks = ({ isSidebarOpen }: NavigationLinksProps) => {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="absolute inset-0 cursor-pointer" />
+                      <div className="absolute inset-0 cursor-pointer" id={item.path} />
                     </TooltipTrigger>
                     <TooltipContent side="right">
                       {item.label}

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -58,16 +59,15 @@ const TagsList = ({ isSidebarOpen }: TagsListProps) => {
               <div 
                 className="flex items-center justify-center cursor-pointer py-1.5"
                 onClick={() => handleTagClick(tag.id)}
+                id={`tag-${tag.id}`}
               >
                 <div className={cn("h-2.5 w-2.5 rounded-full", tag.color)} />
               </div>
               {hoveredTag === tag.id && (
                 <div 
-                  className="absolute left-full top-0 z-50 ml-1 whitespace-nowrap rounded-md bg-sidebar-primary px-3 py-1.5 text-xs font-medium text-sidebar-primary-foreground shadow-md animate-fade-in"
+                  className="fixed left-[4.5rem] z-[100] ml-1 whitespace-nowrap rounded-md bg-sidebar-primary px-3 py-1.5 text-xs font-medium text-sidebar-primary-foreground shadow-md animate-fade-in"
                   style={{ 
-                    marginTop: "2px",
-                    transform: "translateX(0)",
-                    position: "absolute",
+                    top: `${document.getElementById(`tag-${tag.id}`)?.getBoundingClientRect().top || 0}px`,
                   }}
                 >
                   {tag.label}
