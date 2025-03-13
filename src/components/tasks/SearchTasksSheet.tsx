@@ -12,13 +12,15 @@ import TaskCard from './TaskCard';
 import { useTasks } from '@/contexts/TasksContext';
 import { TaskProps } from './types';
 import { Button } from '@/components/ui/button';
+import { TasksProvider } from '@/contexts/TasksContext';
+import { mockTasks } from './mockData';
 
 interface SearchTasksSheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const SearchTasksSheet = ({ isOpen, onOpenChange }: SearchTasksSheetProps) => {
+const SearchTasksSheetContent = ({ isOpen, onOpenChange }: SearchTasksSheetProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<TaskProps[]>([]);
   const { tasks } = useTasks();
@@ -106,6 +108,15 @@ const SearchTasksSheet = ({ isOpen, onOpenChange }: SearchTasksSheetProps) => {
         </div>
       </SheetContent>
     </Sheet>
+  );
+};
+
+// Wrapper component that provides the TasksContext
+const SearchTasksSheet = (props: SearchTasksSheetProps) => {
+  return (
+    <TasksProvider initialTasks={mockTasks}>
+      <SearchTasksSheetContent {...props} />
+    </TasksProvider>
   );
 };
 
