@@ -1,22 +1,17 @@
 import { useState } from 'react';
-import { Filter, ChevronDown, ChevronRight, ChevronLeft, ArrowDownAZ, ArrowUpAZ, Move, RefreshCcw, CalendarIcon } from 'lucide-react';
-import { format, addDays, startOfWeek, isSameDay, addMonths, subMonths, parse } from 'date-fns';
+import { format, addDays, isSameDay } from 'date-fns';
 import { 
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { ButtonCustom } from '@/components/ui/button-custom';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { toast } from "@/hooks/use-toast";
-import TaskCard, { TaskProps } from './TaskCard';
+import { TaskProps } from './types';
+import WeekView from './WeekView';
+import TaskListFilters from './TaskListFilters';
+import OverdueTasksSection from './OverdueTasksSection';
+import TaskSection from './TaskSection';
 
 // Sample tasks data for demonstration
 const mockTasks: TaskProps[] = [
@@ -116,9 +111,6 @@ const TaskList = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
   const groupedTasks = {
     overdue: sortedTasks.filter(task => {
       const taskDate = new Date(task.dueDate);
@@ -136,41 +128,6 @@ const TaskList = () => {
       return !isSameDay(taskDate, selectedDate) && taskDate > today;
     }),
   };
-  
-  // Add a new function to handle rescheduling all overdue tasks
-  const rescheduleAllOverdueTasks = (date: Date) => {
-    // In a real app, you would call an API to update all overdue tasks
-    // For this mock, we'll just show a toast notification
-    toast({
-      title: "Tasks rescheduled",
-      description: `${groupedTasks.overdue.length} overdue tasks rescheduled to ${format(date, 'PPP')}`,
-    });
-  };
-
-  // Generate week view 
-  const getWeekDays = () => {
-    const days = [];
-    const start = startOfWeek(currentDate, { weekStartsOn: 0 }); // 0 = Sunday
-
-    for (let i = 0; i < 7; i++) {
-      const date = addDays(start, i);
-      days.push({
-        date,
-        day: format(date, 'd'),
-        weekday: format(date, 'EEE'),
-        isToday: isSameDay(date, today),
-        isSelected: isSameDay(date, selectedDate),
-        hasTask: sortedTasks.some(task => {
-          const taskDate = new Date(task.dueDate);
-          return isSameDay(taskDate, date);
-        })
-      });
-    }
-    
-    return days;
-  };
-
-  const weekDays = getWeekDays();
 
   // Navigate between weeks
   const previousWeek = () => {
@@ -185,23 +142,6 @@ const TaskList = () => {
   const goToToday = () => {
     setCurrentDate(new Date());
     setSelectedDate(new Date());
-  };
-
-  // Navigate between months for the month selector
-  const previousMonth = () => {
-    setCurrentDate(prev => subMonths(prev, 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentDate(prev => addMonths(prev, 1));
-  };
-
-  // Format the selected date for display
-  const getSelectedDateDisplay = () => {
-    const day = format(selectedDate, 'd');
-    const month = format(selectedDate, 'MMM');
-    const dayName = format(selectedDate, 'EEEE');
-    return `${day} ${month} · Today · ${dayName}`;
   };
 
   // Check if the selected date is today
@@ -245,68 +185,12 @@ const TaskList = () => {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Tasks</h1>
-        
-        <div className="flex gap-2">
-          {/* Filter Dropdown Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <ButtonCustom 
-                variant="outline" 
-                className="flex items-center gap-1"
-                icon={<Filter className="h-4 w-4 mr-1" />}
-              >
-                {viewOption === 'all' ? 'All Tasks' : 
-                 viewOption === 'active' ? 'Active Tasks' : 'Completed Tasks'}
-                <ChevronDown className="h-4 w-4 ml-1" />
-              </ButtonCustom>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setViewOption('all')}>
-                All Tasks
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setViewOption('active')}>
-                Active Tasks
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setViewOption('completed')}>
-                Completed Tasks
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          {/* Sort Dropdown Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <ButtonCustom 
-                variant="outline" 
-                className="flex items-center gap-1"
-                icon={
-                  sortOption === 'date' ? <ArrowDownAZ className="h-4 w-4 mr-1" /> : 
-                  sortOption === 'priority' ? <ArrowUpAZ className="h-4 w-4 mr-1" /> :
-                  <Move className="h-4 w-4 mr-1" />
-                }
-              >
-                {sortOption === 'date' ? 'Sort by Date' : 
-                 sortOption === 'priority' ? 'Sort by Priority' : 
-                 'Custom Order'}
-                <ChevronDown className="h-4 w-4 ml-1" />
-              </ButtonCustom>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setSortOption('date')}>
-                Sort by Date
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortOption('priority')}>
-                Sort by Priority
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortOption('custom')}>
-                Custom Order
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+      <TaskListFilters 
+        viewOption={viewOption}
+        sortOption={sortOption}
+        setViewOption={setViewOption}
+        setSortOption={setSortOption}
+      />
       
       {/* Date header with month picker */}
       <div className="mb-6">
@@ -317,7 +201,7 @@ const TaskList = () => {
               <PopoverTrigger asChild>
                 <ButtonCustom variant="ghost" className="flex items-center gap-1 text-md font-semibold">
                   {format(currentDate, 'MMMM yyyy')}
-                  <ChevronDown className="h-4 w-4 ml-1" />
+                  <span className="h-4 w-4 ml-1">▼</span>
                 </ButtonCustom>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -336,190 +220,57 @@ const TaskList = () => {
               </PopoverContent>
             </Popover>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <ButtonCustom 
-              variant="outline" 
-              size="icon" 
-              onClick={previousWeek}
-              className="h-8 w-8"
-              aria-label="Previous week"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </ButtonCustom>
-            
-            <ButtonCustom 
-              variant="outline" 
-              onClick={goToToday}
-              className="h-8"
-            >
-              Today
-            </ButtonCustom>
-            
-            <ButtonCustom 
-              variant="outline" 
-              size="icon" 
-              onClick={nextWeek}
-              className="h-8 w-8"
-              aria-label="Next week"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </ButtonCustom>
-          </div>
         </div>
         
-        {/* Week day selector */}
-        <div className="grid grid-cols-7 gap-2 mb-6">
-          {weekDays.map((day, index) => (
-            <button
-              key={index}
-              onClick={() => setSelectedDate(day.date)}
-              className={`flex flex-col items-center p-2 rounded-lg transition-colors 
-                ${day.isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}
-              `}
-            >
-              <span className="text-sm font-normal">{day.weekday}</span>
-              <span className={`text-xl font-semibold my-1 ${day.hasTask && !day.isSelected ? 'text-primary' : ''}`}>
-                {day.day}
-              </span>
-              {day.hasTask && !day.isSelected && (
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              )}
-            </button>
-          ))}
-        </div>
+        <WeekView 
+          currentDate={currentDate}
+          selectedDate={selectedDate}
+          tasks={sortedTasks}
+          onPreviousWeek={previousWeek}
+          onNextWeek={nextWeek}
+          onToday={goToToday}
+          onSelectDay={setSelectedDate}
+        />
       </div>
       
       <div className="space-y-6">
-        {/* Collapsible Overdue Section with Reschedule Popover */}
-        {groupedTasks.overdue.length > 0 && (
-          <Collapsible open={isOverdueOpen} onOpenChange={setIsOverdueOpen}>
-            <CollapsibleTrigger className="flex items-center w-full justify-between text-left mb-3">
-              <div className="flex items-center">
-                <ChevronRight className={`h-5 w-5 mr-2 transition-transform ${isOverdueOpen ? 'rotate-90' : ''}`} />
-                <span className="text-md font-medium text-destructive">Overdue</span>
-                <span className="ml-2 px-1.5 py-0.5 bg-destructive/10 text-destructive rounded text-xs">
-                  {groupedTasks.overdue.length}
-                </span>
-              </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <ButtonCustom
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-foreground"
-                    type="button"
-                  >
-                    Reschedule
-                  </ButtonCustom>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-4" align="end">
-                  <div className="flex flex-col space-y-2">
-                    <h3 className="text-sm font-medium mb-2">Reschedule all overdue tasks to:</h3>
-                    <ButtonCustom 
-                      variant="outline" 
-                      size="sm" 
-                      className="justify-start"
-                      type="button"
-                      onClick={() => rescheduleAllOverdueTasks(new Date())}
-                    >
-                      Today
-                    </ButtonCustom>
-                    <ButtonCustom 
-                      variant="outline" 
-                      size="sm" 
-                      className="justify-start"
-                      type="button"
-                      onClick={() => rescheduleAllOverdueTasks(addDays(new Date(), 1))}
-                    >
-                      Tomorrow
-                    </ButtonCustom>
-                    <div className="mt-2 pt-2 border-t">
-                      <p className="text-xs text-muted-foreground mb-2">Or pick a specific date:</p>
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => date && rescheduleAllOverdueTasks(date)}
-                        initialFocus
-                        className="pointer-events-auto border rounded-md"
-                      />
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="space-y-2 ml-7">
-                {groupedTasks.overdue.map(task => (
-                  <div 
-                    key={task.id}
-                    draggable={sortOption === 'custom'}
-                    onDragStart={(e) => sortOption === 'custom' && handleDragStart(e, task.id)}
-                    onDragOver={(e) => sortOption === 'custom' && handleDragOver(e)}
-                    onDragLeave={(e) => sortOption === 'custom' && handleDragLeave(e)}
-                    onDrop={(e) => sortOption === 'custom' && handleDrop(e, task.id)}
-                    onDragEnd={(e) => sortOption === 'custom' && handleDragEnd(e)}
-                    className={sortOption === 'custom' ? 'cursor-move' : ''}
-                  >
-                    <TaskCard {...task} />
-                  </div>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+        <OverdueTasksSection 
+          tasks={groupedTasks.overdue}
+          isOpen={isOverdueOpen}
+          onOpenChange={setIsOverdueOpen}
+          selectedDate={selectedDate}
+          sortOption={sortOption}
+          handleDragStart={handleDragStart}
+          handleDragOver={handleDragOver}
+          handleDragLeave={handleDragLeave}
+          handleDrop={handleDrop}
+          handleDragEnd={handleDragEnd}
+        />
         
-        {/* Today's Tasks with date display */}
-        <div>
-          <h2 className="text-lg font-semibold mb-4">
-            {getSelectedDateDisplay()}
-          </h2>
-          
-          <div className="space-y-2">
-            {groupedTasks.today.length > 0 ? (
-              groupedTasks.today.map(task => (
-                <div 
-                  key={task.id}
-                  draggable={sortOption === 'custom'}
-                  onDragStart={(e) => sortOption === 'custom' && handleDragStart(e, task.id)}
-                  onDragOver={(e) => sortOption === 'custom' && handleDragOver(e)}
-                  onDragLeave={(e) => sortOption === 'custom' && handleDragLeave(e)}
-                  onDrop={(e) => sortOption === 'custom' && handleDrop(e, task.id)}
-                  onDragEnd={(e) => sortOption === 'custom' && handleDragEnd(e)}
-                  className={sortOption === 'custom' ? 'cursor-move' : ''}
-                >
-                  <TaskCard {...task} />
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No tasks scheduled for this day.</p>
-              </div>
-            )}
-          </div>
-        </div>
+        <TaskSection 
+          title="Today"
+          tasks={groupedTasks.today}
+          sortOption={sortOption}
+          selectedDate={selectedDate}
+          handleDragStart={handleDragStart}
+          handleDragOver={handleDragOver}
+          handleDragLeave={handleDragLeave}
+          handleDrop={handleDrop}
+          handleDragEnd={handleDragEnd}
+        />
         
         {/* Upcoming Tasks (not for the selected date) */}
         {groupedTasks.upcoming.length > 0 && !isSelectedDateToday && (
-          <div className="mt-8">
-            <h2 className="text-md font-medium mb-3">Upcoming</h2>
-            <div className="space-y-2">
-              {groupedTasks.upcoming.map(task => (
-                <div 
-                  key={task.id}
-                  draggable={sortOption === 'custom'}
-                  onDragStart={(e) => sortOption === 'custom' && handleDragStart(e, task.id)}
-                  onDragOver={(e) => sortOption === 'custom' && handleDragOver(e)}
-                  onDragLeave={(e) => sortOption === 'custom' && handleDragLeave(e)}
-                  onDrop={(e) => sortOption === 'custom' && handleDrop(e, task.id)}
-                  onDragEnd={(e) => sortOption === 'custom' && handleDragEnd(e)}
-                  className={sortOption === 'custom' ? 'cursor-move' : ''}
-                >
-                  <TaskCard {...task} />
-                </div>
-              ))}
-            </div>
-          </div>
+          <TaskSection 
+            title="Upcoming"
+            tasks={groupedTasks.upcoming}
+            sortOption={sortOption}
+            handleDragStart={handleDragStart}
+            handleDragOver={handleDragOver}
+            handleDragLeave={handleDragLeave}
+            handleDrop={handleDrop}
+            handleDragEnd={handleDragEnd}
+          />
         )}
       </div>
     </div>
