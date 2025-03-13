@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, CheckCircle, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TaskProps } from './types';
@@ -8,6 +8,7 @@ import TaskActions from './TaskActions';
 import TaskDetailsSheet from './TaskDetailsSheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import TaskCardContent from './TaskCardContent';
+import { useSwipeGesture } from '@/hooks/use-swipe-gesture';
 
 const TaskCard = ({ 
   id, 
@@ -29,6 +30,22 @@ const TaskCard = ({
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  const handleSwipeLeft = () => {
+    // Toggle completion status on swipe left
+    handleCheckboxChange(!isCompleted);
+  };
+
+  const handleSwipeRight = () => {
+    // Open details modal on swipe right
+    setIsModalOpen(true);
+  };
+
+  const { handlers, state, elementRef } = useSwipeGesture({
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+    threshold: 40,
+  });
 
   const handleCheckboxChange = (checked: boolean | string) => {
     // Convert checked to boolean (in case it comes as string)
@@ -76,18 +93,48 @@ const TaskCard = ({
     setIsModalOpen(false);
   };
 
+  // Swipe indicators for mobile
+  const getSwipeIndicator = () => {
+    if (!state.swiping || !isMobile) return null;
+    
+    // Determine which indicator to show based on swipe direction
+    if (state.swipeOffset > 0) {
+      return (
+        <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center w-12 bg-primary/10 text-primary">
+          <ArrowRight className="h-4 w-4" />
+        </div>
+      );
+    } else if (state.swipeOffset < 0) {
+      return (
+        <div className="absolute left-0 top-0 bottom-0 flex items-center justify-center w-12 bg-primary/10 text-primary">
+          {isCompleted ? <RotateCcw className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
   return (
     <>
       <div 
+        ref={elementRef}
         className={cn(
-          "w-full border border-border/40 rounded-lg transition-all hover:shadow-md relative group cursor-pointer",
+          "w-full border border-border/40 rounded-lg transition-all hover:shadow-md relative group cursor-pointer overflow-hidden",
           isMobile ? "p-2" : "p-2.5",
           isCompleted && "opacity-70 bg-muted/30"
         )}
+        style={isMobile ? {
+          transform: `translateX(${state.swipeOffset}px)`,
+          transition: state.swiping ? 'none' : 'transform 0.3s ease'
+        } : undefined}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleOpenModal}
+        {...(isMobile ? handlers : {})}
       >
+        {getSwipeIndicator()}
+        
         <div className="flex items-start gap-2">
           <div 
             onClick={(e) => e.stopPropagation()}

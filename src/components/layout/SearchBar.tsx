@@ -1,6 +1,8 @@
 
+import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { ButtonCustom } from '@/components/ui/button-custom';
+import SearchTasksSheet from '@/components/tasks/SearchTasksSheet';
 
 interface SearchBarProps {
   isSidebarOpen: boolean;
@@ -8,6 +10,18 @@ interface SearchBarProps {
 }
 
 const SearchBar = ({ isSidebarOpen, handleSearchClick }: SearchBarProps) => {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  
+  const handleOpenSearch = () => {
+    if (isSidebarOpen) {
+      // If sidebar is open, use the inline search
+      handleSearchClick();
+    } else {
+      // If sidebar is collapsed, open the search sheet
+      setIsSearchOpen(true);
+    }
+  };
+
   return (
     <>
       {isSidebarOpen ? (
@@ -18,6 +32,8 @@ const SearchBar = ({ isSidebarOpen, handleSearchClick }: SearchBarProps) => {
               type="text" 
               placeholder="Search tasks..." 
               className="w-full h-10 pl-9 pr-4 rounded-md bg-muted/50 border border-border/50 focus:border-primary/30 focus:ring-4 focus:ring-primary/10 transition-all duration-200 text-sm outline-none"
+              onClick={handleSearchClick}
+              readOnly
             />
           </div>
         </div>
@@ -28,11 +44,13 @@ const SearchBar = ({ isSidebarOpen, handleSearchClick }: SearchBarProps) => {
             size="icon"
             className="w-10 h-10 rounded-full hover:bg-muted"
             icon={<Search className="h-5 w-5" />}
-            onClick={handleSearchClick}
+            onClick={handleOpenSearch}
             aria-label="Search tasks"
           />
         </div>
       )}
+      
+      <SearchTasksSheet isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </>
   );
 };

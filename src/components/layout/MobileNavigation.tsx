@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, ListTodo, Search, Menu, Tag, Settings, HelpCircle, LogOut, Plus } from 'lucide-react';
@@ -12,6 +11,7 @@ import {
   SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet';
+import SearchTasksSheet from '@/components/tasks/SearchTasksSheet';
 
 interface MobileNavigationProps {
   toggleCreateModal: () => void;
@@ -186,25 +186,7 @@ const MobileNavigation = ({ toggleCreateModal }: MobileNavigationProps) => {
       </div>
       
       {/* Search Modal */}
-      <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-        <SheetContent side="bottom" className="h-[90%]">
-          <SheetHeader className="text-left pb-4">
-            <SheetTitle>Search Tasks</SheetTitle>
-          </SheetHeader>
-          <div className="relative w-full mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Type to search tasks..." 
-              className="w-full h-12 pl-10 pr-4 rounded-md bg-muted/50 border border-border/50 focus:border-primary/30 focus:ring-4 focus:ring-primary/10 transition-all duration-200 text-sm outline-none"
-              autoFocus
-            />
-          </div>
-          <div className="space-y-4">
-            <p className="text-muted-foreground text-center py-8">Enter a search term to find tasks...</p>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <SearchTasksSheet isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </div>
   );
 };
