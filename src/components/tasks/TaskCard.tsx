@@ -120,21 +120,21 @@ const TaskCard = ({
 
   const handleReschedule = (date: Date | undefined) => {
     if (date && onReschedule) {
-      onReschedule(id, date);
       setSelectedDate(date);
+      onReschedule(id, date);
     }
   };
 
   return (
     <div 
       className={cn(
-        "w-full border border-border/40 rounded-lg p-4 transition-all hover:shadow-md relative group",
+        "w-full border border-border/40 rounded-lg p-3 transition-all hover:shadow-md relative group",
         isCompleted && "opacity-70 bg-muted/30"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2">
         <Checkbox 
           checked={isCompleted} 
           onCheckedChange={handleCheckboxChange}
@@ -142,9 +142,9 @@ const TaskCard = ({
         />
         
         <div className="flex-1 min-w-0">
-          <div className="flex items-center mb-1.5">
+          <div className="flex items-center mb-1">
             <h3 className={cn(
-              "text-base font-medium truncate mr-2",
+              "text-sm font-medium truncate mr-2",
               isCompleted && "line-through text-muted-foreground"
             )}>
               {title}
@@ -158,7 +158,7 @@ const TaskCard = ({
           {description && (
             <HoverCard>
               <HoverCardTrigger asChild>
-                <p className="text-sm text-muted-foreground truncate mb-2 cursor-help">
+                <p className="text-xs text-muted-foreground truncate mb-1.5 cursor-help">
                   {description.substring(0, 60)}
                   {description.length > 60 && '...'}
                 </p>
@@ -169,7 +169,7 @@ const TaskCard = ({
             </HoverCard>
           )}
           
-          <div className="flex flex-wrap items-center gap-2 mt-3">
+          <div className="flex flex-wrap items-center gap-2 mt-1">
             <div className="flex items-center text-xs text-muted-foreground">
               <Clock className="h-3 w-3 mr-1" />
               <span>{formatDate(dueDate)}</span>
@@ -209,6 +209,7 @@ const TaskCard = ({
                 className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
                 aria-label="Edit task"
                 onClick={handleEdit}
+                type="button"
               >
                 <Pencil className="h-4 w-4" />
               </button>
@@ -218,6 +219,7 @@ const TaskCard = ({
                   <button 
                     className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
                     aria-label="Reschedule task"
+                    type="button"
                   >
                     <Calendar className="h-4 w-4" />
                   </button>
@@ -228,7 +230,7 @@ const TaskCard = ({
                     selected={selectedDate}
                     onSelect={handleReschedule}
                     initialFocus
-                    className="p-3 pointer-events-auto"
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -237,6 +239,7 @@ const TaskCard = ({
                 className="text-destructive hover:text-destructive/80 transition-colors p-1 rounded-md hover:bg-muted"
                 aria-label="Delete task"
                 onClick={handleDelete}
+                type="button"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -246,6 +249,7 @@ const TaskCard = ({
           <button 
             className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="View task"
+            type="button"
           >
             <ArrowRight className="h-4 w-4" />
           </button>
