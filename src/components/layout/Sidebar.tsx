@@ -58,7 +58,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
           {/* Spacer to push footer nav to bottom */}
           <div className="flex-1" />
           
-          {/* Footer with settings and help links - Now here instead of in NavigationLinks */}
+          {/* Footer with settings and help links */}
           <div className="space-y-1 pb-4">
             {footerNavItems.map((item) => (
               <ButtonCustom

@@ -11,6 +11,8 @@ const Layout = ({ children }: LayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -35,6 +37,21 @@ const Layout = ({ children }: LayoutProps) => {
     setIsCreateModalOpen(false);
   };
 
+  // Handle hover on sidebar
+  const handleSidebarHoverEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    openSidebar();
+  };
+
+  const handleSidebarHoverLeave = () => {
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      closeSidebar();
+    }, 300); // Small delay to prevent unwanted closings
+  };
+
   // Handle clicks outside the sidebar
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -50,15 +67,30 @@ const Layout = ({ children }: LayoutProps) => {
     };
   }, [isSidebarOpen]);
 
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
-        <Sidebar 
-          isSidebarOpen={isSidebarOpen} 
-          toggleSidebar={toggleSidebar}
-          openSidebar={openSidebar}
-          toggleCreateModal={toggleCreateModal}
-        />
+        <div 
+          ref={sidebarRef}
+          onMouseEnter={handleSidebarHoverEnter}
+          onMouseLeave={handleSidebarHoverLeave}
+        >
+          <Sidebar 
+            isSidebarOpen={isSidebarOpen} 
+            toggleSidebar={toggleSidebar}
+            openSidebar={openSidebar}
+            toggleCreateModal={toggleCreateModal}
+          />
+        </div>
         <main 
           ref={mainRef}
           className={`flex-1 transition-all duration-300 ease-in-out p-4 md:p-6 
