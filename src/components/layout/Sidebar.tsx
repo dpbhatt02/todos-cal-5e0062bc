@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -22,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +40,7 @@ interface SidebarProps {
 const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout, user } = useAuth();
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -79,9 +80,26 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
     window.localStorage.setItem('settings-active-tab', 'account');
   };
 
-  const handleLogout = () => {
-    console.log("User logged out");
-    // Add actual logout logic here when authentication is implemented
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const renderUserIcon = () => {
+    if (user?.photoURL) {
+      return (
+        <img 
+          src={user.photoURL} 
+          alt={user.name || 'User'} 
+          className="w-full h-full rounded-full object-cover"
+        />
+      );
+    }
+    return <User className="h-4 w-4" />;
   };
 
   return (
@@ -91,6 +109,8 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
         isSidebarOpen ? "w-64" : "w-20"
       )}
     >
+      
+      
       <div className="flex h-full flex-col overflow-hidden">
         {/* Header Elements moved to top of sidebar */}
         <div className="p-4 border-b border-border/40">
@@ -183,11 +203,20 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
                 {/* User profile dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="w-8 h-8 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200">
-                      <User className="h-4 w-4" />
+                    <button className="w-8 h-8 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200 overflow-hidden">
+                      {renderUserIcon()}
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56 z-50 bg-popover">
+                    {user && (
+                      <>
+                        <div className="px-2 py-1.5 text-sm">
+                          <div className="font-medium">{user.name || 'User'}</div>
+                          <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                        </div>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <DropdownMenuItem onClick={handleEditProfile} className="cursor-pointer">
                       <UserCog className="mr-2 h-4 w-4" />
                       <span>Edit Profile</span>
@@ -218,11 +247,20 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
                 {/* User profile dropdown for collapsed sidebar */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200">
-                      <User className="h-5 w-5" />
+                    <button className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200 overflow-hidden">
+                      {renderUserIcon()}
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56 z-50 bg-popover">
+                    {user && (
+                      <>
+                        <div className="px-2 py-1.5 text-sm">
+                          <div className="font-medium">{user.name || 'User'}</div>
+                          <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                        </div>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <DropdownMenuItem onClick={handleEditProfile} className="cursor-pointer">
                       <UserCog className="mr-2 h-4 w-4" />
                       <span>Edit Profile</span>
@@ -239,6 +277,8 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
           </div>
         </div>
 
+        
+        
         <div className={cn(
           "flex-1 overflow-y-auto subtle-scroll",
           isSidebarOpen ? "p-4" : "p-2"
