@@ -17,6 +17,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const toggleCreateModal = () => {
     setIsCreateModalOpen(!isCreateModalOpen);
+    console.log('Create modal toggled, new state:', !isCreateModalOpen);
   };
 
   const handleCreateTask = (taskData: any) => {

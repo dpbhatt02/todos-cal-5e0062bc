@@ -38,7 +38,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
     startTime: '09:00',
     endTime: '10:00',
     tags: [] as string[],
-    recurring: ''
+    recurring: 'none'
   });
 
   const [textSelection, setTextSelection] = useState({
@@ -91,7 +91,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
       startTime: '09:00',
       endTime: '10:00',
       tags: [],
-      recurring: ''
+      recurring: 'none'
     });
     onClose();
   };
@@ -381,7 +381,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No repetition</SelectItem>
+                  <SelectItem value="none">No repetition</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>

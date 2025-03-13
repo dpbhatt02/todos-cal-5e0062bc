@@ -108,7 +108,11 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, toggleCreateModal }: SidebarPro
                 !isSidebarOpen && "w-10 h-10 p-0"
               )}
               icon={<Plus className="h-4 w-4" />}
-              onClick={toggleCreateModal}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log("New Task button clicked");
+                toggleCreateModal();
+              }}
             >
               {isSidebarOpen && <span>New Task</span>}
             </ButtonCustom>
