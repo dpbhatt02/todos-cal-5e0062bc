@@ -4,17 +4,13 @@ import { TaskProps } from './types';
 import TaskCard from './TaskCard';
 import { formatFullDate } from './utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTasks } from '@/contexts/TasksContext';
 
 interface TaskSectionProps {
   title: string;
   tasks: TaskProps[];
   sortOption: string;
   selectedDate?: Date;
-  handleDragStart: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
-  handleDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
-  handleDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
-  handleDrop: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
-  handleDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
 }
 
 const TaskSection = ({ 
@@ -22,13 +18,15 @@ const TaskSection = ({
   tasks, 
   sortOption,
   selectedDate,
-  handleDragStart,
-  handleDragOver,
-  handleDragLeave,
-  handleDrop,
-  handleDragEnd
 }: TaskSectionProps) => {
   const isMobile = useIsMobile();
+  const { 
+    handleDragStart,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleDragEnd
+  } = useTasks();
   
   // Format the selected date for display if provided
   const getSelectedDateDisplay = () => {

@@ -1,19 +1,13 @@
 
 import { useState } from 'react';
-import { Check, Clock, ArrowRight, RefreshCcw } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  HoverCard,
-  HoverCardTrigger,
-  HoverCardContent 
-} from '@/components/ui/hover-card';
 import { TaskProps } from './types';
-import { formatDate, getRecurringLabel } from './utils';
 import TaskActions from './TaskActions';
-import TaskTags from './TaskTags';
 import TaskDetailsSheet from './TaskDetailsSheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import TaskCardContent from './TaskCardContent';
 
 const TaskCard = ({ 
   id, 
@@ -35,12 +29,6 @@ const TaskCard = ({
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
-
-  const priorityClasses = {
-    low: 'bg-priority-low',
-    medium: 'bg-priority-medium',
-    high: 'bg-priority-high'
-  };
 
   const handleCheckboxChange = (checked: boolean | string) => {
     // Convert checked to boolean (in case it comes as string)
@@ -115,52 +103,16 @@ const TaskCard = ({
             />
           </div>
           
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center mb-1">
-              <h3 className={cn(
-                "font-medium truncate mr-2",
-                isMobile ? "text-xs" : "text-sm",
-                isCompleted && "line-through text-muted-foreground"
-              )}>
-                {title}
-              </h3>
-              <div className={cn(
-                isMobile ? "h-1.5 w-1.5" : "h-2 w-2",
-                "rounded-full flex-shrink-0", 
-                priorityClasses[priority]
-              )} />
-            </div>
-            
-            {description && !isMobile && (
-              <HoverCard>
-                <HoverCardTrigger asChild>
-                  <p className="text-xs text-muted-foreground truncate mb-1 cursor-help">
-                    {description.substring(0, 60)}
-                    {description.length > 60 && '...'}
-                  </p>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-80">
-                  <p className="text-sm">{description}</p>
-                </HoverCardContent>
-              </HoverCard>
-            )}
-            
-            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
-              <div className="flex items-center text-muted-foreground" style={{fontSize: isMobile ? '0.65rem' : '0.75rem'}}>
-                <Clock className={isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1"} />
-                <span>{formatDate(dueDate)}</span>
-              </div>
-              
-              {recurring && (
-                <div className="flex items-center text-muted-foreground" style={{fontSize: isMobile ? '0.65rem' : '0.75rem'}}>
-                  <RefreshCcw className={isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1"} />
-                  <span>{getRecurringLabel(recurring.frequency)}</span>
-                </div>
-              )}
-              
-              <TaskTags tags={tags} />
-            </div>
-          </div>
+          <TaskCardContent
+            title={title}
+            description={description}
+            priority={priority}
+            dueDate={dueDate}
+            tags={tags}
+            recurring={recurring}
+            isCompleted={isCompleted}
+            isMobile={isMobile}
+          />
 
           <div className="flex items-center space-x-1">
             {isHovered && !isMobile && (
