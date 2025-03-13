@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Check, Clock, Tag, ArrowRight, RefreshCcw } from 'lucide-react';
+import { Check, Clock, Tag, ArrowRight, RefreshCcw, Pencil, Trash2, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
@@ -8,6 +8,13 @@ import {
   HoverCardTrigger,
   HoverCardContent 
 } from '@/components/ui/hover-card';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
 
 export interface TaskProps {
   id: string;
@@ -23,6 +30,9 @@ export interface TaskProps {
     endAfter?: number;
     customDays?: string[];
   };
+  onEdit?: (task: TaskProps) => void;
+  onDelete?: (id: string) => void;
+  onReschedule?: (id: string, newDate: Date) => void;
 }
 
 const TaskCard = ({ 
@@ -33,9 +43,16 @@ const TaskCard = ({
   dueDate, 
   completed, 
   tags = [],
-  recurring
+  recurring,
+  onEdit,
+  onDelete,
+  onReschedule
 }: TaskProps) => {
   const [isCompleted, setIsCompleted] = useState(completed);
+  const [isHovered, setIsHovered] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(
+    typeof dueDate === 'string' ? new Date(dueDate) : dueDate
+  );
 
   const priorityClasses = {
     low: 'bg-priority-low',
@@ -80,11 +97,43 @@ const TaskCard = ({
     }
   };
 
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit({
+        id,
+        title,
+        description,
+        priority,
+        dueDate,
+        completed: isCompleted,
+        tags,
+        recurring
+      });
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(id);
+    }
+  };
+
+  const handleReschedule = (date: Date | undefined) => {
+    if (date && onReschedule) {
+      onReschedule(id, date);
+      setSelectedDate(date);
+    }
+  };
+
   return (
-    <div className={cn(
-      "w-full border border-border/40 rounded-lg p-4 transition-all hover:shadow-md",
-      isCompleted && "opacity-70 bg-muted/30"
-    )}>
+    <div 
+      className={cn(
+        "w-full border border-border/40 rounded-lg p-4 transition-all hover:shadow-md relative group",
+        isCompleted && "opacity-70 bg-muted/30"
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="flex items-start gap-3">
         <Checkbox 
           checked={isCompleted} 
@@ -153,12 +202,54 @@ const TaskCard = ({
           </div>
         </div>
 
-        <button 
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="View task"
-        >
-          <ArrowRight className="h-4 w-4" />
-        </button>
+        <div className="flex items-center space-x-1">
+          {isHovered && (
+            <div className="flex items-center space-x-1 mr-2 animate-in fade-in">
+              <button 
+                className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
+                aria-label="Edit task"
+                onClick={handleEdit}
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button 
+                    className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
+                    aria-label="Reschedule task"
+                  >
+                    <Calendar className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleReschedule}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <button 
+                className="text-destructive hover:text-destructive/80 transition-colors p-1 rounded-md hover:bg-muted"
+                aria-label="Delete task"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          
+          <button 
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="View task"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
