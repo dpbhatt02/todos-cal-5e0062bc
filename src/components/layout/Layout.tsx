@@ -12,7 +12,6 @@ const Layout = ({ children }: LayoutProps) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const hoverTimeoutRef = useRef<number | null>(null);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -37,21 +36,6 @@ const Layout = ({ children }: LayoutProps) => {
     setIsCreateModalOpen(false);
   };
 
-  // Handle hover on sidebar
-  const handleSidebarHoverEnter = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    openSidebar();
-  };
-
-  const handleSidebarHoverLeave = () => {
-    hoverTimeoutRef.current = window.setTimeout(() => {
-      closeSidebar();
-    }, 300); // Small delay to prevent unwanted closings
-  };
-
   // Handle clicks outside the sidebar
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -67,23 +51,10 @@ const Layout = ({ children }: LayoutProps) => {
     };
   }, [isSidebarOpen]);
 
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
-  }, []);
-
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
-        <div 
-          ref={sidebarRef}
-          onMouseEnter={handleSidebarHoverEnter}
-          onMouseLeave={handleSidebarHoverLeave}
-        >
+        <div ref={sidebarRef}>
           <Sidebar 
             isSidebarOpen={isSidebarOpen} 
             toggleSidebar={toggleSidebar}

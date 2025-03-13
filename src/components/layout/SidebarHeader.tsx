@@ -4,8 +4,13 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import SearchBar from './SearchBar';
-import UserMenu from './UserMenu';
 import NotificationsPopover from '../notifications/NotificationsPopover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SidebarHeaderProps {
   isSidebarOpen: boolean;
@@ -49,14 +54,23 @@ const SidebarHeader = ({
           {isSidebarOpen && <span className="text-lg font-medium">TodoCal</span>}
         </div>
         
-        <ButtonCustom
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-full hover:bg-muted"
-          onClick={toggleSidebar}
-          icon={isSidebarOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-          aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-        />
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ButtonCustom
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full hover:bg-muted"
+                onClick={toggleSidebar}
+                icon={isSidebarOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       
       <SearchBar isSidebarOpen={isSidebarOpen} handleSearchClick={handleSearchClick} />
@@ -65,33 +79,49 @@ const SidebarHeader = ({
         "flex items-center",
         isSidebarOpen ? "justify-between" : "justify-center flex-col gap-3"
       )}>
-        <ButtonCustom
-          variant="primary"
-          size="sm"
-          className={cn(
-            "rounded-full shadow-sm",
-            !isSidebarOpen && "w-10 h-10 p-0"
-          )}
-          icon={<Plus className="h-4 w-4" />}
-          onClick={(e) => {
-            e.preventDefault();
-            console.log("New Task button clicked");
-            toggleCreateModal();
-          }}
-        >
-          {isSidebarOpen && <span>New Task</span>}
-        </ButtonCustom>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ButtonCustom
+                variant="primary"
+                size="sm"
+                className={cn(
+                  "rounded-full shadow-sm",
+                  !isSidebarOpen && "w-10 h-10 p-0"
+                )}
+                icon={<Plus className="h-4 w-4" />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log("New Task button clicked");
+                  toggleCreateModal();
+                }}
+              >
+                {isSidebarOpen && <span>New Task</span>}
+              </ButtonCustom>
+            </TooltipTrigger>
+            <TooltipContent side="right" hidden={isSidebarOpen}>
+              New Task
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         
         {isSidebarOpen ? (
           <div className="flex items-center gap-2">
             <NotificationsPopover isSidebarOpen={isSidebarOpen} />
-            <UserMenu isSidebarOpen={isSidebarOpen} />
           </div>
         ) : (
-          <>
-            <NotificationsPopover isSidebarOpen={isSidebarOpen} />
-            <UserMenu isSidebarOpen={isSidebarOpen} />
-          </>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <NotificationsPopover isSidebarOpen={isSidebarOpen} />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                Notifications
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
     </div>

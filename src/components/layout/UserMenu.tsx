@@ -10,6 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MenuItemType {
   icon: React.ComponentType<{ className?: string }>;
@@ -57,24 +63,43 @@ const UserMenu = ({ isSidebarOpen, menuItems = [] }: UserMenuProps) => {
     return <User className="h-5 w-5" />;
   };
 
+  const userButton = (
+    <button className={`${isSidebarOpen ? 'w-full' : 'w-10 h-10'} rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200 overflow-hidden ${isSidebarOpen ? 'p-2' : ''}`}>
+      {isSidebarOpen ? (
+        <div className="flex items-center space-x-2 w-full">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden">
+            {renderUserIcon()}
+          </div>
+          <span className="text-sm font-medium truncate flex-1">
+            {user?.name || 'User'}
+          </span>
+        </div>
+      ) : (
+        renderUserIcon()
+      )}
+    </button>
+  );
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className={`${isSidebarOpen ? 'w-full' : 'w-10 h-10'} rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200 overflow-hidden ${isSidebarOpen ? 'p-2' : ''}`}>
-          {isSidebarOpen ? (
-            <div className="flex items-center space-x-2 w-full">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden">
-                {renderUserIcon()}
-              </div>
-              <span className="text-sm font-medium truncate flex-1">
-                {user?.name || 'User'}
-              </span>
-            </div>
-          ) : (
-            renderUserIcon()
-          )}
-        </button>
-      </DropdownMenuTrigger>
+      {isSidebarOpen ? (
+        <DropdownMenuTrigger asChild>
+          {userButton}
+        </DropdownMenuTrigger>
+      ) : (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                {userButton}
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              User Profile
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
       <DropdownMenuContent align="end" className="w-56 z-50 bg-popover">
         {user && (
           <>

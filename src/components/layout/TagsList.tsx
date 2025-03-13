@@ -4,6 +4,12 @@ import { Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ButtonCustom } from '@/components/ui/button-custom';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TagsListProps {
   isSidebarOpen: boolean;
@@ -29,18 +35,35 @@ const TagsList = ({ isSidebarOpen }: TagsListProps) => {
   if (!isSidebarOpen) {
     return (
       <div className="mb-2">
-        <div className="flex items-center justify-center">
-          <Tag className="h-5 w-5 text-muted-foreground" />
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center justify-center">
+                <Tag className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              Tags
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <div className="space-y-1 mt-2">
           {tags.map((tag) => (
-            <div 
-              key={tag.id}
-              className="flex items-center justify-center cursor-pointer py-1.5"
-              onClick={() => handleTagClick(tag.id)}
-            >
-              <div className={cn("h-2.5 w-2.5 rounded-full", tag.color)} />
-            </div>
+            <TooltipProvider key={tag.id}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div 
+                    className="flex items-center justify-center cursor-pointer py-1.5"
+                    onClick={() => handleTagClick(tag.id)}
+                  >
+                    <div className={cn("h-2.5 w-2.5 rounded-full", tag.color)} />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {tag.label}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ))}
         </div>
       </div>
