@@ -1,4 +1,3 @@
-
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -49,22 +48,7 @@ const NavigationLinks = ({ isSidebarOpen }: NavigationLinksProps) => {
         ))}
       </nav>
 
-      <div className="mt-auto space-y-1">
-        {footerNavItems.map((item) => (
-          <ButtonCustom
-            key={item.path}
-            variant="ghost"
-            className={cn(
-              "w-full text-left mb-1",
-              !isSidebarOpen && "justify-center p-2"
-            )}
-            onClick={() => navigate(item.path)}
-            icon={<item.icon className="h-5 w-5" />}
-          >
-            {isSidebarOpen && <span>{item.label}</span>}
-          </ButtonCustom>
-        ))}
-      </div>
+      {/* Footer nav is now rendered in Sidebar component */}
     </>
   );
 };

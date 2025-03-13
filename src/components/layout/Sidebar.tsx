@@ -1,7 +1,12 @@
 
 import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  Settings,
+  HelpCircle
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { ButtonCustom } from '@/components/ui/button-custom';
 import SidebarHeader from './SidebarHeader';
 import NavigationLinks from './NavigationLinks';
 import TagsList from './TagsList';
@@ -14,6 +19,14 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal }: SidebarProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const footerNavItems = [
+    { icon: Settings, label: 'Settings', path: '/settings' },
+    { icon: HelpCircle, label: 'Help & Support', path: '/help' },
+  ];
+
   return (
     <aside 
       className={cn(
@@ -39,19 +52,30 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
           <NavigationLinks isSidebarOpen={isSidebarOpen} />
           
           {/* Tags section */}
-          {isSidebarOpen && (
-            <>
-              <Separator className="my-4" />
-              <TagsList isSidebarOpen={isSidebarOpen} />
-            </>
-          )}
+          <Separator className="my-4" />
+          <TagsList isSidebarOpen={isSidebarOpen} />
           
           {/* Spacer to push footer nav to bottom */}
           <div className="flex-1" />
+          
+          {/* Footer with settings and help links - Now here instead of in NavigationLinks */}
+          <div className="space-y-1 pb-4">
+            {footerNavItems.map((item) => (
+              <ButtonCustom
+                key={item.path}
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start text-left mb-1",
+                  !isSidebarOpen && "justify-center p-2"
+                )}
+                onClick={() => navigate(item.path)}
+                icon={<item.icon className="h-5 w-5" />}
+              >
+                {isSidebarOpen && <span>{item.label}</span>}
+              </ButtonCustom>
+            ))}
+          </div>
         </div>
-        
-        {/* Footer with settings and help links - Now moved to NavigationLinks */}
-        {/* Additional footer content can be added here if needed */}
       </div>
     </aside>
   );

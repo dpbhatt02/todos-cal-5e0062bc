@@ -25,7 +25,27 @@ const TagsList = ({ isSidebarOpen }: TagsListProps) => {
     navigate(`/tag/${tagId}`);
   };
 
-  if (!isSidebarOpen) return null;
+  // Show only the Tags header with icon when sidebar is closed
+  if (!isSidebarOpen) {
+    return (
+      <div className="mb-2">
+        <div className="flex items-center justify-center">
+          <Tag className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <div className="space-y-1 mt-2">
+          {tags.map((tag) => (
+            <div 
+              key={tag.id}
+              className="flex items-center justify-center cursor-pointer py-1.5"
+              onClick={() => handleTagClick(tag.id)}
+            >
+              <div className={cn("h-2.5 w-2.5 rounded-full", tag.color)} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
