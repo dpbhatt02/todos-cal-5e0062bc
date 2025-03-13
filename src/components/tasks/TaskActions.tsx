@@ -22,8 +22,12 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
       <button 
         className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
         aria-label="Edit task"
-        onClick={onEdit}
         type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onEdit(e);
+        }}
       >
         <Pencil className="h-4 w-4" />
       </button>
@@ -34,6 +38,7 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
             className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
             aria-label="Reschedule task"
             type="button"
+            onClick={(e) => e.stopPropagation()}
           >
             <Calendar className="h-4 w-4" />
           </button>
@@ -52,8 +57,12 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
       <button 
         className="text-destructive hover:text-destructive/80 transition-colors p-1 rounded-md hover:bg-muted"
         aria-label="Delete task"
-        onClick={onDelete}
         type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDelete(e);
+        }}
       >
         <Trash2 className="h-4 w-4" />
       </button>

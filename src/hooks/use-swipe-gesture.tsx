@@ -57,16 +57,20 @@ export const useSwipeGesture = ({
     }
   };
 
-  const onTouchEnd = () => {
+  const onTouchEnd = (e: TouchEvent) => {
     if (!touchStart || !touchEnd) return;
     
     const distance = touchEnd - touchStart;
     const isLeftSwipe = distance < -threshold;
     const isRightSwipe = distance > threshold;
 
+    console.log("Swipe detected - distance:", distance, "threshold:", threshold);
+    
     if (isLeftSwipe && onSwipeLeft) {
+      console.log("Left swipe triggered");
       onSwipeLeft();
     } else if (isRightSwipe && onSwipeRight) {
+      console.log("Right swipe triggered");
       onSwipeRight();
     }
 
