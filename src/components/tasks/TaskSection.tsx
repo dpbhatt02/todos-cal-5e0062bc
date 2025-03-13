@@ -3,6 +3,7 @@ import React from 'react';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
 import { formatFullDate } from './utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TaskSectionProps {
   title: string;
@@ -27,6 +28,8 @@ const TaskSection = ({
   handleDrop,
   handleDragEnd
 }: TaskSectionProps) => {
+  const isMobile = useIsMobile();
+  
   // Format the selected date for display if provided
   const getSelectedDateDisplay = () => {
     if (!selectedDate) return title;
@@ -36,11 +39,11 @@ const TaskSection = ({
 
   return (
     <div>
-      <h2 className="text-lg font-semibold mb-4">
+      <h2 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold ${isMobile ? 'mb-2' : 'mb-4'}`}>
         {selectedDate ? getSelectedDateDisplay() : title}
       </h2>
       
-      <div className="space-y-2">
+      <div className="space-y-1.5 sm:space-y-2">
         {tasks.length > 0 ? (
           tasks.map(task => (
             <div 
@@ -57,8 +60,8 @@ const TaskSection = ({
             </div>
           ))
         ) : (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No tasks scheduled for this day.</p>
+          <div className="text-center py-6">
+            <p className="text-muted-foreground text-sm">No tasks scheduled for this day.</p>
           </div>
         )}
       </div>
