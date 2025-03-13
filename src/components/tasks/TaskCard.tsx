@@ -37,8 +37,22 @@ const TaskCard = ({
   };
 
   const handleSwipeRight = () => {
-    // Open details modal on swipe right
-    setIsModalOpen(true);
+    // On swipe right, invoke the edit function if available
+    if (onEdit && isMobile) {
+      onEdit({
+        id,
+        title,
+        description,
+        priority,
+        dueDate,
+        completed: isCompleted,
+        tags,
+        recurring
+      });
+    } else {
+      // If not available or not on mobile, fall back to opening details sheet
+      setIsModalOpen(true);
+    }
   };
 
   const { handlers, state, elementRef } = useSwipeGesture({
@@ -57,6 +71,7 @@ const TaskCard = ({
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the modal
+    console.log("Edit button clicked for task:", id);
     if (onEdit) {
       onEdit({
         id,
@@ -68,13 +83,18 @@ const TaskCard = ({
         tags,
         recurring
       });
+    } else {
+      console.log("No onEdit callback provided for task:", id);
     }
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the modal
+    console.log("Delete button clicked for task:", id);
     if (onDelete) {
       onDelete(id);
+    } else {
+      console.log("No onDelete callback provided for task:", id);
     }
   };
 
