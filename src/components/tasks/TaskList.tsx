@@ -5,7 +5,7 @@ import OverdueTasksSection from './OverdueTasksSection';
 import TaskSection from './TaskSection';
 import WeekView from './WeekView';
 import { formatFullDate } from './utils';
-import { TasksProvider, useTasksContext } from '@/contexts/TasksContext';
+import { useTasksContext } from '@/contexts/TasksContext';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
 import { useTasks } from '@/hooks/use-tasks';
@@ -67,69 +67,67 @@ const TaskList = () => {
   }
 
   return (
-    <TasksProvider>
-      <div className="max-w-5xl mx-auto">
-        <TaskListFilters 
-          viewOption={viewOption}
-          sortOption={sortOption}
-          setViewOption={setViewOption}
-          setSortOption={setSortOption}
+    <div className="max-w-5xl mx-auto">
+      <TaskListFilters 
+        viewOption={viewOption}
+        sortOption={sortOption}
+        setViewOption={setViewOption}
+        setSortOption={setSortOption}
+      />
+      
+      <div className={`sticky top-0 bg-background z-10 transition-all duration-200 ${isScrolled ? 'pb-1 shadow-sm' : 'pb-3'}`}>
+        <WeekView 
+          currentDate={currentDate}
+          selectedDate={selectedDate}
+          tasks={sortedTasks}
+          onPreviousWeek={previousWeek}
+          onNextWeek={nextWeek}
+          onToday={goToToday}
+          onSelectDay={setSelectedDate}
+          isCompact={isScrolled}
         />
-        
-        <div className={`sticky top-0 bg-background z-10 transition-all duration-200 ${isScrolled ? 'pb-1 shadow-sm' : 'pb-3'}`}>
-          <WeekView 
-            currentDate={currentDate}
-            selectedDate={selectedDate}
-            tasks={sortedTasks}
-            onPreviousWeek={previousWeek}
-            onNextWeek={nextWeek}
-            onToday={goToToday}
-            onSelectDay={setSelectedDate}
-            isCompact={isScrolled}
-          />
-        </div>
-        
-        {loading ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">Loading tasks...</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <OverdueTasksSection 
-              tasks={overdueTasks}
-              isOpen={isOverdueOpen}
-              onOpenChange={setIsOverdueOpen}
-              selectedDate={selectedDate}
-              sortOption={sortOption}
-            />
-            
-            <TaskSection 
-              title="Today"
-              tasks={todayTasks}
-              sortOption={sortOption}
-              selectedDate={selectedDate}
-            />
-            
-            {/* Upcoming Tasks grouped by date */}
-            {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
-              if (tasks.length === 0) return null;
-              
-              const date = new Date(dateString);
-              
-              return (
-                <TaskSection
-                  key={dateString}
-                  title={formatFullDate(date)}
-                  tasks={tasks}
-                  sortOption={sortOption}
-                  selectedDate={date}
-                />
-              );
-            })}
-          </div>
-        )}
       </div>
-    </TasksProvider>
+      
+      {loading ? (
+        <div className="py-8 text-center">
+          <p className="text-muted-foreground">Loading tasks...</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <OverdueTasksSection 
+            tasks={overdueTasks}
+            isOpen={isOverdueOpen}
+            onOpenChange={setIsOverdueOpen}
+            selectedDate={selectedDate}
+            sortOption={sortOption}
+          />
+          
+          <TaskSection 
+            title="Today"
+            tasks={todayTasks}
+            sortOption={sortOption}
+            selectedDate={selectedDate}
+          />
+          
+          {/* Upcoming Tasks grouped by date */}
+          {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
+            if (tasks.length === 0) return null;
+            
+            const date = new Date(dateString);
+            
+            return (
+              <TaskSection
+                key={dateString}
+                title={formatFullDate(date)}
+                tasks={tasks}
+                sortOption={sortOption}
+                selectedDate={date}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
 
