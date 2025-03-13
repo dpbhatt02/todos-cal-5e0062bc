@@ -14,11 +14,20 @@ import {
   Bell,
   User,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogOut,
+  UserCog
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -58,6 +67,16 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
         searchInput.focus();
       }
     }, 100);
+  };
+
+  // Handle profile actions
+  const handleEditProfile = () => {
+    navigate('/settings');
+  };
+
+  const handleLogout = () => {
+    console.log("User logged out");
+    // Add actual logout logic here when authentication is implemented
   };
 
   return (
@@ -156,9 +175,25 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
                   }
                 />
 
-                <button className="w-8 h-8 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200">
-                  <User className="h-4 w-4" />
-                </button>
+                {/* User profile dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="w-8 h-8 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200">
+                      <User className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 z-50 bg-popover">
+                    <DropdownMenuItem onClick={handleEditProfile} className="cursor-pointer">
+                      <UserCog className="mr-2 h-4 w-4" />
+                      <span>Edit Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <>
@@ -175,9 +210,25 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
                   }
                 />
 
-                <button className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200">
-                  <User className="h-5 w-5" />
-                </button>
+                {/* User profile dropdown for collapsed sidebar */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center hover:bg-muted transition-colors duration-200">
+                      <User className="h-5 w-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 z-50 bg-popover">
+                    <DropdownMenuItem onClick={handleEditProfile} className="cursor-pointer">
+                      <UserCog className="mr-2 h-4 w-4" />
+                      <span>Edit Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
           </div>
