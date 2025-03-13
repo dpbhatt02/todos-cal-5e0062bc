@@ -98,6 +98,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
       <div 
         className="w-full max-w-lg max-h-[90vh] bg-background rounded-lg shadow-lg overflow-hidden animate-in fade-in"
         onClick={(e) => e.stopPropagation()}
+        style={{ transform: 'translate(-50%, -50%)', top: '50%', left: '50%', position: 'fixed' }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-lg font-semibold">New Task</h2>
