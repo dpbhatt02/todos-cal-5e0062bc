@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Menu, Search, Plus, Bell, User, X } from 'lucide-react';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { cn } from '@/lib/utils';
-import CreateTaskModal from '@/components/tasks/CreateTaskModal';
-import { toast } from 'sonner';
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -13,15 +11,7 @@ interface HeaderProps {
 
 const Header = ({ toggleSidebar }: HeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const navigate = useNavigate();
-
-  const handleCreateTask = (taskData: any) => {
-    console.log('New task created:', taskData);
-    setIsCreateModalOpen(false);
-    toast.success('Task created successfully!');
-    // In a real app, you would dispatch an action or call an API
-  };
 
   return (
     <header className="w-full h-16 glass backdrop-blur-xl border-b border-border/40 z-20 sticky top-0 left-0 right-0">
@@ -85,7 +75,7 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
             size="sm"
             className="rounded-full shadow-sm"
             icon={<Plus className="h-4 w-4" />}
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => {/* Open new task modal */}}
           >
             <span className="hidden sm:inline-block">New Task</span>
           </ButtonCustom>
@@ -108,12 +98,6 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
           </button>
         </div>
       </div>
-      
-      <CreateTaskModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateTask}
-      />
     </header>
   );
 };

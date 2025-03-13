@@ -1,11 +1,11 @@
 
 import { useState } from 'react';
-import { X, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { X, Calendar as CalendarIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Separator } from '@/components/ui/separator';
-import TextEditor from '@/components/editor/TextEditor';
 import {
   ToggleGroup,
   ToggleGroupItem
@@ -18,25 +18,11 @@ interface CreateTaskModalProps {
 }
 
 const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) => {
-  // Get current date
-  const today = new Date();
-  const formattedToday = formatDate(today);
-  
-  // Current time at the next hour mark
-  const nextHour = new Date();
-  nextHour.setHours(nextHour.getHours() + 1);
-  nextHour.setMinutes(0);
-  
-  const formattedStartTime = `${String(nextHour.getHours()).padStart(2, '0')}:00`;
-  const formattedEndTime = `${String(nextHour.getHours() + 1).padStart(2, '0')}:00`;
-  
   const [taskData, setTaskData] = useState({
     title: '',
     description: '',
     priority: 'medium',
-    dueDate: formattedToday,
-    startTime: formattedStartTime,
-    endTime: formattedEndTime,
+    dueDate: formatDate(new Date()),
     tags: [] as string[]
   });
 
@@ -44,8 +30,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
     { id: 'work', label: 'Work' },
     { id: 'personal', label: 'Personal' },
     { id: 'health', label: 'Health' },
-    { id: 'learning', label: 'Learning' },
-    { id: 'meeting', label: 'Meeting' }
+    { id: 'learning', label: 'Learning' }
   ];
 
   function formatDate(date: Date) {
@@ -58,10 +43,6 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setTaskData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleDescriptionChange = (html: string) => {
-    setTaskData(prev => ({ ...prev, description: html }));
   };
 
   const handleTagToggle = (tagId: string) => {
@@ -83,9 +64,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
       title: '',
       description: '',
       priority: 'medium',
-      dueDate: formattedToday,
-      startTime: formattedStartTime,
-      endTime: formattedEndTime,
+      dueDate: formatDate(new Date()),
       tags: []
     });
     onClose();
@@ -98,7 +77,6 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
       <div 
         className="w-full max-w-lg max-h-[90vh] bg-background rounded-lg shadow-lg overflow-hidden animate-in fade-in"
         onClick={(e) => e.stopPropagation()}
-        style={{ transform: 'translate(-50%, -50%)', top: '50%', left: '50%', position: 'fixed' }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-lg font-semibold">New Task</h2>
@@ -127,10 +105,13 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
             
             <div className="space-y-2">
               <Label htmlFor="description">Description (Optional)</Label>
-              <TextEditor
-                value={taskData.description}
-                onChange={handleDescriptionChange}
+              <Textarea
+                id="description"
+                name="description"
                 placeholder="Add details about this task..."
+                value={taskData.description}
+                onChange={handleChange}
+                rows={3}
               />
             </div>
             
@@ -174,41 +155,6 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
                     High
                   </ToggleGroupItem>
                 </ToggleGroup>
-              </div>
-            </div>
-            
-            {/* Time duration fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time</Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="startTime"
-                    name="startTime"
-                    type="time"
-                    value={taskData.startTime}
-                    onChange={handleChange}
-                    className="pl-9"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="endTime">End Time</Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="endTime"
-                    name="endTime"
-                    type="time"
-                    value={taskData.endTime}
-                    onChange={handleChange}
-                    className="pl-9"
-                    required
-                  />
-                </div>
               </div>
             </div>
             
