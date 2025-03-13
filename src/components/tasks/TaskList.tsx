@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Filter, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
+import { Filter, ChevronDown, ChevronRight, ChevronLeft, ArrowDownAZ, ArrowUpAZ, Move, RefreshCcw } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, addMonths, subMonths, parse } from 'date-fns';
 import { 
   Collapsible,
@@ -27,7 +27,8 @@ const mockTasks: TaskProps[] = [
     priority: 'high',
     dueDate: '2023-09-20',
     completed: false,
-    tags: ['work']
+    tags: ['work'],
+    recurring: undefined
   },
   {
     id: '2',
@@ -36,7 +37,8 @@ const mockTasks: TaskProps[] = [
     priority: 'medium',
     dueDate: '2023-09-21',
     completed: false,
-    tags: ['work']
+    tags: ['work'],
+    recurring: undefined
   },
   {
     id: '3',
@@ -45,7 +47,8 @@ const mockTasks: TaskProps[] = [
     priority: 'low',
     dueDate: '2023-09-19',
     completed: true,
-    tags: ['health', 'personal']
+    tags: ['health', 'personal'],
+    recurring: undefined
   },
   {
     id: '4',
@@ -54,7 +57,8 @@ const mockTasks: TaskProps[] = [
     priority: 'medium',
     dueDate: '2023-09-22',
     completed: false,
-    tags: ['learning', 'personal']
+    tags: ['learning', 'personal'],
+    recurring: undefined
   },
   {
     id: '5',
@@ -63,7 +67,18 @@ const mockTasks: TaskProps[] = [
     priority: 'high',
     dueDate: '2023-09-19',
     completed: false,
-    tags: ['personal']
+    tags: ['personal'],
+    recurring: undefined
+  },
+  {
+    id: '6',
+    title: 'Daily review',
+    description: 'Review tasks and plan for tomorrow.',
+    priority: 'medium',
+    dueDate: new Date().toISOString().split('T')[0], // Today's date
+    completed: false,
+    tags: ['work', 'personal'],
+    recurring: { frequency: 'daily' }
   }
 ];
 
@@ -73,6 +88,7 @@ const TaskList = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isOverdueOpen, setIsOverdueOpen] = useState(true);
+  const [customOrder, setCustomOrder] = useState<string[]>(mockTasks.map(task => task.id));
 
   // Filter tasks based on view option
   const filteredTasks = mockTasks.filter(task => {
@@ -85,7 +101,9 @@ const TaskList = () => {
 
   // Sort tasks
   const sortedTasks = [...filteredTasks].sort((a, b) => {
-    if (sortOption === 'date') {
+    if (sortOption === 'custom') {
+      return customOrder.indexOf(a.id) - customOrder.indexOf(b.id);
+    } else if (sortOption === 'date') {
       return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
     } else if (sortOption === 'priority') {
       const priorityWeight = { low: 0, medium: 1, high: 2 };
@@ -179,6 +197,42 @@ const TaskList = () => {
   // Check if the selected date is today
   const isSelectedDateToday = isSameDay(selectedDate, today);
 
+  // Handle drag and drop reordering
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
+    e.dataTransfer.setData('text/plain', taskId);
+    e.currentTarget.classList.add('opacity-50');
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('bg-muted/30');
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.currentTarget.classList.remove('bg-muted/30');
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('bg-muted/30');
+    
+    const draggedTaskId = e.dataTransfer.getData('text/plain');
+    if (draggedTaskId === taskId) return;
+    
+    const newOrder = [...customOrder];
+    const draggedIndex = newOrder.indexOf(draggedTaskId);
+    const dropIndex = newOrder.indexOf(taskId);
+    
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(dropIndex, 0, draggedTaskId);
+    
+    setCustomOrder(newOrder);
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    e.currentTarget.classList.remove('opacity-50');
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6 flex justify-between items-center">
@@ -217,9 +271,15 @@ const TaskList = () => {
               <ButtonCustom 
                 variant="outline" 
                 className="flex items-center gap-1"
-                icon={sortOption === 'date' ? <ArrowDownAZ className="h-4 w-4 mr-1" /> : <ArrowUpAZ className="h-4 w-4 mr-1" />}
+                icon={
+                  sortOption === 'date' ? <ArrowDownAZ className="h-4 w-4 mr-1" /> : 
+                  sortOption === 'priority' ? <ArrowUpAZ className="h-4 w-4 mr-1" /> :
+                  <Move className="h-4 w-4 mr-1" />
+                }
               >
-                {sortOption === 'date' ? 'Sort by Date' : 'Sort by Priority'}
+                {sortOption === 'date' ? 'Sort by Date' : 
+                 sortOption === 'priority' ? 'Sort by Priority' : 
+                 'Custom Order'}
                 <ChevronDown className="h-4 w-4 ml-1" />
               </ButtonCustom>
             </DropdownMenuTrigger>
@@ -229,6 +289,9 @@ const TaskList = () => {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setSortOption('priority')}>
                 Sort by Priority
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortOption('custom')}>
+                Custom Order
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -340,7 +403,18 @@ const TaskList = () => {
             <CollapsibleContent>
               <div className="space-y-2 ml-7">
                 {groupedTasks.overdue.map(task => (
-                  <TaskCard key={task.id} {...task} />
+                  <div 
+                    key={task.id}
+                    draggable={sortOption === 'custom'}
+                    onDragStart={(e) => sortOption === 'custom' && handleDragStart(e, task.id)}
+                    onDragOver={(e) => sortOption === 'custom' && handleDragOver(e)}
+                    onDragLeave={(e) => sortOption === 'custom' && handleDragLeave(e)}
+                    onDrop={(e) => sortOption === 'custom' && handleDrop(e, task.id)}
+                    onDragEnd={(e) => sortOption === 'custom' && handleDragEnd(e)}
+                    className={sortOption === 'custom' ? 'cursor-move' : ''}
+                  >
+                    <TaskCard {...task} />
+                  </div>
                 ))}
               </div>
             </CollapsibleContent>
@@ -356,7 +430,18 @@ const TaskList = () => {
           <div className="space-y-2">
             {groupedTasks.today.length > 0 ? (
               groupedTasks.today.map(task => (
-                <TaskCard key={task.id} {...task} />
+                <div 
+                  key={task.id}
+                  draggable={sortOption === 'custom'}
+                  onDragStart={(e) => sortOption === 'custom' && handleDragStart(e, task.id)}
+                  onDragOver={(e) => sortOption === 'custom' && handleDragOver(e)}
+                  onDragLeave={(e) => sortOption === 'custom' && handleDragLeave(e)}
+                  onDrop={(e) => sortOption === 'custom' && handleDrop(e, task.id)}
+                  onDragEnd={(e) => sortOption === 'custom' && handleDragEnd(e)}
+                  className={sortOption === 'custom' ? 'cursor-move' : ''}
+                >
+                  <TaskCard {...task} />
+                </div>
               ))
             ) : (
               <div className="text-center py-8">
@@ -372,7 +457,18 @@ const TaskList = () => {
             <h2 className="text-md font-medium mb-3">Upcoming</h2>
             <div className="space-y-2">
               {groupedTasks.upcoming.map(task => (
-                <TaskCard key={task.id} {...task} />
+                <div 
+                  key={task.id}
+                  draggable={sortOption === 'custom'}
+                  onDragStart={(e) => sortOption === 'custom' && handleDragStart(e, task.id)}
+                  onDragOver={(e) => sortOption === 'custom' && handleDragOver(e)}
+                  onDragLeave={(e) => sortOption === 'custom' && handleDragLeave(e)}
+                  onDrop={(e) => sortOption === 'custom' && handleDrop(e, task.id)}
+                  onDragEnd={(e) => sortOption === 'custom' && handleDragEnd(e)}
+                  className={sortOption === 'custom' ? 'cursor-move' : ''}
+                >
+                  <TaskCard {...task} />
+                </div>
               ))}
             </div>
           </div>

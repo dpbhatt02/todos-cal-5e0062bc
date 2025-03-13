@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Check, Clock, Tag, ArrowRight } from 'lucide-react';
+import { Check, Clock, Tag, ArrowRight, RefreshCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
@@ -17,6 +17,12 @@ export interface TaskProps {
   dueDate: Date | string;
   completed: boolean;
   tags?: string[];
+  recurring?: {
+    frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+    endDate?: Date | string;
+    endAfter?: number;
+    customDays?: string[];
+  };
 }
 
 const TaskCard = ({ 
@@ -26,7 +32,8 @@ const TaskCard = ({
   priority, 
   dueDate, 
   completed, 
-  tags = [] 
+  tags = [],
+  recurring
 }: TaskProps) => {
   const [isCompleted, setIsCompleted] = useState(completed);
 
@@ -54,6 +61,23 @@ const TaskCard = ({
   const handleCheckboxChange = () => {
     setIsCompleted(!isCompleted);
     // In a real app, you would trigger API calls here
+  };
+
+  const getRecurringLabel = () => {
+    if (!recurring) return '';
+    
+    switch (recurring.frequency) {
+      case 'daily':
+        return 'Daily';
+      case 'weekly':
+        return 'Weekly';
+      case 'monthly':
+        return 'Monthly';
+      case 'custom':
+        return 'Custom';
+      default:
+        return '';
+    }
   };
 
   return (
@@ -101,6 +125,13 @@ const TaskCard = ({
               <Clock className="h-3 w-3 mr-1" />
               <span>{formatDate(dueDate)}</span>
             </div>
+            
+            {recurring && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <RefreshCcw className="h-3 w-3 mr-1" />
+                <span>{getRecurringLabel()}</span>
+              </div>
+            )}
             
             {tags.length > 0 && tags.slice(0, 2).map((tag) => (
               <div 
