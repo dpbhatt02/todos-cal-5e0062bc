@@ -10,6 +10,10 @@ import TaskCardCheckbox from './TaskCardCheckbox';
 import TaskCardSwipeIndicator from './TaskCardSwipeIndicator';
 import TaskCardActions from './TaskCardActions';
 
+interface TaskCardProps extends TaskProps {
+  onClick?: () => void; // Added optional onClick prop
+}
+
 const TaskCard = ({ 
   id, 
   title, 
@@ -21,8 +25,9 @@ const TaskCard = ({
   recurring,
   onEdit,
   onDelete,
-  onReschedule
-}: TaskProps) => {
+  onReschedule,
+  onClick // Added optional onClick prop
+}: TaskCardProps) => {
   const [isCompleted, setIsCompleted] = useState(completed);
   const [isHovered, setIsHovered] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(
@@ -81,6 +86,10 @@ const TaskCard = ({
   const handleOpenModal = () => {
     console.log("Opening modal for task:", id);
     setIsModalOpen(true);
+    // Call the onClick prop if provided
+    if (onClick) {
+      onClick();
+    }
   };
 
   const handleCloseModal = () => {

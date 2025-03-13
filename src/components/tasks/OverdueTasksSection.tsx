@@ -3,7 +3,7 @@ import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
-import { useTasks } from '@/contexts/TasksContext';
+import { useTasksContext } from '@/contexts/TasksContext';
 
 interface OverdueTasksSectionProps {
   tasks: TaskProps[];
@@ -26,7 +26,7 @@ const OverdueTasksSection = ({
     handleDragLeave,
     handleDrop,
     handleDragEnd
-  } = useTasks();
+  } = useTasksContext();
 
   // If no overdue tasks, don't render anything
   if (tasks.length === 0) return null;

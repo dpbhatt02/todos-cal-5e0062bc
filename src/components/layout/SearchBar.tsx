@@ -50,7 +50,10 @@ const SearchBar = ({ isSidebarOpen, handleSearchClick }: SearchBarProps) => {
         </div>
       )}
       
-      <SearchTasksSheet isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
+      <SearchTasksSheet 
+        isOpen={isSearchOpen} 
+        onOpenChange={setIsSearchOpen} 
+      />
     </>
   );
 };

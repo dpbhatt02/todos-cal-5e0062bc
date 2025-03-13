@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -11,13 +12,34 @@ import { useTasks } from '@/hooks/use-tasks';
 
 interface SearchTasksSheetProps {
   trigger?: React.ReactNode;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const SearchTasksSheet: React.FC<SearchTasksSheetProps> = ({ trigger }) => {
+const SearchTasksSheet: React.FC<SearchTasksSheetProps> = ({ 
+  trigger,
+  isOpen,
+  onOpenChange
+}) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { tasks, loading } = useTasks();
   const [filteredTasks, setFilteredTasks] = useState<TaskProps[]>([]);
+
+  // Sync internal open state with external control if provided
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
+    }
+  }, [isOpen]);
+
+  // Notify parent component about open state changes if callback provided
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (onOpenChange) {
+      onOpenChange(newOpen);
+    }
+  };
 
   // Filter tasks based on search query
   useEffect(() => {
@@ -40,7 +62,7 @@ const SearchTasksSheet: React.FC<SearchTasksSheetProps> = ({ trigger }) => {
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         {trigger || (
           <Button variant="outline" size="icon" className="h-9 w-9">
@@ -95,7 +117,7 @@ const SearchTasksSheet: React.FC<SearchTasksSheetProps> = ({ trigger }) => {
                   <TaskCard 
                     key={task.id} 
                     {...task} 
-                    onClick={() => setOpen(false)}
+                    // Remove onClick prop as it's not in TaskProps
                   />
                 ))}
               </div>
