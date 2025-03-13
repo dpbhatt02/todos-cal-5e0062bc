@@ -40,10 +40,12 @@ const TaskCard = ({
     high: 'bg-priority-high'
   };
 
-  const handleCheckboxChange = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent opening the modal
-    setIsCompleted(!isCompleted);
+  const handleCheckboxChange = (checked: boolean | string) => {
+    // Convert checked to boolean (in case it comes as string)
+    const isChecked = checked === true || checked === 'true';
+    setIsCompleted(isChecked);
     // In a real app, you would trigger API calls here
+    console.log(`Task ${id} marked as ${isChecked ? 'completed' : 'incomplete'}`);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -102,7 +104,7 @@ const TaskCard = ({
           >
             <Checkbox 
               checked={isCompleted} 
-              onCheckedChange={() => handleCheckboxChange} 
+              onCheckedChange={handleCheckboxChange}
               className={cn(isCompleted && "opacity-50")}
             />
           </div>
