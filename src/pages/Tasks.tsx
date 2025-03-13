@@ -6,6 +6,7 @@ import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import { useTasksContext } from '@/contexts/TasksContext';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Plus } from 'lucide-react';
+import { TaskProps } from '@/components/tasks/types';
 
 const Tasks = () => {
   const isMobile = useIsMobile();
@@ -14,7 +15,7 @@ const Tasks = () => {
 
   const handleCreateTask = async (taskData: any) => {
     // Convert the data to the format expected by the createTask function
-    const formattedData = {
+    const formattedData: Partial<TaskProps> = {
       title: taskData.title,
       description: taskData.description || '',
       priority: taskData.priority,
@@ -31,14 +32,14 @@ const Tasks = () => {
       };
 
       // Add end date or count if specified
-      if (taskData.recurrenceEndType === 'date') {
+      if (taskData.recurrenceEndType === 'date' && taskData.recurrenceEndDate) {
         formattedData.recurring.endDate = new Date(taskData.recurrenceEndDate);
-      } else if (taskData.recurrenceEndType === 'after') {
+      } else if (taskData.recurrenceEndType === 'after' && taskData.recurrenceCount) {
         formattedData.recurring.endAfter = taskData.recurrenceCount;
       }
     }
 
-    await createTask(formattedData);
+    await createTask(formattedData as Omit<TaskProps, 'id'>);
   };
 
   return (
