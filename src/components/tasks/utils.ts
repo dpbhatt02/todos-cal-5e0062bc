@@ -11,12 +11,24 @@ export const formatDate = (date: Date | string) => {
 
 export const formatFullDate = (date: Date | string) => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return dateObj.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  
+  const day = format(dateObj, 'd');
+  const month = format(dateObj, 'MMM');
+  const year = format(dateObj, 'yyyy');
+  const dayName = format(dateObj, 'EEEE');
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  if (dateObj.getTime() === today.getTime()) {
+    return `${day} ${month}, ${year} · Today`;
+  } else if (dateObj.getTime() === tomorrow.getTime()) {
+    return `${day} ${month}, ${year} · Tomorrow`;
+  } else {
+    return `${day} ${month}, ${year} · ${dayName}`;
+  }
 };
 
 export const getRecurringLabel = (frequency?: 'daily' | 'weekly' | 'monthly' | 'custom') => {

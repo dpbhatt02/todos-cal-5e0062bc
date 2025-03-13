@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, addDays, isSameDay } from 'date-fns';
+import { format, addDays, isSameDay, isBefore, differenceInDays } from 'date-fns';
 import { 
   Popover,
   PopoverContent,
@@ -12,6 +12,7 @@ import WeekView from './WeekView';
 import TaskListFilters from './TaskListFilters';
 import OverdueTasksSection from './OverdueTasksSection';
 import TaskSection from './TaskSection';
+import { formatFullDate } from './utils';
 
 // Sample tasks data with additional tasks for upcoming days
 const mockTasks: TaskProps[] = [
@@ -186,7 +187,8 @@ const TaskList = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isOverdueOpen, setIsOverdueOpen] = useState(true);
   const [customOrder, setCustomOrder] = useState<string[]>(mockTasks.map(task => task.id));
-
+  const [isScrolled, setIsScrolled] = useState(false);
+  
   // Filter tasks based on view option
   const filteredTasks = mockTasks.filter(task => {
     const matchesViewOption = viewOption === 'all' 
@@ -209,7 +211,7 @@ const TaskList = () => {
     return 0;
   });
   
-  // Group tasks by today, tomorrow, upcoming
+  // Group tasks by today, overdue, and future dates
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -223,13 +225,31 @@ const TaskList = () => {
       const taskDate = new Date(task.dueDate);
       taskDate.setHours(0, 0, 0, 0);
       return isSameDay(taskDate, selectedDate);
-    }),
-    upcoming: sortedTasks.filter(task => {
+    })
+  };
+
+  // Find the earliest and latest task dates
+  const taskDates = sortedTasks.map(task => new Date(task.dueDate));
+  const latestTaskDate = new Date(Math.max(...taskDates.map(date => date.getTime())));
+  
+  // Determine how many days to show (max 30 days or until the latest task date)
+  const daysToShow = Math.min(30, differenceInDays(latestTaskDate, today) + 1);
+
+  // Group future tasks by date
+  const futureDatesGrouped: { [key: string]: TaskProps[] } = {};
+  
+  for (let i = 0; i < daysToShow; i++) {
+    const date = addDays(today, i);
+    // Skip today as it's already handled separately
+    if (i === 0) continue;
+    
+    const dateString = format(date, 'yyyy-MM-dd');
+    futureDatesGrouped[dateString] = sortedTasks.filter(task => {
       const taskDate = new Date(task.dueDate);
       taskDate.setHours(0, 0, 0, 0);
-      return !isSameDay(taskDate, selectedDate) && taskDate > today;
-    }),
-  };
+      return isSameDay(taskDate, date);
+    });
+  }
 
   // Navigate between weeks
   const previousWeek = () => {
@@ -284,9 +304,6 @@ const TaskList = () => {
   const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
     e.currentTarget.classList.remove('opacity-50');
   };
-  
-  // Add state to track if WeekView should be compact
-  const [isScrolled, setIsScrolled] = useState(false);
   
   // Add scroll event listener to detect when to make WeekView compact
   useEffect(() => {
@@ -350,19 +367,26 @@ const TaskList = () => {
           handleDragEnd={handleDragEnd}
         />
         
-        {/* Upcoming Tasks (not for the selected date) */}
-        {groupedTasks.upcoming.length > 0 && !isSelectedDateToday && (
-          <TaskSection 
-            title="Upcoming"
-            tasks={groupedTasks.upcoming}
-            sortOption={sortOption}
-            handleDragStart={handleDragStart}
-            handleDragOver={handleDragOver}
-            handleDragLeave={handleDragLeave}
-            handleDrop={handleDrop}
-            handleDragEnd={handleDragEnd}
-          />
-        )}
+        {/* Upcoming Tasks grouped by date */}
+        {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
+          if (tasks.length === 0) return null;
+          
+          const date = new Date(dateString);
+          
+          return (
+            <TaskSection
+              key={dateString}
+              title={formatFullDate(date)}
+              tasks={tasks}
+              sortOption={sortOption}
+              handleDragStart={handleDragStart}
+              handleDragOver={handleDragOver}
+              handleDragLeave={handleDragLeave}
+              handleDrop={handleDrop}
+              handleDragEnd={handleDragEnd}
+            />
+          );
+        })}
       </div>
     </div>
   );

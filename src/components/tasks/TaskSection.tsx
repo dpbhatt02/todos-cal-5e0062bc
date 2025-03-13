@@ -33,13 +33,14 @@ const TaskSection = ({
     
     const day = format(selectedDate, 'd');
     const month = format(selectedDate, 'MMM');
+    const year = format(selectedDate, 'yyyy');
     const dayName = format(selectedDate, 'EEEE');
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const isToday = selectedDate.getTime() === today.getTime();
     
-    return `${day} ${month} · ${isToday ? 'Today' : ''} · ${dayName}`;
+    return `${day} ${month}, ${year} · ${isToday ? 'Today' : dayName}`;
   };
 
   return (
