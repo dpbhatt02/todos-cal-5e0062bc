@@ -6,13 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Home, Bell, Moon, Sun, Save } from "lucide-react";
+import { Home, Bell, Moon, Sun, Save, Monitor } from "lucide-react";
 import { toast } from "sonner";
 
 export const GeneralSettings = () => {
   const [defaultView, setDefaultView] = useState("dashboard");
   const [notifications, setNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
+  const [desktopNotifications, setDesktopNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [compactView, setCompactView] = useState(false);
 
@@ -21,6 +22,11 @@ export const GeneralSettings = () => {
     // Check if dark mode is active in the document
     const isDarkMode = document.documentElement.classList.contains("dark");
     setDarkMode(isDarkMode);
+    
+    // Check for desktop notification permissions
+    if ("Notification" in window) {
+      setDesktopNotifications(Notification.permission === "granted");
+    }
   }, []);
 
   // Update dark mode when the state changes
@@ -40,12 +46,39 @@ export const GeneralSettings = () => {
       defaultView,
       notifications,
       emailNotifications,
+      desktopNotifications,
       darkMode,
       compactView
     });
     
     // Show success toast
     toast.success("Settings saved successfully!");
+  };
+
+  const handleDesktopNotificationsChange = async (checked: boolean) => {
+    if (!("Notification" in window)) {
+      toast.error("Desktop notifications are not supported in your browser");
+      return;
+    }
+    
+    if (checked && Notification.permission !== "granted") {
+      const permission = await Notification.requestPermission();
+      
+      if (permission === "granted") {
+        setDesktopNotifications(true);
+        toast.success("Desktop notifications enabled!");
+        // Show a test notification
+        new Notification("Task Manager", {
+          body: "Desktop notifications are now enabled!",
+          icon: "/favicon.ico"
+        });
+      } else {
+        setDesktopNotifications(false);
+        toast.error("Permission for desktop notifications was denied");
+      }
+    } else {
+      setDesktopNotifications(checked);
+    }
   };
 
   return (
@@ -135,6 +168,25 @@ export const GeneralSettings = () => {
               checked={notifications} 
               onCheckedChange={setNotifications} 
             />
+          </div>
+          
+          <Separator />
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="desktop-notifications">Desktop Notifications</Label>
+              <p className="text-sm text-muted-foreground">
+                Receive notifications on your desktop when the app is in the background
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Monitor className="h-5 w-5 text-muted-foreground" />
+              <Switch 
+                id="desktop-notifications" 
+                checked={desktopNotifications} 
+                onCheckedChange={handleDesktopNotificationsChange} 
+              />
+            </div>
           </div>
           
           <Separator />
