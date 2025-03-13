@@ -23,10 +23,11 @@ import { Separator } from '@/components/ui/separator';
 interface SidebarProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
+  openSidebar: () => void;
   toggleCreateModal: () => void;
 }
 
-const Sidebar = ({ isSidebarOpen, toggleSidebar, toggleCreateModal }: SidebarProps) => {
+const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -45,6 +46,19 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, toggleCreateModal }: SidebarPro
     { id: 'health', label: 'Health', color: 'bg-green-500' },
     { id: 'learning', label: 'Learning', color: 'bg-amber-500' },
   ];
+
+  // Handle search icon click
+  const handleSearchClick = () => {
+    openSidebar(); // Open the sidebar
+    setIsSearchOpen(true); // Show the search input is focused
+    // Focus the search input after a small delay to ensure it's rendered
+    setTimeout(() => {
+      const searchInput = document.querySelector('[placeholder="Search tasks..."]') as HTMLInputElement;
+      if (searchInput) {
+        searchInput.focus();
+      }
+    }, 100);
+  };
 
   return (
     <aside 
@@ -99,6 +113,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, toggleCreateModal }: SidebarPro
                 size="icon"
                 className="w-10 h-10 rounded-full hover:bg-muted"
                 icon={<Search className="h-5 w-5" />}
+                onClick={handleSearchClick}
                 aria-label="Search tasks"
               />
             </div>
