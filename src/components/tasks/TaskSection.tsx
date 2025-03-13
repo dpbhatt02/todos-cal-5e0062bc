@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { format } from 'date-fns';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
+import { formatFullDate } from './utils';
 
 interface TaskSectionProps {
   title: string;
@@ -31,16 +31,7 @@ const TaskSection = ({
   const getSelectedDateDisplay = () => {
     if (!selectedDate) return title;
     
-    const day = format(selectedDate, 'd');
-    const month = format(selectedDate, 'MMM');
-    const year = format(selectedDate, 'yyyy');
-    const dayName = format(selectedDate, 'EEEE');
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const isToday = selectedDate.getTime() === today.getTime();
-    
-    return `${day} ${month}, ${year} · ${isToday ? 'Today' : dayName}`;
+    return formatFullDate(selectedDate);
   };
 
   return (

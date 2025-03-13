@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { format, addDays, isSameDay, isBefore, differenceInDays } from 'date-fns';
 import { 
@@ -75,6 +76,107 @@ const mockTasks: TaskProps[] = [
     completed: false,
     tags: ['work', 'personal'],
     recurring: { frequency: 'daily' }
+  },
+  // Add 10 more tasks for upcoming days
+  {
+    id: '7',
+    title: 'Family dinner',
+    description: 'Prepare dinner for family gathering',
+    priority: 'medium',
+    dueDate: addDays(new Date(), 1).toISOString().split('T')[0], // Tomorrow
+    completed: false,
+    tags: ['personal'],
+    recurring: undefined
+  },
+  {
+    id: '8',
+    title: 'Weekly report',
+    description: 'Compile weekly progress report for team',
+    priority: 'high',
+    dueDate: addDays(new Date(), 2).toISOString().split('T')[0],
+    completed: false,
+    tags: ['work', 'personal'],
+    recurring: undefined
+  },
+  {
+    id: '9',
+    title: 'Grocery shopping',
+    description: 'Buy essentials for the week',
+    priority: 'medium',
+    dueDate: addDays(new Date(), 1).toISOString().split('T')[0],
+    completed: false,
+    tags: ['personal'],
+    recurring: undefined
+  },
+  {
+    id: '10',
+    title: 'Doctor appointment',
+    description: 'Annual health checkup',
+    priority: 'high',
+    dueDate: addDays(new Date(), 3).toISOString().split('T')[0],
+    completed: false,
+    tags: ['health', 'personal'],
+    recurring: undefined
+  },
+  {
+    id: '11',
+    title: 'Home maintenance',
+    description: 'Fix kitchen sink and clean gutters',
+    priority: 'low',
+    dueDate: addDays(new Date(), 4).toISOString().split('T')[0],
+    completed: false,
+    tags: ['personal'],
+    recurring: undefined
+  },
+  {
+    id: '12',
+    title: 'Call parents',
+    description: 'Weekly catch up with family',
+    priority: 'medium',
+    dueDate: addDays(new Date(), 2).toISOString().split('T')[0],
+    completed: false,
+    tags: ['personal'],
+    recurring: { frequency: 'weekly' }
+  },
+  {
+    id: '13',
+    title: 'Update portfolio',
+    description: 'Add recent projects to online portfolio',
+    priority: 'low',
+    dueDate: addDays(new Date(), 5).toISOString().split('T')[0],
+    completed: false,
+    tags: ['personal', 'learning'],
+    recurring: undefined
+  },
+  {
+    id: '14',
+    title: 'Meditation session',
+    description: '20-minute guided meditation',
+    priority: 'medium',
+    dueDate: addDays(new Date(), 1).toISOString().split('T')[0],
+    completed: false,
+    tags: ['health', 'personal'],
+    recurring: { frequency: 'daily' }
+  },
+  {
+    id: '15',
+    title: 'Birthday gift shopping',
+    description: 'Buy gift for friend\'s birthday party',
+    priority: 'medium',
+    dueDate: addDays(new Date(), 3).toISOString().split('T')[0],
+    completed: false,
+    tags: ['personal'],
+    recurring: undefined
+  },
+  {
+    id: '16',
+    title: 'Review monthly budget',
+    description: 'Check expenses and update budget spreadsheet',
+    priority: 'high',
+    dueDate: addDays(new Date(), 4).toISOString().split('T')[0],
+    completed: false,
+    tags: ['personal'],
+    recurring: { frequency: 'monthly' }
   }
 ];
 
@@ -109,7 +211,7 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
       return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
     } else if (sortOption === 'priority') {
       const priorityWeight = { low: 0, medium: 1, high: 2 };
-      return priorityWeight[b.priority] - priorityWeight[a.priority];
+      return priorityWeight[b.priority as keyof typeof priorityWeight] - priorityWeight[a.priority as keyof typeof priorityWeight];
     }
     return 0;
   });
@@ -127,7 +229,7 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
     today: sortedTasks.filter(task => {
       const taskDate = new Date(task.dueDate);
       taskDate.setHours(0, 0, 0, 0);
-      return isSameDay(taskDate, selectedDate);
+      return isSameDay(taskDate, today);
     })
   };
 
@@ -266,7 +368,7 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
           title="Today"
           tasks={groupedTasks.today}
           sortOption={sortOption}
-          selectedDate={selectedDate}
+          selectedDate={today}
           handleDragStart={handleDragStart}
           handleDragOver={handleDragOver}
           handleDragLeave={handleDragLeave}
@@ -286,6 +388,7 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
               title={formatFullDate(date)}
               tasks={tasks}
               sortOption={sortOption}
+              selectedDate={date}
               handleDragStart={handleDragStart}
               handleDragOver={handleDragOver}
               handleDragLeave={handleDragLeave}
