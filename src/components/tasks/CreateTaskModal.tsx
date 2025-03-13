@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   ToggleGroup,
   ToggleGroupItem
@@ -22,12 +23,29 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (taskData: any) => void;
 }
+
+const WEEKDAYS = [
+  { id: 'monday', label: 'Mon' },
+  { id: 'tuesday', label: 'Tue' },
+  { id: 'wednesday', label: 'Wed' },
+  { id: 'thursday', label: 'Thu' },
+  { id: 'friday', label: 'Fri' },
+  { id: 'saturday', label: 'Sat' },
+  { id: 'sunday', label: 'Sun' },
+];
 
 const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) => {
   const [taskData, setTaskData] = useState({
@@ -38,7 +56,11 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
     startTime: '09:00',
     endTime: '10:00',
     tags: [] as string[],
-    recurring: 'none'
+    recurring: 'none',
+    recurrenceEndType: 'never', // 'never', 'date', 'after'
+    recurrenceEndDate: formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days from now
+    recurrenceCount: 5,
+    selectedWeekdays: [] as string[]
   });
 
   const [textSelection, setTextSelection] = useState({
@@ -79,6 +101,17 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
     });
   };
 
+  const handleWeekdayToggle = (weekdayId: string) => {
+    setTaskData(prev => {
+      const currentWeekdays = [...prev.selectedWeekdays];
+      if (currentWeekdays.includes(weekdayId)) {
+        return { ...prev, selectedWeekdays: currentWeekdays.filter(id => id !== weekdayId) };
+      } else {
+        return { ...prev, selectedWeekdays: [...currentWeekdays, weekdayId] };
+      }
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(taskData);
@@ -91,7 +124,11 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
       startTime: '09:00',
       endTime: '10:00',
       tags: [],
-      recurring: 'none'
+      recurring: 'none',
+      recurrenceEndType: 'never',
+      recurrenceEndDate: formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+      recurrenceCount: 5,
+      selectedWeekdays: []
     });
     onClose();
   };
@@ -372,7 +409,14 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
               <Label htmlFor="recurring">Recurring</Label>
               <Select
                 value={taskData.recurring}
-                onValueChange={(value) => setTaskData(prev => ({ ...prev, recurring: value }))}
+                onValueChange={(value) => {
+                  setTaskData(prev => ({ 
+                    ...prev, 
+                    recurring: value,
+                    // Reset selectedWeekdays if not custom
+                    selectedWeekdays: value === 'custom' ? prev.selectedWeekdays : []
+                  }));
+                }}
               >
                 <SelectTrigger className="w-full">
                   <div className="flex items-center gap-2">
@@ -385,9 +429,122 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            
+            {taskData.recurring !== 'none' && (
+              <div className="space-y-3 p-3 border rounded-md bg-muted/20">
+                {taskData.recurring === 'custom' && (
+                  <div className="space-y-2">
+                    <Label>Repeat on</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {WEEKDAYS.map(day => (
+                        <div key={day.id} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`day-${day.id}`}
+                            checked={taskData.selectedWeekdays.includes(day.id)}
+                            onCheckedChange={() => handleWeekdayToggle(day.id)}
+                          />
+                          <label 
+                            htmlFor={`day-${day.id}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {day.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <Label>Ends</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="never-end"
+                        checked={taskData.recurrenceEndType === 'never'}
+                        onCheckedChange={() => 
+                          setTaskData(prev => ({ ...prev, recurrenceEndType: 'never' }))
+                        }
+                      />
+                      <label 
+                        htmlFor="never-end"
+                        className="text-sm cursor-pointer"
+                      >
+                        Never
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="end-on-date"
+                        checked={taskData.recurrenceEndType === 'date'}
+                        onCheckedChange={() => 
+                          setTaskData(prev => ({ ...prev, recurrenceEndType: 'date' }))
+                        }
+                      />
+                      <label 
+                        htmlFor="end-on-date"
+                        className="text-sm cursor-pointer flex items-center gap-2"
+                      >
+                        <span>On date</span>
+                        {taskData.recurrenceEndType === 'date' && (
+                          <Input
+                            type="date"
+                            value={taskData.recurrenceEndDate}
+                            onChange={(e) => 
+                              setTaskData(prev => ({ 
+                                ...prev, 
+                                recurrenceEndDate: e.target.value 
+                              }))
+                            }
+                            className="h-8 w-40"
+                            min={taskData.dueDate}
+                          />
+                        )}
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="end-after"
+                        checked={taskData.recurrenceEndType === 'after'}
+                        onCheckedChange={() => 
+                          setTaskData(prev => ({ ...prev, recurrenceEndType: 'after' }))
+                        }
+                      />
+                      <label 
+                        htmlFor="end-after"
+                        className="text-sm cursor-pointer flex items-center gap-2"
+                      >
+                        <span>After</span>
+                        {taskData.recurrenceEndType === 'after' && (
+                          <div className="flex items-center">
+                            <Input
+                              type="number"
+                              min="1"
+                              max="999"
+                              value={taskData.recurrenceCount}
+                              onChange={(e) => 
+                                setTaskData(prev => ({ 
+                                  ...prev, 
+                                  recurrenceCount: parseInt(e.target.value) || 1
+                                }))
+                              }
+                              className="h-8 w-16"
+                            />
+                            <span className="ml-2">occurrences</span>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <Separator />
             
