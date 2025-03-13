@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { 
@@ -193,45 +192,15 @@ const TaskList = () => {
         setSortOption={setSortOption}
       />
       
-      {/* Date header with month picker */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <ButtonCustom variant="ghost" className="flex items-center gap-1 text-md font-semibold">
-                  {format(currentDate, 'MMMM yyyy')}
-                  <span className="h-4 w-4 ml-1">▼</span>
-                </ButtonCustom>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setSelectedDate(date);
-                      setCurrentDate(date);
-                    }
-                  }}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-        
-        <WeekView 
-          currentDate={currentDate}
-          selectedDate={selectedDate}
-          tasks={sortedTasks}
-          onPreviousWeek={previousWeek}
-          onNextWeek={nextWeek}
-          onToday={goToToday}
-          onSelectDay={setSelectedDate}
-        />
-      </div>
+      <WeekView 
+        currentDate={currentDate}
+        selectedDate={selectedDate}
+        tasks={sortedTasks}
+        onPreviousWeek={previousWeek}
+        onNextWeek={nextWeek}
+        onToday={goToToday}
+        onSelectDay={setSelectedDate}
+      />
       
       <div className="space-y-6">
         <OverdueTasksSection 

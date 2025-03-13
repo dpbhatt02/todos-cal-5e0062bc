@@ -53,14 +53,14 @@ const OverdueTasksSection = ({
 
   return (
     <Collapsible open={isOpen} onOpenChange={onOpenChange}>
-      <CollapsibleTrigger className="flex items-center w-full justify-between text-left mb-3">
-        <div className="flex items-center">
+      <div className="flex items-center w-full justify-between text-left mb-3">
+        <CollapsibleTrigger className="flex items-center">
           <ChevronRight className={`h-5 w-5 mr-2 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
           <span className="text-md font-medium text-destructive">Overdue</span>
           <span className="ml-2 px-1.5 py-0.5 bg-destructive/10 text-destructive rounded text-xs">
             {tasks.length}
           </span>
-        </div>
+        </CollapsibleTrigger>
         <Popover>
           <PopoverTrigger asChild>
             <ButtonCustom
@@ -106,7 +106,7 @@ const OverdueTasksSection = ({
             </div>
           </PopoverContent>
         </Popover>
-      </CollapsibleTrigger>
+      </div>
       <CollapsibleContent>
         <div className="space-y-2 ml-7">
           {tasks.map(task => (

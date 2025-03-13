@@ -3,6 +3,8 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { ButtonCustom } from '@/components/ui/button-custom';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from "@/components/ui/calendar";
 
 interface WeekDay {
   date: Date;
@@ -61,7 +63,31 @@ const WeekView = ({
   return (
     <div className="mb-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-medium">Upcoming</h2>
+        <div className="flex items-center space-x-2">
+          <h2 className="text-xl font-medium">Upcoming</h2>
+          <Popover>
+            <PopoverTrigger asChild>
+              <ButtonCustom variant="ghost" className="flex items-center gap-1 text-md font-semibold">
+                {format(currentDate, 'MMMM yyyy')}
+                <span className="h-4 w-4 ml-1">▼</span>
+              </ButtonCustom>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    onSelectDay(date);
+                    onSelectDay(date);
+                  }
+                }}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
         
         <div className="flex items-center gap-2">
           <ButtonCustom 
