@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { X, Calendar as CalendarIcon } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Calendar as CalendarIcon, Clock, Bold, Italic, Link, List, Underline, Repeat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,18 @@ import {
   ToggleGroup,
   ToggleGroupItem
 } from '@/components/ui/toggle-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -23,8 +35,19 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
     description: '',
     priority: 'medium',
     dueDate: formatDate(new Date()),
-    tags: [] as string[]
+    startTime: '09:00',
+    endTime: '10:00',
+    tags: [] as string[],
+    recurring: ''
   });
+
+  const [textSelection, setTextSelection] = useState({
+    start: 0,
+    end: 0,
+    text: ''
+  });
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const availableTags = [
     { id: 'work', label: 'Work' },
@@ -65,17 +88,113 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
       description: '',
       priority: 'medium',
       dueDate: formatDate(new Date()),
-      tags: []
+      startTime: '09:00',
+      endTime: '10:00',
+      tags: [],
+      recurring: ''
     });
     onClose();
   };
+
+  // Text formatting functions
+  const handleTextSelection = () => {
+    if (textareaRef.current) {
+      const start = textareaRef.current.selectionStart;
+      const end = textareaRef.current.selectionEnd;
+      const selectedText = taskData.description.substring(start, end);
+      
+      if (start !== end) {
+        setTextSelection({
+          start,
+          end,
+          text: selectedText
+        });
+      } else {
+        setTextSelection({ start: 0, end: 0, text: '' });
+      }
+    }
+  };
+
+  const applyFormatting = (format: 'bold' | 'italic' | 'underline' | 'link' | 'list') => {
+    if (textSelection.start === textSelection.end) return;
+
+    const before = taskData.description.substring(0, textSelection.start);
+    const after = taskData.description.substring(textSelection.end);
+    let formattedText = '';
+
+    switch (format) {
+      case 'bold':
+        formattedText = `**${textSelection.text}**`;
+        break;
+      case 'italic':
+        formattedText = `*${textSelection.text}*`;
+        break;
+      case 'underline':
+        formattedText = `__${textSelection.text}__`;
+        break;
+      case 'link':
+        formattedText = `[${textSelection.text}](url)`;
+        break;
+      case 'list':
+        formattedText = `\n- ${textSelection.text}`;
+        break;
+      default:
+        formattedText = textSelection.text;
+    }
+
+    setTaskData(prev => ({
+      ...prev,
+      description: before + formattedText + after
+    }));
+
+    // Reset selection
+    setTextSelection({ start: 0, end: 0, text: '' });
+  };
+
+  // Get background color based on priority
+  const getPriorityBackgroundColor = () => {
+    switch (taskData.priority) {
+      case 'low':
+        return 'rgba(74, 222, 128, 0.1)'; // light green
+      case 'medium':
+        return 'rgba(251, 191, 36, 0.1)'; // light amber
+      case 'high':
+        return 'rgba(239, 68, 68, 0.1)'; // light red
+      default:
+        return 'transparent';
+    }
+  };
+
+  const getPriorityBorderColor = () => {
+    switch (taskData.priority) {
+      case 'low':
+        return 'border-priority-low';
+      case 'medium':
+        return 'border-priority-medium';
+      case 'high':
+        return 'border-priority-high';
+      default:
+        return '';
+    }
+  };
+
+  useEffect(() => {
+    // Set focus when modal opens
+    if (isOpen && textareaRef.current) {
+      setTimeout(() => {
+        const input = document.getElementById('title');
+        if (input) input.focus();
+      }, 100);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div 
-        className="w-full max-w-lg max-h-[90vh] bg-background rounded-lg shadow-lg overflow-hidden animate-in fade-in"
+        className={`w-full max-w-lg max-h-[90vh] bg-background rounded-lg shadow-lg overflow-hidden animate-in fade-in border-l-4 ${getPriorityBorderColor()}`}
+        style={{ backgroundColor: getPriorityBackgroundColor() }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -105,14 +224,73 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
             
             <div className="space-y-2">
               <Label htmlFor="description">Description (Optional)</Label>
+              <div className="flex flex-wrap gap-1 mb-1">
+                <ButtonCustom
+                  type="button"
+                  size="sm"
+                  variant={textSelection.text ? "outline" : "ghost"}
+                  className="h-8 px-2 text-xs"
+                  onClick={() => applyFormatting('bold')}
+                  disabled={!textSelection.text}
+                >
+                  <Bold className="h-3.5 w-3.5" />
+                </ButtonCustom>
+                <ButtonCustom
+                  type="button"
+                  size="sm"
+                  variant={textSelection.text ? "outline" : "ghost"}
+                  className="h-8 px-2 text-xs"
+                  onClick={() => applyFormatting('italic')}
+                  disabled={!textSelection.text}
+                >
+                  <Italic className="h-3.5 w-3.5" />
+                </ButtonCustom>
+                <ButtonCustom
+                  type="button"
+                  size="sm"
+                  variant={textSelection.text ? "outline" : "ghost"}
+                  className="h-8 px-2 text-xs"
+                  onClick={() => applyFormatting('underline')}
+                  disabled={!textSelection.text}
+                >
+                  <Underline className="h-3.5 w-3.5" />
+                </ButtonCustom>
+                <ButtonCustom
+                  type="button"
+                  size="sm"
+                  variant={textSelection.text ? "outline" : "ghost"}
+                  className="h-8 px-2 text-xs"
+                  onClick={() => applyFormatting('link')}
+                  disabled={!textSelection.text}
+                >
+                  <Link className="h-3.5 w-3.5" />
+                </ButtonCustom>
+                <ButtonCustom
+                  type="button"
+                  size="sm"
+                  variant={textSelection.text ? "outline" : "ghost"}
+                  className="h-8 px-2 text-xs"
+                  onClick={() => applyFormatting('list')}
+                  disabled={!textSelection.text}
+                >
+                  <List className="h-3.5 w-3.5" />
+                </ButtonCustom>
+              </div>
               <Textarea
                 id="description"
                 name="description"
                 placeholder="Add details about this task..."
                 value={taskData.description}
                 onChange={handleChange}
+                onSelect={handleTextSelection}
+                ref={textareaRef}
                 rows={3}
               />
+              {textSelection.text && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Selected: "{textSelection.text.substring(0, 30)}{textSelection.text.length > 30 ? '...' : ''}"
+                </p>
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -156,6 +334,59 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime">Start Time</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="startTime"
+                    name="startTime"
+                    type="time"
+                    value={taskData.startTime}
+                    onChange={handleChange}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="endTime">End Time</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="endTime"
+                    name="endTime"
+                    type="time"
+                    value={taskData.endTime}
+                    onChange={handleChange}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="recurring">Recurring</Label>
+              <Select
+                value={taskData.recurring}
+                onValueChange={(value) => setTaskData(prev => ({ ...prev, recurring: value }))}
+              >
+                <SelectTrigger className="w-full">
+                  <div className="flex items-center gap-2">
+                    <Repeat className="h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="No repetition" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No repetition</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <Separator />
