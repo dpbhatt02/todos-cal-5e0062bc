@@ -100,7 +100,7 @@ export const CalendarSettings = () => {
                     <CalendarIcon className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <div className="font-medium">dpbhatt02@gmail.com</div>
+                    <div className="font-medium">user@example.com</div>
                     <div className="flex items-center text-sm text-green-600">
                       <CheckCircle2 className="h-4 w-4 mr-1" />
                       Live

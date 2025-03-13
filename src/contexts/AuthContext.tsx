@@ -130,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Create mock Google user
       const newUser: User = {
         id: Math.random().toString(36).substring(2, 9),
-        email: 'user@gmail.com',
+        email: 'user@example.com',
         name: 'Google User',
         photoURL: 'https://i.pravatar.cc/150?img=3',
       };
