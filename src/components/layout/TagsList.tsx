@@ -17,6 +17,7 @@ interface TagsListProps {
 
 const TagsList = ({ isSidebarOpen }: TagsListProps) => {
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [hoveredTag, setHoveredTag] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const tags = [
@@ -49,21 +50,39 @@ const TagsList = ({ isSidebarOpen }: TagsListProps) => {
         </TooltipProvider>
         <div className="space-y-1 mt-2">
           {tags.map((tag) => (
-            <TooltipProvider key={tag.id}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div 
-                    className="flex items-center justify-center cursor-pointer py-1.5"
-                    onClick={() => handleTagClick(tag.id)}
-                  >
-                    <div className={cn("h-2.5 w-2.5 rounded-full", tag.color)} />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="right">
+            <div 
+              key={tag.id}
+              className="relative"
+              onMouseEnter={() => setHoveredTag(tag.id)}
+              onMouseLeave={() => setHoveredTag(null)}
+            >
+              <div 
+                className="flex items-center justify-center cursor-pointer py-1.5"
+                onClick={() => handleTagClick(tag.id)}
+              >
+                <div className={cn("h-2.5 w-2.5 rounded-full", tag.color)} />
+              </div>
+              {hoveredTag === tag.id && (
+                <div 
+                  className="absolute left-full top-0 z-50 ml-1 whitespace-nowrap rounded-md bg-sidebar-primary px-3 py-1.5 text-xs font-medium text-sidebar-primary-foreground shadow-md animate-fade-in"
+                  style={{ marginTop: "2px" }}
+                >
                   {tag.label}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                </div>
+              )}
+              {hoveredTag !== tag.id && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="absolute inset-0 cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {tag.label}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
           ))}
         </div>
       </div>
