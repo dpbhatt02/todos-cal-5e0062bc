@@ -1,10 +1,10 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
@@ -16,6 +16,18 @@ import Auth from "./pages/Auth";
 import TagTasks from "./pages/TagTasks";
 
 const queryClient = new QueryClient();
+
+// Initialize theme based on local storage or system preference
+const initializeTheme = () => {
+  const storedTheme = localStorage.getItem("theme");
+  const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  
+  if (storedTheme === "dark" || (!storedTheme && systemPrefersDark)) {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+};
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -67,18 +79,25 @@ const AppRoutes = () => (
   </Routes>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Initialize theme on app load
+  useEffect(() => {
+    initializeTheme();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

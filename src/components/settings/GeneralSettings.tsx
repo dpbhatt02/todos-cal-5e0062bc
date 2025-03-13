@@ -1,12 +1,13 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Home, Bell, Moon, Sun, LucideSave } from "lucide-react";
+import { Home, Bell, Moon, Sun, Save } from "lucide-react";
+import { toast } from "sonner";
 
 export const GeneralSettings = () => {
   const [defaultView, setDefaultView] = useState("dashboard");
@@ -14,6 +15,24 @@ export const GeneralSettings = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [compactView, setCompactView] = useState(false);
+
+  // Initialize dark mode based on the document class on component mount
+  useEffect(() => {
+    // Check if dark mode is active in the document
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    setDarkMode(isDarkMode);
+  }, []);
+
+  // Update dark mode when the state changes
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [darkMode]);
 
   const handleSave = () => {
     // In a real app, this would save to a database or localStorage
@@ -24,6 +43,9 @@ export const GeneralSettings = () => {
       darkMode,
       compactView
     });
+    
+    // Show success toast
+    toast.success("Settings saved successfully!");
   };
 
   return (
@@ -135,7 +157,7 @@ export const GeneralSettings = () => {
 
       <div className="flex justify-end">
         <Button onClick={handleSave} className="gap-2">
-          <LucideSave className="h-4 w-4" />
+          <Save className="h-4 w-4" />
           Save Preferences
         </Button>
       </div>
