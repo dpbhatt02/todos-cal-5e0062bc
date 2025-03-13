@@ -30,11 +30,12 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="flex flex-1">
         <Sidebar 
           isSidebarOpen={isSidebarOpen} 
+          toggleSidebar={toggleSidebar}
           toggleCreateModal={toggleCreateModal}
         />
         <main 
           className={`flex-1 transition-all duration-300 ease-in-out p-4 md:p-6 
-            ${isSidebarOpen ? 'md:ml-64' : ''}`}
+            ${isSidebarOpen ? 'md:ml-64' : 'md:ml-20'}`}
         >
           {children}
         </main>
