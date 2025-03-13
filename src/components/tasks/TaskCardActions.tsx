@@ -14,7 +14,7 @@ interface TaskCardActionsProps {
   openModal: () => void;
   onEdit?: TaskProps['onEdit'];
   onDelete?: TaskProps['onDelete'];
-  onReschedule?: TaskProps['onReschedule'];
+  onReschedule: (date: Date | undefined) => void;
   isMobile: boolean;
 }
 
@@ -55,12 +55,6 @@ const TaskCardActions = ({
     }
   };
 
-  const handleReschedule = (date: Date | undefined) => {
-    if (date && onReschedule) {
-      onReschedule(id, date);
-    }
-  };
-
   return (
     <div className="flex items-center space-x-1">
       {isHovered && !isMobile && (
@@ -70,7 +64,7 @@ const TaskCardActions = ({
             selectedDate={selectedDate}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            onReschedule={handleReschedule}
+            onReschedule={onReschedule}
           />
         </div>
       )}

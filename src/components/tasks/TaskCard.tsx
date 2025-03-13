@@ -87,6 +87,7 @@ const TaskCard = ({
     setIsModalOpen(false);
   };
 
+  // Fixed the handleReschedule function to correctly pass id and date to onReschedule
   const handleReschedule = (date: Date | undefined) => {
     if (date && onReschedule) {
       setSelectedDate(date);
