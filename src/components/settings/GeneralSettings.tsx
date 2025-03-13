@@ -17,7 +17,7 @@ export const GeneralSettings = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [compactView, setCompactView] = useState(false);
 
-  // Initialize dark mode based on the document class on component mount
+  // Initialize settings based on localStorage or document class on component mount
   useEffect(() => {
     // Check if dark mode is active in the document
     const isDarkMode = document.documentElement.classList.contains("dark");
@@ -26,6 +26,16 @@ export const GeneralSettings = () => {
     // Check for desktop notification permissions
     if ("Notification" in window) {
       setDesktopNotifications(Notification.permission === "granted");
+    }
+    
+    // Initialize compact view from localStorage
+    const storedCompactView = localStorage.getItem("compactView") === "true";
+    setCompactView(storedCompactView);
+    
+    if (storedCompactView) {
+      document.documentElement.classList.add("compact");
+    } else {
+      document.documentElement.classList.remove("compact");
     }
   }, []);
 
@@ -39,6 +49,17 @@ export const GeneralSettings = () => {
       localStorage.setItem("theme", "light");
     }
   }, [darkMode]);
+  
+  // Update compact view when the state changes
+  useEffect(() => {
+    if (compactView) {
+      document.documentElement.classList.add("compact");
+      localStorage.setItem("compactView", "true");
+    } else {
+      document.documentElement.classList.remove("compact");
+      localStorage.setItem("compactView", "false");
+    }
+  }, [compactView]);
 
   const handleSave = () => {
     // In a real app, this would save to a database or localStorage

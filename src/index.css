@@ -103,6 +103,59 @@
     overflow-x: hidden;
   }
 
+  /* Compact view styles */
+  html.compact .card {
+    @apply p-3;
+  }
+  
+  html.compact .container {
+    @apply py-3;
+  }
+  
+  html.compact h1 {
+    @apply mb-3 text-xl;
+  }
+  
+  html.compact h2 {
+    @apply mb-2 text-lg;
+  }
+  
+  html.compact .card-content {
+    @apply space-y-3;
+  }
+  
+  html.compact .space-y-6 {
+    @apply space-y-4;
+  }
+  
+  html.compact .space-y-4 {
+    @apply space-y-3;
+  }
+  
+  html.compact .p-4 {
+    @apply p-3;
+  }
+  
+  html.compact .py-4 {
+    @apply py-3;
+  }
+  
+  html.compact .px-4 {
+    @apply px-3;
+  }
+  
+  html.compact .gap-4 {
+    @apply gap-3;
+  }
+  
+  html.compact .my-4 {
+    @apply my-3;
+  }
+  
+  html.compact .mx-4 {
+    @apply mx-3;
+  }
+
   #root {
     height: 100%;
     width: 100%;
