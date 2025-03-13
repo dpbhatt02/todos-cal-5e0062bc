@@ -38,16 +38,8 @@ const SearchBar = ({ isSidebarOpen, handleSearchClick }: SearchBarProps) => {
           </div>
         </div>
       ) : (
-        <div className="flex justify-center mb-3">
-          <ButtonCustom
-            variant="ghost"
-            size="icon"
-            className="w-10 h-10 rounded-full hover:bg-muted"
-            icon={<Search className="h-5 w-5" />}
-            onClick={handleOpenSearch}
-            aria-label="Search tasks"
-          />
-        </div>
+        // We'll remove the search button in the collapsed state since it's already in the navigation links
+        <div className="mb-3"></div>
       )}
       
       <SearchTasksSheet 

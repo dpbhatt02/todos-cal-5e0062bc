@@ -9,9 +9,10 @@ import { useSwipeGesture } from '@/hooks/use-swipe-gesture';
 import TaskCardCheckbox from './TaskCardCheckbox';
 import TaskCardSwipeIndicator from './TaskCardSwipeIndicator';
 import TaskCardActions from './TaskCardActions';
+import { useTasksContext } from '@/contexts/TasksContext';
 
 interface TaskCardProps extends TaskProps {
-  onClick?: () => void; // Added optional onClick prop
+  onClick?: () => void;
 }
 
 const TaskCard = ({ 
@@ -23,10 +24,7 @@ const TaskCard = ({
   completed, 
   tags = [],
   recurring,
-  onEdit,
-  onDelete,
-  onReschedule,
-  onClick // Added optional onClick prop
+  onClick
 }: TaskCardProps) => {
   const [isCompleted, setIsCompleted] = useState(completed);
   const [isHovered, setIsHovered] = useState(false);
@@ -35,6 +33,7 @@ const TaskCard = ({
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { updateTask, deleteTask } = useTasksContext();
 
   // Create a task object for reuse
   const task = {
@@ -45,18 +44,30 @@ const TaskCard = ({
     dueDate,
     completed: isCompleted,
     tags,
-    recurring,
-    onEdit,
-    onDelete,
-    onReschedule
+    recurring
   };
 
-  const handleCheckboxChange = (checked: boolean | string) => {
+  const handleCheckboxChange = async (checked: boolean | string) => {
     // Convert checked to boolean (in case it comes as string)
     const isChecked = checked === true || checked === 'true';
     setIsCompleted(isChecked);
-    // In a real app, you would trigger API calls here
-    console.log(`Task ${id} marked as ${isChecked ? 'completed' : 'incomplete'}`);
+    
+    // Update task completion status in the database
+    await updateTask(id, { completed: isChecked });
+  };
+
+  const handleEdit = (taskToEdit: TaskProps) => {
+    // Open the modal with the task data for editing
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (taskId: string) => {
+    await deleteTask(taskId);
+  };
+
+  const handleReschedule = async (taskId: string, newDate: Date) => {
+    setSelectedDate(newDate);
+    await updateTask(taskId, { dueDate: newDate });
   };
 
   const handleSwipeLeft = () => {
@@ -66,15 +77,8 @@ const TaskCard = ({
 
   const handleSwipeRight = () => {
     console.log("Swipe right detected for task:", id);
-    // On swipe right, invoke the edit function if available
-    if (onEdit && isMobile) {
-      console.log("Invoking onEdit function for task:", id);
-      onEdit(task);
-    } else {
-      // If not available or not on mobile, fall back to opening details sheet
-      console.log("Opening details modal for task:", id);
-      setIsModalOpen(true);
-    }
+    // On swipe right, open details sheet
+    setIsModalOpen(true);
   };
 
   const { handlers, state, elementRef } = useSwipeGesture({
@@ -94,14 +98,6 @@ const TaskCard = ({
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-  };
-
-  // Fixed the handleReschedule function to correctly pass id and date to onReschedule
-  const handleReschedule = (date: Date | undefined) => {
-    if (date && onReschedule) {
-      setSelectedDate(date);
-      onReschedule(id, date);
-    }
   };
 
   return (
@@ -156,9 +152,9 @@ const TaskCard = ({
             selectedDate={selectedDate}
             isCompleted={isCompleted}
             openModal={handleOpenModal}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onReschedule={handleReschedule}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onReschedule={(date) => date && handleReschedule(id, date)}
             isMobile={isMobile}
           />
         </div>
@@ -167,7 +163,12 @@ const TaskCard = ({
       <TaskDetailsSheet 
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        task={task}
+        task={{
+          ...task,
+          onEdit: handleEdit,
+          onDelete: handleDelete,
+          onReschedule: (id, newDate) => handleReschedule(id, newDate)
+        }}
       />
     </>
   );
