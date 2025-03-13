@@ -4,7 +4,8 @@ import { Plus, ArrowRight } from 'lucide-react';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import TaskCard, { TaskProps } from '@/components/tasks/TaskCard';
+import TaskCard from '@/components/tasks/TaskCard';
+import { TaskProps } from '@/components/tasks/types';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import { useNavigate } from 'react-router-dom';
 

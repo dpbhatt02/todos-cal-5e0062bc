@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { Plus, MoreVertical } from 'lucide-react';
 import { ButtonCustom } from '@/components/ui/button-custom';
-import TaskCard, { TaskProps } from '@/components/tasks/TaskCard';
+import TaskCard from '@/components/tasks/TaskCard';
+import { TaskProps } from '@/components/tasks/types';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 
 // Sample tasks data for demonstration
