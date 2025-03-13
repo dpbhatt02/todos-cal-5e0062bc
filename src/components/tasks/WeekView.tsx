@@ -61,8 +61,8 @@ const WeekView = ({
   const weekDays = getWeekDays();
 
   return (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="mb-4">
+      <div className="flex justify-between items-center mb-3">
         <div className="flex items-center space-x-2">
           <h2 className="text-xl font-medium">Upcoming</h2>
           <Popover>
@@ -94,16 +94,16 @@ const WeekView = ({
             variant="outline" 
             size="icon" 
             onClick={onPreviousWeek}
-            className="h-8 w-8"
+            className="h-7 w-7"
             aria-label="Previous week"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5" />
           </ButtonCustom>
           
           <ButtonCustom 
             variant="outline" 
             onClick={onToday}
-            className="h-8"
+            className="h-7 text-xs px-2"
           >
             Today
           </ButtonCustom>
@@ -112,30 +112,30 @@ const WeekView = ({
             variant="outline" 
             size="icon" 
             onClick={onNextWeek}
-            className="h-8 w-8"
+            className="h-7 w-7"
             aria-label="Next week"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </ButtonCustom>
         </div>
       </div>
       
-      {/* Week day selector */}
-      <div className="grid grid-cols-7 gap-2">
+      {/* Week day selector - Reduced size */}
+      <div className="grid grid-cols-7 gap-1 border border-border rounded-lg py-2 px-1">
         {weekDays.map((day, index) => (
           <button
             key={index}
             onClick={() => onSelectDay(day.date)}
-            className={`flex flex-col items-center p-2 rounded-lg transition-colors 
+            className={`flex flex-col items-center p-1 rounded-md transition-colors 
               ${day.isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}
             `}
           >
-            <span className="text-sm font-normal">{day.weekday}</span>
-            <span className={`text-xl font-semibold my-1 ${day.hasTask && !day.isSelected ? 'text-primary' : ''}`}>
+            <span className="text-xs font-normal">{day.weekday}</span>
+            <span className={`text-lg font-semibold ${day.hasTask && !day.isSelected ? 'text-primary' : ''}`}>
               {day.day}
             </span>
             {day.hasTask && !day.isSelected && (
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              <span className="w-1 h-1 rounded-full bg-primary"></span>
             )}
           </button>
         ))}
