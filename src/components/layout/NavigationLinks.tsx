@@ -2,8 +2,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  CheckSquare, 
-  CalendarIcon, 
   ListTodo,
   Settings,
   HelpCircle
@@ -22,8 +20,6 @@ const NavigationLinks = ({ isSidebarOpen }: NavigationLinksProps) => {
   const mainNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: ListTodo, label: 'Task List', path: '/tasks' },
-    { icon: CalendarIcon, label: 'Calendar', path: '/calendar' },
-    { icon: CheckSquare, label: 'Kanban Board', path: '/kanban' },
   ];
 
   const footerNavItems = [

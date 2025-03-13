@@ -5,7 +5,6 @@ import { Separator } from '@/components/ui/separator';
 import SidebarHeader from './SidebarHeader';
 import NavigationLinks from './NavigationLinks';
 import TagsList from './TagsList';
-import UpcomingTasks from './UpcomingTasks';
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -38,9 +37,6 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, openSidebar, toggleCreateModal 
         )}>
           {/* Main navigation links */}
           <NavigationLinks isSidebarOpen={isSidebarOpen} />
-          
-          {/* Upcoming tasks section */}
-          <UpcomingTasks isSidebarOpen={isSidebarOpen} />
           
           {/* Tags section */}
           {isSidebarOpen && (
