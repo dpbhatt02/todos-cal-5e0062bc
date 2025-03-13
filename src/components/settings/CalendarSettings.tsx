@@ -132,7 +132,7 @@ export const CalendarSettings = () => {
               
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Show events in Todoist</h3>
+                  <h3 className="text-lg font-medium">Show events in TodosCal</h3>
                   <Switch 
                     checked={showEvents} 
                     onCheckedChange={setShowEvents}
