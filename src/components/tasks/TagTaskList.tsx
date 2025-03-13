@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { 
   Popover,
@@ -188,6 +187,23 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
   const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
     e.currentTarget.classList.remove('opacity-50');
   };
+  
+  // Add state to track if WeekView should be compact
+  const [isScrolled, setIsScrolled] = useState(false);
+  
+  // Add scroll event listener to detect when to make WeekView compact
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 50); // Compact when scrolled more than 50px
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -198,15 +214,18 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
         setSortOption={setSortOption}
       />
       
-      <WeekView 
-        currentDate={currentDate}
-        selectedDate={selectedDate}
-        tasks={sortedTasks}
-        onPreviousWeek={previousWeek}
-        onNextWeek={nextWeek}
-        onToday={goToToday}
-        onSelectDay={setSelectedDate}
-      />
+      <div className={`sticky top-0 bg-background z-10 transition-all duration-200 ${isScrolled ? 'pb-1 shadow-sm' : 'pb-3'}`}>
+        <WeekView 
+          currentDate={currentDate}
+          selectedDate={selectedDate}
+          tasks={sortedTasks}
+          onPreviousWeek={previousWeek}
+          onNextWeek={nextWeek}
+          onToday={goToToday}
+          onSelectDay={setSelectedDate}
+          isCompact={isScrolled}
+        />
+      </div>
       
       <div className="space-y-6">
         <OverdueTasksSection 

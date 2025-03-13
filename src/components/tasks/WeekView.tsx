@@ -23,6 +23,7 @@ interface WeekViewProps {
   onNextWeek: () => void;
   onToday: () => void;
   onSelectDay: (date: Date) => void;
+  isCompact?: boolean;
 }
 
 const WeekView = ({ 
@@ -32,7 +33,8 @@ const WeekView = ({
   onPreviousWeek, 
   onNextWeek, 
   onToday, 
-  onSelectDay 
+  onSelectDay,
+  isCompact = false
 }: WeekViewProps) => {
   const getWeekDays = (): WeekDay[] => {
     const days = [];
@@ -61,13 +63,17 @@ const WeekView = ({
   const weekDays = getWeekDays();
 
   return (
-    <div className="mb-4">
-      <div className="flex justify-between items-center mb-3">
+    <div className={`transition-all duration-200 ${isCompact ? 'mb-1' : 'mb-4'}`}>
+      <div className={`flex justify-between items-center ${isCompact ? 'mb-1' : 'mb-3'}`}>
         <div className="flex items-center space-x-2">
-          <h2 className="text-xl font-medium">Upcoming</h2>
+          {/* Title is hidden in compact mode */}
+          {!isCompact && <h2 className="text-xl font-medium">Upcoming</h2>}
           <Popover>
             <PopoverTrigger asChild>
-              <ButtonCustom variant="ghost" className="flex items-center gap-1 text-md font-semibold">
+              <ButtonCustom 
+                variant="ghost" 
+                className={`flex items-center gap-1 ${isCompact ? 'text-sm font-medium' : 'text-md font-semibold'}`}
+              >
                 {format(currentDate, 'MMMM yyyy')}
                 <span className="h-4 w-4 ml-1">▼</span>
               </ButtonCustom>
@@ -78,7 +84,6 @@ const WeekView = ({
                 selected={selectedDate}
                 onSelect={(date) => {
                   if (date) {
-                    onSelectDay(date);
                     onSelectDay(date);
                   }
                 }}
@@ -94,16 +99,16 @@ const WeekView = ({
             variant="outline" 
             size="icon" 
             onClick={onPreviousWeek}
-            className="h-7 w-7"
+            className={isCompact ? "h-6 w-6" : "h-7 w-7"}
             aria-label="Previous week"
           >
-            <ChevronLeft className="h-3.5 w-3.5" />
+            <ChevronLeft className={isCompact ? "h-3 w-3" : "h-3.5 w-3.5"} />
           </ButtonCustom>
           
           <ButtonCustom 
             variant="outline" 
             onClick={onToday}
-            className="h-7 text-xs px-2"
+            className={isCompact ? "h-6 text-xs px-1.5" : "h-7 text-xs px-2"}
           >
             Today
           </ButtonCustom>
@@ -112,30 +117,38 @@ const WeekView = ({
             variant="outline" 
             size="icon" 
             onClick={onNextWeek}
-            className="h-7 w-7"
+            className={isCompact ? "h-6 w-6" : "h-7 w-7"}
             aria-label="Next week"
           >
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className={isCompact ? "h-3 w-3" : "h-3.5 w-3.5"} />
           </ButtonCustom>
         </div>
       </div>
       
-      {/* Week day selector - Reduced size */}
-      <div className="grid grid-cols-7 gap-1 border border-border rounded-lg py-2 px-1">
+      {/* Week day selector - Adjust size based on compact mode */}
+      <div className={`grid grid-cols-7 gap-1 border border-border rounded-lg ${
+        isCompact ? 'py-1 px-0.5' : 'py-2 px-1'
+      }`}>
         {weekDays.map((day, index) => (
           <button
             key={index}
             onClick={() => onSelectDay(day.date)}
-            className={`flex flex-col items-center p-1 rounded-md transition-colors 
+            className={`flex flex-col items-center ${
+              isCompact ? 'p-0.5' : 'p-1'
+            } rounded-md transition-colors 
               ${day.isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}
             `}
           >
-            <span className="text-xs font-normal">{day.weekday}</span>
-            <span className={`text-lg font-semibold ${day.hasTask && !day.isSelected ? 'text-primary' : ''}`}>
+            <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-normal`}>
+              {day.weekday}
+            </span>
+            <span className={`${
+              isCompact ? 'text-sm' : 'text-lg'
+            } font-semibold ${day.hasTask && !day.isSelected ? 'text-primary' : ''}`}>
               {day.day}
             </span>
             {day.hasTask && !day.isSelected && (
-              <span className="w-1 h-1 rounded-full bg-primary"></span>
+              <span className={`${isCompact ? 'w-0.5 h-0.5' : 'w-1 h-1'} rounded-full bg-primary`}></span>
             )}
           </button>
         ))}
