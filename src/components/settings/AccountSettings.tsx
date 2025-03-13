@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { User, Mail, Key, Upload, AlertTriangle, Save } from "lucide-react";
+import { ChangePasswordModal } from "./ChangePasswordModal";
 
 export const AccountSettings = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export const AccountSettings = () => {
     email: "john.doe@example.com",
     avatar: "/placeholder.svg"
   });
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -32,8 +34,7 @@ export const AccountSettings = () => {
   };
 
   const handleChangePassword = () => {
-    console.log("Change password flow");
-    // In a real app, this would trigger a password change flow
+    setIsChangePasswordModalOpen(true);
   };
 
   const handleDeleteAccount = () => {
@@ -167,6 +168,11 @@ export const AccountSettings = () => {
           </Alert>
         </CardContent>
       </Card>
+
+      <ChangePasswordModal 
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+      />
     </div>
   );
 };
