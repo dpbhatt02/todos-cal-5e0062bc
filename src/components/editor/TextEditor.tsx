@@ -118,7 +118,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
             variant="ghost" 
             size="icon" 
             className="h-8 w-8 text-white hover:bg-gray-800" 
-            onClick={() => handleFormatClick('formatBlock', '<h1>')}
+            onClick={() => handleFormatClick('formatBlock')}
             aria-label="Heading 1"
             icon={<Heading1 className="h-4 w-4" />}
           />
@@ -127,7 +127,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
             variant="ghost" 
             size="icon" 
             className="h-8 w-8 text-white hover:bg-gray-800" 
-            onClick={() => handleFormatClick('formatBlock', '<h2>')}
+            onClick={() => handleFormatClick('formatBlock')}
             aria-label="Heading 2"
             icon={<Heading2 className="h-4 w-4" />}
           />
@@ -154,7 +154,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
             variant="ghost" 
             size="icon" 
             className="h-8 w-8 text-white hover:bg-gray-800" 
-            onClick={() => handleFormatClick('formatBlock', '<pre>')}
+            onClick={() => handleFormatClick('formatBlock')}
             aria-label="Code Block"
             icon={<Code className="h-4 w-4" />}
           />
@@ -200,7 +200,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
         onMouseUp={saveSelection}
         onKeyUp={saveSelection}
         dangerouslySetInnerHTML={{ __html: value }}
-        placeholder={placeholder}
+        data-placeholder={placeholder} // Using data-placeholder instead of placeholder
       />
     </div>
   );
