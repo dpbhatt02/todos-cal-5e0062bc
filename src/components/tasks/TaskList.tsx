@@ -200,14 +200,7 @@ const TaskList = () => {
     <div className="max-w-5xl mx-auto">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Tasks</h1>
-        <ButtonCustom 
-          variant="primary"
-          className="rounded-full"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => {/* Open task creation modal */}}
-        >
-          New Task
-        </ButtonCustom>
+        
       </div>
       
       <div className="mb-6 flex flex-col sm:flex-row gap-3">

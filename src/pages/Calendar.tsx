@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   ChevronLeft, 
@@ -144,14 +143,7 @@ const Calendar = () => {
     <div className="max-w-5xl mx-auto">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Calendar</h1>
-        <ButtonCustom 
-          variant="primary"
-          className="rounded-full"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          New Task
-        </ButtonCustom>
+        {/* Removed New Task button from here */}
       </div>
 
       <div className="mb-6 flex items-center justify-between">
@@ -293,6 +285,7 @@ const Calendar = () => {
             ) : (
               <div className="text-center py-6">
                 <p className="text-muted-foreground">No tasks for this date.</p>
+                {/* Keep only this Create a Task button since it's contextual for empty days */}
                 <ButtonCustom 
                   variant="outline" 
                   size="sm"
