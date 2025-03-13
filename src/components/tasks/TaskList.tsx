@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Filter, ChevronDown, ChevronRight, ChevronLeft, ArrowDownAZ, ArrowUpAZ, Move, RefreshCcw } from 'lucide-react';
+import { Filter, ChevronDown, ChevronRight, ChevronLeft, ArrowDownAZ, ArrowUpAZ, Move, RefreshCcw, CalendarIcon } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, addMonths, subMonths, parse } from 'date-fns';
 import { 
   Collapsible,
@@ -16,6 +15,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { toast } from "@/hooks/use-toast";
 import TaskCard, { TaskProps } from './TaskCard';
 
 // Sample tasks data for demonstration
@@ -135,6 +135,16 @@ const TaskList = () => {
       taskDate.setHours(0, 0, 0, 0);
       return !isSameDay(taskDate, selectedDate) && taskDate > today;
     }),
+  };
+  
+  // Add a new function to handle rescheduling all overdue tasks
+  const rescheduleAllOverdueTasks = (date: Date) => {
+    // In a real app, you would call an API to update all overdue tasks
+    // For this mock, we'll just show a toast notification
+    toast({
+      title: "Tasks rescheduled",
+      description: `${groupedTasks.overdue.length} overdue tasks rescheduled to ${format(date, 'PPP')}`,
+    });
   };
 
   // Generate week view 
@@ -381,7 +391,7 @@ const TaskList = () => {
       </div>
       
       <div className="space-y-6">
-        {/* Collapsible Overdue Section */}
+        {/* Collapsible Overdue Section with Reschedule Popover */}
         {groupedTasks.overdue.length > 0 && (
           <Collapsible open={isOverdueOpen} onOpenChange={setIsOverdueOpen}>
             <CollapsibleTrigger className="flex items-center w-full justify-between text-left mb-3">
@@ -392,13 +402,51 @@ const TaskList = () => {
                   {groupedTasks.overdue.length}
                 </span>
               </div>
-              <ButtonCustom
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Reschedule
-              </ButtonCustom>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <ButtonCustom
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                    type="button"
+                  >
+                    Reschedule
+                  </ButtonCustom>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-4" align="end">
+                  <div className="flex flex-col space-y-2">
+                    <h3 className="text-sm font-medium mb-2">Reschedule all overdue tasks to:</h3>
+                    <ButtonCustom 
+                      variant="outline" 
+                      size="sm" 
+                      className="justify-start"
+                      type="button"
+                      onClick={() => rescheduleAllOverdueTasks(new Date())}
+                    >
+                      Today
+                    </ButtonCustom>
+                    <ButtonCustom 
+                      variant="outline" 
+                      size="sm" 
+                      className="justify-start"
+                      type="button"
+                      onClick={() => rescheduleAllOverdueTasks(addDays(new Date(), 1))}
+                    >
+                      Tomorrow
+                    </ButtonCustom>
+                    <div className="mt-2 pt-2 border-t">
+                      <p className="text-xs text-muted-foreground mb-2">Or pick a specific date:</p>
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => date && rescheduleAllOverdueTasks(date)}
+                        initialFocus
+                        className="pointer-events-auto border rounded-md"
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="space-y-2 ml-7">
