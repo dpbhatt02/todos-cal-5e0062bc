@@ -82,6 +82,12 @@ export class TaskService {
       
       const dbTask = this.mapAppTaskToDbTask(task);
       
+      // Add user_id from auth
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user?.id) {
+        dbTask.user_id = sessionData.session.user.id;
+      }
+      
       // Ensure we have a timestamp for creation
       dbTask.created_at = new Date().toISOString();
       
