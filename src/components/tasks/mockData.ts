@@ -1,168 +1,248 @@
+
 import { addDays } from 'date-fns';
 import { TaskProps } from './types';
 
-// Sample tasks data with additional tasks for upcoming days
+// Create a base date starting from March 13, 2025
+const baseDate = new Date('2025-03-13');
+
+// Function to add days to the base date and format as string
+const getDateString = (daysToAdd: number) => {
+  return addDays(new Date(baseDate), daysToAdd).toISOString().split('T')[0];
+};
+
+// Sample tasks data with additional tasks from March 13, 2025 onwards
 export const mockTasks: TaskProps[] = [
-  // Existing tasks
+  // March 13, 2025
   {
-    id: '1',
-    title: 'Finalize project proposal',
-    description: 'Complete the final draft of the project proposal with all required sections.',
+    id: '101',
+    title: 'Project kickoff meeting',
+    description: 'Initial meeting to launch the new marketing campaign',
     priority: 'high',
-    dueDate: '2023-09-20',
+    dueDate: getDateString(0), // March 13
     completed: false,
-    tags: ['work'],
+    tags: ['work', 'meeting'],
     recurring: undefined
   },
   {
-    id: '2',
-    title: 'Schedule team meeting',
-    description: 'Set up a team meeting to discuss the upcoming sprint goals and assignments.',
+    id: '102',
+    title: 'Daily standup',
+    description: 'Team sync meeting to discuss ongoing tasks',
     priority: 'medium',
-    dueDate: '2023-09-21',
+    dueDate: getDateString(0), // March 13
     completed: false,
-    tags: ['work'],
+    tags: ['work', 'meeting'],
+    recurring: { frequency: 'daily' }
+  },
+  
+  // March 14, 2025
+  {
+    id: '103',
+    title: 'Review Q1 budget',
+    description: 'Review expenses and plan for Q2',
+    priority: 'high',
+    dueDate: getDateString(1), // March 14
+    completed: false,
+    tags: ['work', 'finance'],
     recurring: undefined
   },
   {
-    id: '3',
-    title: 'Gym workout',
-    description: 'Complete 30-minute cardio and strength training session.',
+    id: '104',
+    title: 'Weekly team lunch',
+    description: 'Team-building activity',
     priority: 'low',
-    dueDate: '2023-09-19',
-    completed: true,
+    dueDate: getDateString(1), // March 14
+    completed: false,
+    tags: ['work', 'personal'],
+    recurring: { frequency: 'weekly' }
+  },
+  
+  // March 15, 2025
+  {
+    id: '105',
+    title: 'Weekend yoga class',
+    description: '90-minute yoga session at the wellness center',
+    priority: 'medium',
+    dueDate: getDateString(2), // March 15
+    completed: false,
+    tags: ['health', 'personal'],
+    recurring: { frequency: 'weekly', customDays: ['Saturday'] }
+  },
+  
+  // March 16, 2025
+  {
+    id: '106',
+    title: 'Call parents',
+    description: 'Weekly family call',
+    priority: 'medium',
+    dueDate: getDateString(3), // March 16
+    completed: false,
+    tags: ['personal', 'family'],
+    recurring: { frequency: 'weekly', customDays: ['Sunday'] }
+  },
+  
+  // March 17, 2025
+  {
+    id: '107',
+    title: 'Prepare client presentation',
+    description: 'Create slides for the quarterly review',
+    priority: 'high',
+    dueDate: getDateString(4), // March 17
+    completed: false,
+    tags: ['work', 'client'],
+    recurring: undefined
+  },
+  {
+    id: '108',
+    title: 'Team retrospective',
+    description: 'Monthly review of team processes and achievements',
+    priority: 'medium',
+    dueDate: getDateString(4), // March 17
+    completed: false,
+    tags: ['work', 'meeting'],
+    recurring: { frequency: 'monthly' }
+  },
+  
+  // March 18, 2025
+  {
+    id: '109',
+    title: 'Doctor appointment',
+    description: 'Annual health checkup',
+    priority: 'high',
+    dueDate: getDateString(5), // March 18
+    completed: false,
     tags: ['health', 'personal'],
     recurring: undefined
   },
+  
+  // March 19, 2025
   {
-    id: '4',
-    title: 'Read book chapter',
-    description: 'Read chapter 5 of "Atomic Habits" and take notes.',
+    id: '110',
+    title: 'Submit expense report',
+    description: 'Monthly expense submission',
     priority: 'medium',
-    dueDate: '2023-09-22',
+    dueDate: getDateString(6), // March 19
+    completed: false,
+    tags: ['work', 'finance'],
+    recurring: { frequency: 'monthly' }
+  },
+  
+  // March 20, 2025
+  {
+    id: '111',
+    title: 'Client meeting',
+    description: 'Status update call with major client',
+    priority: 'high',
+    dueDate: getDateString(7), // March 20
+    completed: false,
+    tags: ['work', 'client', 'meeting'],
+    recurring: { frequency: 'custom', customDays: ['Thursday'] }
+  },
+  
+  // March 21, 2025
+  {
+    id: '112',
+    title: 'Code review session',
+    description: 'Review pull requests from the development team',
+    priority: 'medium',
+    dueDate: getDateString(8), // March 21
+    completed: false,
+    tags: ['work', 'development'],
+    recurring: { frequency: 'weekly', customDays: ['Friday'] }
+  },
+  
+  // March 22, 2025
+  {
+    id: '113',
+    title: 'Weekend grocery shopping',
+    description: 'Get groceries for the coming week',
+    priority: 'medium',
+    dueDate: getDateString(9), // March 22
+    completed: false,
+    tags: ['personal', 'errands'],
+    recurring: { frequency: 'weekly', customDays: ['Saturday'] }
+  },
+  
+  // March 24, 2025
+  {
+    id: '114',
+    title: 'Start new online course',
+    description: 'Begin the AI fundamentals course',
+    priority: 'low',
+    dueDate: getDateString(11), // March 24
     completed: false,
     tags: ['learning', 'personal'],
     recurring: undefined
   },
+  
+  // March 25, 2025
   {
-    id: '5',
-    title: 'Pay utility bills',
-    description: 'Pay electricity, water, and internet bills before the due date.',
+    id: '115',
+    title: 'Pay rent',
+    description: 'Transfer monthly rent payment',
     priority: 'high',
-    dueDate: '2023-09-19',
+    dueDate: getDateString(12), // March 25
     completed: false,
-    tags: ['personal'],
-    recurring: undefined
+    tags: ['finance', 'personal'],
+    recurring: { frequency: 'monthly' }
   },
+  
+  // March 26, 2025
   {
-    id: '6',
-    title: 'Daily review',
-    description: 'Review tasks and plan for tomorrow.',
-    priority: 'medium',
-    dueDate: new Date().toISOString().split('T')[0], // Today's date
-    completed: false,
-    tags: ['work', 'personal'],
-    recurring: { frequency: 'daily' }
-  },
-  // Additional tasks for coming days
-  {
-    id: '7',
-    title: 'Client presentation',
-    description: 'Present quarterly results to the client.',
-    priority: 'high',
-    dueDate: addDays(new Date(), 1).toISOString().split('T')[0], // Tomorrow
-    completed: false,
-    tags: ['work'],
-    recurring: undefined
-  },
-  {
-    id: '8',
-    title: 'Code review',
-    description: 'Review pull requests from the team.',
-    priority: 'medium',
-    dueDate: addDays(new Date(), 1).toISOString().split('T')[0], // Tomorrow
-    completed: false,
-    tags: ['work'],
-    recurring: undefined
-  },
-  {
-    id: '9',
-    title: 'Update portfolio',
-    description: 'Add recent projects to portfolio website.',
+    id: '116',
+    title: 'Book club meeting',
+    description: 'Discussion of this month\'s book',
     priority: 'low',
-    dueDate: addDays(new Date(), 2).toISOString().split('T')[0], // Day after tomorrow
+    dueDate: getDateString(13), // March 26
     completed: false,
-    tags: ['personal', 'learning'],
-    recurring: undefined
+    tags: ['personal', 'social'],
+    recurring: { frequency: 'monthly' }
   },
+  
+  // March 27, 2025
   {
-    id: '10',
-    title: 'Family dinner',
-    description: 'Dinner with family at 7 PM.',
-    priority: 'medium',
-    dueDate: addDays(new Date(), 2).toISOString().split('T')[0], // Day after tomorrow
-    completed: false,
-    tags: ['personal'],
-    recurring: undefined
-  },
-  {
-    id: '11',
-    title: 'Submit expense report',
-    description: 'Compile and submit expense report for last month.',
+    id: '117',
+    title: 'Quarterly business review',
+    description: 'Review Q1 performance metrics',
     priority: 'high',
-    dueDate: addDays(new Date(), 3).toISOString().split('T')[0], // 3 days from now
+    dueDate: getDateString(14), // March 27
     completed: false,
-    tags: ['work'],
+    tags: ['work', 'meeting', 'finance'],
     recurring: undefined
   },
+  
+  // March 28, 2025
   {
-    id: '12',
-    title: 'Weekly team sync',
-    description: 'Sync with team on project progress.',
-    priority: 'high',
-    dueDate: addDays(new Date(), 3).toISOString().split('T')[0], // 3 days from now
-    completed: false,
-    tags: ['work'],
-    recurring: { frequency: 'weekly' }
-  },
-  {
-    id: '13',
-    title: 'Research AI tools',
-    description: 'Research new AI tools for productivity.',
+    id: '118',
+    title: 'Car maintenance',
+    description: 'Take car in for regular service',
     priority: 'medium',
-    dueDate: addDays(new Date(), 4).toISOString().split('T')[0], // 4 days from now
+    dueDate: getDateString(15), // March 28
     completed: false,
-    tags: ['learning', 'work'],
+    tags: ['personal', 'errands'],
     recurring: undefined
   },
+  
+  // April 1, 2025
   {
-    id: '14',
+    id: '119',
+    title: 'Update project roadmap',
+    description: 'Revise and share Q2 roadmap with stakeholders',
+    priority: 'high',
+    dueDate: getDateString(19), // April 1
+    completed: false,
+    tags: ['work', 'planning'],
+    recurring: undefined
+  },
+  
+  // April 3, 2025
+  {
+    id: '120',
     title: 'Dentist appointment',
-    description: 'Regular checkup at dental clinic.',
+    description: 'Regular dental checkup',
     priority: 'medium',
-    dueDate: addDays(new Date(), 5).toISOString().split('T')[0], // 5 days from now
+    dueDate: getDateString(21), // April 3
     completed: false,
-    tags: ['health'],
-    recurring: undefined
-  },
-  {
-    id: '15',
-    title: 'Review quarterly goals',
-    description: 'Check progress on Q3 goals and adjust as needed.',
-    priority: 'high',
-    dueDate: addDays(new Date(), 5).toISOString().split('T')[0], // 5 days from now
-    completed: false,
-    tags: ['work', 'personal'],
-    recurring: undefined
-  },
-  {
-    id: '16',
-    title: 'Update resume',
-    description: 'Add recent skills and experiences to resume.',
-    priority: 'low',
-    dueDate: addDays(new Date(), 5).toISOString().split('T')[0], // 5 days from now
-    completed: false,
-    tags: ['personal'],
-    recurring: undefined
+    tags: ['health', 'personal'],
+    recurring: { frequency: 'custom', endAfter: 1 }
   }
 ];
