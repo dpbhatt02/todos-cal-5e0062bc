@@ -46,6 +46,14 @@ export class TaskService {
     try {
       console.log('Fetching tasks from Supabase');
       
+      // Check if we're authenticated
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user) {
+        console.log('No authenticated user found, using localStorage');
+        const storedTasks = localStorage.getItem('tasks');
+        return storedTasks ? JSON.parse(storedTasks) : [];
+      }
+      
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
@@ -55,7 +63,8 @@ export class TaskService {
         throw error;
       }
       
-      return data.map(this.mapDbTaskToAppTask);
+      console.log('Fetched tasks from Supabase:', data);
+      return (data || []).map(this.mapDbTaskToAppTask);
     } catch (error) {
       console.error('Error fetching tasks:', error);
       toast.error('Failed to load tasks');
@@ -86,6 +95,8 @@ export class TaskService {
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData?.session?.user?.id) {
         dbTask.user_id = sessionData.session.user.id;
+      } else {
+        console.warn('No authenticated user found, task will be created without user_id');
       }
       
       // Ensure we have a timestamp for creation
@@ -101,6 +112,7 @@ export class TaskService {
         throw error;
       }
       
+      console.log('Task created in Supabase:', data);
       const newTask = this.mapDbTaskToAppTask(data);
       toast.success('Task created successfully');
       return newTask;
@@ -148,6 +160,7 @@ export class TaskService {
         throw error;
       }
       
+      console.log('Task updated in Supabase:', data);
       const updatedTask = this.mapDbTaskToAppTask(data);
       toast.success('Task updated successfully');
       return updatedTask;
@@ -193,6 +206,7 @@ export class TaskService {
         throw error;
       }
       
+      console.log('Task deleted from Supabase');
       toast.success('Task deleted successfully');
     } catch (error) {
       console.error('Error deleting task:', error);

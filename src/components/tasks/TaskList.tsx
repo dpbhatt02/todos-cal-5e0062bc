@@ -5,19 +5,20 @@ import OverdueTasksSection from './OverdueTasksSection';
 import TaskSection from './TaskSection';
 import WeekView from './WeekView';
 import { formatFullDate } from './utils';
-import { TasksProvider } from '@/contexts/TasksContext';
+import { TasksProvider, useTasks } from '@/contexts/TasksContext';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
-import { useTasks } from '@/contexts/TasksContext';
 import CreateTaskModal from './CreateTaskModal';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const TaskListContent = () => {
   const [viewOption, setViewOption] = useState('active');
   const [sortOption, setSortOption] = useState('date');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { user } = useAuth();
   
   const {
     tasks,
@@ -159,54 +160,60 @@ const TaskListContent = () => {
         />
       </div>
       
-      <div className="space-y-6">
-        <OverdueTasksSection 
-          tasks={overdueTasks.map(task => ({
-            ...task,
-            onEdit: handleTaskUpdate,
-            onDelete: handleTaskDelete,
-            onReschedule: handleTaskReschedule
-          }))}
-          isOpen={isOverdueOpen}
-          onOpenChange={setIsOverdueOpen}
-          selectedDate={selectedDate}
-          sortOption={sortOption}
-        />
-        
-        <TaskSection 
-          title="Today"
-          tasks={todayTasks.map(task => ({
-            ...task,
-            onEdit: handleTaskUpdate,
-            onDelete: handleTaskDelete,
-            onReschedule: handleTaskReschedule
-          }))}
-          sortOption={sortOption}
-          selectedDate={selectedDate}
-        />
-        
-        {/* Upcoming Tasks grouped by date */}
-        {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
-          if (tasks.length === 0) return null;
+      {!user ? (
+        <div className="text-center py-10 text-muted-foreground">
+          Please sign in to create and view tasks
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <OverdueTasksSection 
+            tasks={overdueTasks.map(task => ({
+              ...task,
+              onEdit: handleTaskUpdate,
+              onDelete: handleDeleteTask,
+              onReschedule: handleTaskReschedule
+            }))}
+            isOpen={isOverdueOpen}
+            onOpenChange={setIsOverdueOpen}
+            selectedDate={selectedDate}
+            sortOption={sortOption}
+          />
           
-          const date = new Date(dateString);
+          <TaskSection 
+            title="Today"
+            tasks={todayTasks.map(task => ({
+              ...task,
+              onEdit: handleTaskUpdate,
+              onDelete: handleDeleteTask,
+              onReschedule: handleTaskReschedule
+            }))}
+            sortOption={sortOption}
+            selectedDate={selectedDate}
+          />
           
-          return (
-            <TaskSection
-              key={dateString}
-              title={formatFullDate(date)}
-              tasks={tasks.map(task => ({
-                ...task,
-                onEdit: handleTaskUpdate,
-                onDelete: handleTaskDelete,
-                onReschedule: handleTaskReschedule
-              }))}
-              sortOption={sortOption}
-              selectedDate={date}
-            />
-          );
-        })}
-      </div>
+          {/* Upcoming Tasks grouped by date */}
+          {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
+            if (tasks.length === 0) return null;
+            
+            const date = new Date(dateString);
+            
+            return (
+              <TaskSection
+                key={dateString}
+                title={formatFullDate(date)}
+                tasks={tasks.map(task => ({
+                  ...task,
+                  onEdit: handleTaskUpdate,
+                  onDelete: handleDeleteTask,
+                  onReschedule: handleTaskReschedule
+                }))}
+                sortOption={sortOption}
+                selectedDate={date}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <CreateTaskModal 
         isOpen={isCreateModalOpen}

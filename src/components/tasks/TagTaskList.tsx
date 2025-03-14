@@ -1,11 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTasks } from '@/contexts/TasksContext';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
 import { tagColors } from './types';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Tag } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
@@ -15,6 +15,7 @@ interface TagTaskListWrapperProps {}
 const TagTaskListWrapper: React.FC<TagTaskListWrapperProps> = () => {
   // Get the tag from the URL params
   const { tag } = useParams<{ tag: string }>();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   
   // Task management states
@@ -80,10 +81,18 @@ const TagTaskListWrapper: React.FC<TagTaskListWrapperProps> = () => {
     }
   }, [tag]);
   
+  // Handle tag change
+  const handleTagChange = (value: string) => {
+    setSelectedTag(value);
+    if (value) {
+      navigate(`/tag/${value}`);
+    }
+  };
+  
   // Find the unique tags from all tasks for the dropdown
   const availableTags = [...new Set(
     tasks.flatMap(task => task.tags || [])
-  )];
+  )].filter(Boolean); // Ensure we only get non-empty tags
 
   if (isLoading) {
     return <div className="text-center py-10">Loading tasks...</div>;
@@ -104,7 +113,7 @@ const TagTaskListWrapper: React.FC<TagTaskListWrapperProps> = () => {
             <select 
               className="p-2 rounded border"
               value={selectedTag}
-              onChange={(e) => setSelectedTag(e.target.value)}
+              onChange={(e) => handleTagChange(e.target.value)}
             >
               <option value="">Select a tag</option>
               {availableTags.map(tag => (
