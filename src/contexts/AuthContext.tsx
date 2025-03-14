@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +11,12 @@ export interface User {
   photoURL?: string;
 }
 
+// Define user update type
+interface UserUpdate {
+  name?: string;
+  photoURL?: string | null;
+}
+
 // Define auth context type
 interface AuthContextType {
   user: User | null;
@@ -20,6 +25,7 @@ interface AuthContextType {
   signupWithEmail: (email: string, password: string, name: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (userData: UserUpdate) => Promise<void>;
 }
 
 // Create auth context with default values
@@ -30,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   signupWithEmail: async () => {},
   loginWithGoogle: async () => {},
   logout: async () => {},
+  updateUser: async () => {},
 });
 
 // Custom hook to use auth context
@@ -187,6 +194,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Update user profile
+  const updateUser = async (userData: UserUpdate) => {
+    try {
+      setLoading(true);
+      
+      if (!user) {
+        throw new Error('No user is logged in');
+      }
+      
+      // Update user metadata in Supabase
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          name: userData.name !== undefined ? userData.name : user.name,
+          avatar_url: userData.photoURL !== undefined ? userData.photoURL : user.photoURL,
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Update local user state
+      setUser(prev => {
+        if (!prev) return null;
+        
+        return {
+          ...prev,
+          name: userData.name !== undefined ? userData.name : prev.name,
+          photoURL: userData.photoURL !== undefined ? userData.photoURL : prev.photoURL,
+        };
+      });
+      
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -196,6 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signupWithEmail,
         loginWithGoogle,
         logout,
+        updateUser,
       }}
     >
       {children}
