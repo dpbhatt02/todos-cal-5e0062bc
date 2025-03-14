@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { Session, User } from '@supabase/supabase-js';
+import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 // Define user type
 export interface User {
@@ -36,7 +36,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 // Helper function to map Supabase user to our user format
-const mapSupabaseUser = (supabaseUser: User | null): User | null => {
+const mapSupabaseUser = (supabaseUser: SupabaseUser | null): User | null => {
   if (!supabaseUser) return null;
   
   return {
