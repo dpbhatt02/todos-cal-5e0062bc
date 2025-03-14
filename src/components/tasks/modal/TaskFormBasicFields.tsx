@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -42,6 +41,7 @@ const TaskFormBasicFields = ({
   onStartTimeChange,
   onEndTimeChange
 }: TaskFormBasicFieldsProps) => {
+  
   const [textSelection, setTextSelection] = useState<TextSelection>({
     start: 0,
     end: 0,
