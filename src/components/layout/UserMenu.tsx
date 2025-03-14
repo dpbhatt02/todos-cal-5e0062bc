@@ -1,11 +1,7 @@
 
-import { User, UserCog, LogOut, Upload, Trash } from 'lucide-react';
+import { User, UserCog, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ButtonCustom } from '@/components/ui/button-custom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,8 +29,7 @@ interface UserMenuProps {
 
 const UserMenu = ({ isSidebarOpen, menuItems = [] }: UserMenuProps) => {
   const navigate = useNavigate();
-  const { logout, user, updateUser } = useAuth();
-  const [isHovering, setIsHovering] = useState(false);
+  const { logout, user } = useAuth();
 
   const handleEditProfile = () => {
     navigate('/settings');
@@ -54,73 +49,6 @@ const UserMenu = ({ isSidebarOpen, menuItems = [] }: UserMenuProps) => {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !user) return;
-    
-    const file = e.target.files[0];
-    
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB');
-      return;
-    }
-    
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Only image files are allowed');
-      return;
-    }
-    
-    try {
-      toast.loading('Uploading profile picture...');
-      
-      // Create a unique file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-      
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-      
-      if (uploadError) throw uploadError;
-      
-      // Get public URL
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      
-      // Update user profile
-      await updateUser({ photoURL: data.publicUrl });
-      
-      toast.dismiss();
-      toast.success('Profile picture updated');
-      
-    } catch (error) {
-      toast.dismiss();
-      console.error('Error uploading profile picture:', error);
-      toast.error('Failed to upload profile picture');
-    }
-  };
-  
-  const handleRemoveProfilePicture = async () => {
-    if (!user) return;
-    
-    try {
-      toast.loading('Removing profile picture...');
-      
-      // Update user profile to remove photo URL
-      await updateUser({ photoURL: null });
-      
-      toast.dismiss();
-      toast.success('Profile picture removed');
-      
-    } catch (error) {
-      toast.dismiss();
-      console.error('Error removing profile picture:', error);
-      toast.error('Failed to remove profile picture');
-    }
-  };
-
   const getInitials = (name: string) => {
     if (!name) return 'U';
     
@@ -135,61 +63,18 @@ const UserMenu = ({ isSidebarOpen, menuItems = [] }: UserMenuProps) => {
   const renderUserIcon = () => {
     if (user?.photoURL) {
       return (
-        <div className="relative w-full h-full rounded-full overflow-hidden" 
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
-        >
-          <img 
-            src={user.photoURL} 
-            alt={user.name || 'User'} 
-            className="w-full h-full rounded-full object-cover"
-          />
-          {isHovering && (
-            <div className="absolute inset-0 bg-black/60 flex justify-center items-center space-x-2">
-              <label htmlFor="profile-upload" className="cursor-pointer p-1 rounded-full bg-primary/80 hover:bg-primary">
-                <Upload className="h-3 w-3 text-white" />
-                <input 
-                  id="profile-upload" 
-                  type="file" 
-                  className="hidden" 
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                />
-              </label>
-              <button 
-                className="p-1 rounded-full bg-destructive/80 hover:bg-destructive"
-                onClick={handleRemoveProfilePicture}
-              >
-                <Trash className="h-3 w-3 text-white" />
-              </button>
-            </div>
-          )}
-        </div>
+        <img 
+          src={user.photoURL} 
+          alt={user.name || 'User'} 
+          className="w-full h-full rounded-full object-cover"
+        />
       );
     }
     
     // Display initials when no photo
     return (
-      <div className="w-full h-full rounded-full flex items-center justify-center bg-primary/10 text-primary-foreground relative"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-      >
+      <div className="w-full h-full rounded-full flex items-center justify-center bg-primary/10 text-primary-foreground">
         <span className="font-semibold">{getInitials(user?.name || 'User')}</span>
-        
-        {isHovering && (
-          <div className="absolute inset-0 bg-black/60 flex justify-center items-center">
-            <label htmlFor="profile-upload" className="cursor-pointer p-1 rounded-full bg-primary/80 hover:bg-primary">
-              <Upload className="h-3 w-3 text-white" />
-              <input 
-                id="profile-upload" 
-                type="file" 
-                className="hidden" 
-                accept="image/*"
-                onChange={handleFileUpload}
-              />
-            </label>
-          </div>
-        )}
       </div>
     );
   };
