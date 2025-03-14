@@ -51,8 +51,16 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
     setIsFormVisible(false);
   };
 
-  // Stop event propagation to prevent modal from closing
+  // Improved event handling functions
   const handleInputClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleInputFocus = (e: React.FocusEvent) => {
     e.stopPropagation();
   };
 
@@ -71,9 +79,19 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
   }
 
   return (
-    <div className="border border-border rounded-md p-3 shadow-sm" onClick={handleInputClick}>
+    <div 
+      className="border border-border rounded-md p-3 shadow-sm" 
+      onClick={handleInputClick}
+    >
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3">
+        <form 
+          onSubmit={(e) => {
+            e.stopPropagation();
+            form.handleSubmit(handleSubmit)(e);
+          }} 
+          className="space-y-3"
+          onClick={handleInputClick}
+        >
           <FormField
             control={form.control}
             name="title"
@@ -84,6 +102,12 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                     placeholder="Task name"
                     {...field}
                     onClick={handleInputClick}
+                    onKeyDown={handleInputKeyDown}
+                    onFocus={handleInputFocus}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      field.onChange(e);
+                    }}
                     autoFocus
                   />
                 </FormControl>
@@ -98,7 +122,9 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
               render={({ field }) => (
                 <FormItem className="flex-1">
                   <Select 
-                    onValueChange={field.onChange} 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                    }}
                     defaultValue={field.value}
                   >
                     <FormControl>

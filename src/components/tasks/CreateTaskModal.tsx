@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Bold, Italic, Link, List, Underline, Repeat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -96,6 +95,9 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // Prevent event bubbling
+    e.stopPropagation();
+    
     const { name, value } = e.target;
     console.log(`Input changed: ${name} = ${value}`);
     setTaskData(prev => ({ ...prev, [name]: value }));
@@ -231,6 +233,16 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
     e.stopPropagation();
   };
 
+  // Handle input focus to prevent event propagation
+  const handleInputFocus = (e: React.FocusEvent) => {
+    e.stopPropagation();
+  };
+
+  // Handle keydown events to prevent propagation
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <div 
       className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
@@ -263,6 +275,8 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                 value={taskData.title}
                 onChange={handleChange}
                 onClick={handleInputClick}
+                onFocus={handleInputFocus}
+                onKeyDown={handleInputKeyDown}
                 required
               />
             </div>
@@ -329,6 +343,8 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                 onChange={handleChange}
                 onSelect={handleTextSelection}
                 onClick={handleInputClick}
+                onFocus={handleInputFocus}
+                onKeyDown={handleInputKeyDown}
                 ref={textareaRef}
                 rows={3}
               />
@@ -351,6 +367,8 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                     value={taskData.dueDate}
                     onChange={handleChange}
                     onClick={handleInputClick}
+                    onFocus={handleInputFocus}
+                    onKeyDown={handleInputKeyDown}
                     className="pl-9"
                     required
                   />
@@ -395,6 +413,8 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                     value={taskData.startTime}
                     onChange={handleChange}
                     onClick={handleInputClick}
+                    onFocus={handleInputFocus}
+                    onKeyDown={handleInputKeyDown}
                     className="pl-9"
                   />
                 </div>
@@ -411,6 +431,8 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                     value={taskData.endTime}
                     onChange={handleChange}
                     onClick={handleInputClick}
+                    onFocus={handleInputFocus}
+                    onKeyDown={handleInputKeyDown}
                     className="pl-9"
                   />
                 </div>
