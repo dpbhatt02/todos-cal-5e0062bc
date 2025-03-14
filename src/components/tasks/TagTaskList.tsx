@@ -7,6 +7,7 @@ import TaskCard from './TaskCard';
 import { tagColors } from './types';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 
 // Define the props for the TagTaskListWrapper component
 interface TagTaskListWrapperProps {}
@@ -43,8 +44,10 @@ const TagTaskListWrapper: React.FC<TagTaskListWrapperProps> = () => {
   const handleUpdateTask = async (task: TaskProps) => {
     try {
       await updateTask(task.id, task);
+      toast.success('Task updated successfully!');
     } catch (error) {
       console.error('Error updating task:', error);
+      toast.error('Failed to update task');
     }
   };
   
@@ -52,8 +55,10 @@ const TagTaskListWrapper: React.FC<TagTaskListWrapperProps> = () => {
   const handleDeleteTask = async (id: string) => {
     try {
       await deleteTask(id);
+      toast.success('Task deleted successfully!');
     } catch (error) {
       console.error('Error deleting task:', error);
+      toast.error('Failed to delete task');
     }
   };
   
@@ -61,8 +66,10 @@ const TagTaskListWrapper: React.FC<TagTaskListWrapperProps> = () => {
   const handleRescheduleTask = async (id: string, newDate: Date) => {
     try {
       await rescheduleTask(id, newDate);
+      toast.success('Task rescheduled successfully!');
     } catch (error) {
       console.error('Error rescheduling task:', error);
+      toast.error('Failed to reschedule task');
     }
   };
   

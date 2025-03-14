@@ -26,7 +26,10 @@ const TaskListContent = () => {
     customOrder,
     isOverdueOpen,
     setIsOverdueOpen,
-    createTask
+    createTask,
+    updateTask,
+    deleteTask,
+    rescheduleTask
   } = useTasks();
   
   const {
@@ -80,10 +83,41 @@ const TaskListContent = () => {
       };
       
       await createTask(newTask);
+      setIsCreateModalOpen(false);
       toast.success('Task created successfully!');
     } catch (error) {
       console.error('Failed to create task:', error);
       toast.error('Failed to create task');
+    }
+  };
+
+  const handleTaskUpdate = async (task: any) => {
+    try {
+      await updateTask(task.id, task);
+      toast.success('Task updated successfully!');
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      toast.error('Failed to update task');
+    }
+  };
+
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+      toast.success('Task deleted successfully!');
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      toast.error('Failed to delete task');
+    }
+  };
+
+  const handleTaskReschedule = async (taskId: string, newDate: Date) => {
+    try {
+      await rescheduleTask(taskId, newDate);
+      toast.success('Task rescheduled successfully!');
+    } catch (error) {
+      console.error('Failed to reschedule task:', error);
+      toast.error('Failed to reschedule task');
     }
   };
 
@@ -127,7 +161,12 @@ const TaskListContent = () => {
       
       <div className="space-y-6">
         <OverdueTasksSection 
-          tasks={overdueTasks}
+          tasks={overdueTasks.map(task => ({
+            ...task,
+            onEdit: handleTaskUpdate,
+            onDelete: handleTaskDelete,
+            onReschedule: handleTaskReschedule
+          }))}
           isOpen={isOverdueOpen}
           onOpenChange={setIsOverdueOpen}
           selectedDate={selectedDate}
@@ -136,7 +175,12 @@ const TaskListContent = () => {
         
         <TaskSection 
           title="Today"
-          tasks={todayTasks}
+          tasks={todayTasks.map(task => ({
+            ...task,
+            onEdit: handleTaskUpdate,
+            onDelete: handleTaskDelete,
+            onReschedule: handleTaskReschedule
+          }))}
           sortOption={sortOption}
           selectedDate={selectedDate}
         />
@@ -151,7 +195,12 @@ const TaskListContent = () => {
             <TaskSection
               key={dateString}
               title={formatFullDate(date)}
-              tasks={tasks}
+              tasks={tasks.map(task => ({
+                ...task,
+                onEdit: handleTaskUpdate,
+                onDelete: handleTaskDelete,
+                onReschedule: handleTaskReschedule
+              }))}
               sortOption={sortOption}
               selectedDate={date}
             />

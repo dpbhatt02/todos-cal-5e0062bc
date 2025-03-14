@@ -12,8 +12,8 @@ interface TaskCardActionsProps {
   selectedDate: Date;
   isCompleted: boolean;
   openModal: () => void;
-  onEdit?: TaskProps['onEdit'];
-  onDelete?: TaskProps['onDelete'];
+  onEdit?: (task: TaskProps) => void;
+  onDelete?: (id: string) => void;
   onReschedule: (date: Date | undefined) => void;
   isMobile: boolean;
 }
@@ -57,7 +57,7 @@ const TaskCardActions = ({
 
   return (
     <div className="flex items-center space-x-1">
-      {isHovered && !isMobile && (
+      {(isHovered || isMobile) && (
         <div className="flex items-center space-x-1 mr-2 animate-in fade-in" onClick={(e) => e.stopPropagation()}>
           <TaskActions 
             id={id}
