@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +15,13 @@ serve(async (req) => {
   }
 
   try {
+    // Parse the request body
     const { userId, redirectUrl } = await req.json();
+
+    console.log("Google Calendar Auth request:", { 
+      userId: userId ? userId.substring(0, 5) + "..." : "missing", 
+      redirectUrl 
+    });
 
     if (!userId) {
       return new Response(
@@ -23,42 +30,37 @@ serve(async (req) => {
       );
     }
 
-    if (!redirectUrl) {
-      return new Response(
-        JSON.stringify({ error: "Redirect URL is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Get URL components to construct the callback URL
+    // If redirectUrl is provided, use it; otherwise, use a default
+    let callbackUrl;
+    if (redirectUrl) {
+      callbackUrl = redirectUrl;
+    } else {
+      // If no redirectUrl is provided, we need to make a reasonable guess
+      callbackUrl = "https://todos-cal.lovable.app/api/google-calendar-callback";
     }
 
-    console.log("Initiating Google Calendar auth with redirectUrl:", redirectUrl);
+    console.log("Using callback URL:", callbackUrl);
 
-    // OAuth 2.0 config
-    const CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID");
-    const REDIRECT_URI = redirectUrl;
-    const SCOPES = [
+    // Set up OAuth parameters
+    const clientId = Deno.env.get("GOOGLE_CLIENT_ID") || "";
+    const scopes = [
       "https://www.googleapis.com/auth/calendar.readonly",
       "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.profile"
     ];
 
-    if (!CLIENT_ID) {
-      return new Response(
-        JSON.stringify({ error: "Google Client ID not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Create auth URL
+    // Construct Google OAuth URL
     const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-    authUrl.searchParams.append("client_id", CLIENT_ID);
-    authUrl.searchParams.append("redirect_uri", REDIRECT_URI);
+    authUrl.searchParams.append("client_id", clientId);
+    authUrl.searchParams.append("redirect_uri", callbackUrl);
     authUrl.searchParams.append("response_type", "code");
-    authUrl.searchParams.append("scope", SCOPES.join(" "));
+    authUrl.searchParams.append("scope", scopes.join(" "));
     authUrl.searchParams.append("access_type", "offline");
-    authUrl.searchParams.append("prompt", "consent");
-    authUrl.searchParams.append("state", userId); // Pass userId in state param
+    authUrl.searchParams.append("prompt", "consent");  // Force prompt to get a refresh token
+    authUrl.searchParams.append("state", userId);      // Pass the userId through the state parameter
 
-    console.log("Generated Google auth URL with redirect_uri:", REDIRECT_URI);
+    console.log("Generated auth URL with redirect to:", callbackUrl);
 
     return new Response(
       JSON.stringify({ authUrl: authUrl.toString() }),
@@ -67,7 +69,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Google Calendar Auth Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

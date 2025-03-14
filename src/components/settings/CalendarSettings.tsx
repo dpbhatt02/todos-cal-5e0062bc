@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Calendar, Check, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 type CalendarItem = {
   id: string;
@@ -27,19 +28,6 @@ type CalendarItem = {
   backgroundColor: string;
   accessRole: string;
   enabled?: boolean;
-};
-
-// Define the integration type to avoid TypeScript errors
-type UserIntegration = {
-  id: string;
-  user_id: string;
-  provider: string;
-  provider_email: string | null;
-  provider_user_id: string | null;
-  access_token: string;
-  refresh_token: string | null;
-  token_expires_at: string | null;
-  connected: boolean;
 };
 
 const CalendarSettings = () => {
@@ -52,7 +40,6 @@ const CalendarSettings = () => {
   const [connected, setConnected] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [calendars, setCalendars] = useState<CalendarItem[]>([]);
-  const [calendarSettings, setCalendarSettings] = useState<Record<string, boolean>>({});
   const [loadingCalendars, setLoadingCalendars] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,18 +60,21 @@ const CalendarSettings = () => {
         .select('*')
         .eq('user_id', user?.id)
         .eq('provider', 'google_calendar')
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle no rows
 
-      if (queryError) throw queryError;
+      if (queryError) {
+        // Only throw if it's not a "no rows returned" error
+        if (!queryError.message?.includes("no rows")) {
+          throw queryError;
+        }
+      }
 
-      // Since we're using .single(), data will be a single object or null
+      // Check if we found an integration
       if (data) {
-        // Use type assertion to tell TypeScript we know the structure
-        const integration = data as unknown as UserIntegration;
-        setConnected(integration.connected || false);
-        setEmail(integration.provider_email || "");
+        setConnected(data.connected || false);
+        setEmail(data.provider_email || "");
         
-        if (integration.connected) {
+        if (data.connected) {
           fetchCalendars();
         }
       } else {
@@ -93,10 +83,7 @@ const CalendarSettings = () => {
       }
     } catch (err) {
       console.error("Error loading integration status:", err);
-      // No integration found is expected for new users
-      if (!(err as any).message?.includes("No rows found")) {
-        setError("Failed to load integration status. Please try again.");
-      }
+      setError("Failed to load integration status. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -111,18 +98,34 @@ const CalendarSettings = () => {
       
       // Use the full Supabase URL for the function call
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      
+      // Get the auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+      
+      if (!authToken) {
+        throw new Error("No authentication token available");
+      }
+      
       const response = await fetch(`${supabaseUrl}/functions/v1/fetch-google-calendars`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ userId: user.id }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch calendars");
+        const errorText = await response.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || "Failed to fetch calendars";
+        } catch (e) {
+          errorMessage = `Error: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const { calendars: fetchedCalendars } = await response.json();
@@ -132,14 +135,21 @@ const CalendarSettings = () => {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ userId: user.id }),
       });
 
       if (!settingsResponse.ok) {
-        const errorData = await settingsResponse.json();
-        throw new Error(errorData.error || "Failed to fetch calendar settings");
+        const errorText = await settingsResponse.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || "Failed to fetch calendar settings";
+        } catch (e) {
+          errorMessage = `Error: ${settingsResponse.status} ${settingsResponse.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const { settings } = await settingsResponse.json();
@@ -157,10 +167,9 @@ const CalendarSettings = () => {
       }));
       
       setCalendars(calendarsWithSettings);
-      setCalendarSettings(settingsMap);
     } catch (err) {
       console.error("Error fetching calendars:", err);
-      setError("Failed to fetch calendars. Please try reconnecting.");
+      setError(`Failed to fetch calendars: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoadingCalendars(false);
     }
@@ -173,16 +182,25 @@ const CalendarSettings = () => {
       setConnecting(true);
       setError(null);
 
-      // Get the current hostname and protocol for the redirect URL
+      // Get the current URL for the callback
       const redirectUrl = `${window.location.origin}/api/google-calendar-callback`;
       
       // Use the full Supabase URL for the function call
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      
+      // Get the auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+      
+      if (!authToken) {
+        throw new Error("No authentication token available");
+      }
+      
       const response = await fetch(`${supabaseUrl}/functions/v1/google-calendar-auth`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ userId: user.id, redirectUrl }),
       });
@@ -190,12 +208,18 @@ const CalendarSettings = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Error response:", errorText);
+        
+        let errorMessage;
         try {
           const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || "Failed to initiate Google Calendar authentication");
+          errorMessage = errorData.error || "Failed to initiate Google Calendar authentication";
         } catch (e) {
-          throw new Error(`Failed to initiate Google Calendar authentication: ${errorText.substring(0, 100)}...`);
+          errorMessage = `Error: ${response.status} ${response.statusText}`;
+          if (errorText.includes("<!DOCTYPE")) {
+            errorMessage = "Server returned HTML instead of JSON. Check server configuration.";
+          }
         }
+        throw new Error(errorMessage);
       }
 
       const responseData = await response.json();
@@ -212,7 +236,12 @@ const CalendarSettings = () => {
       window.location.href = authUrl;
     } catch (err) {
       console.error("Error connecting to Google Calendar:", err);
-      setError(`Failed to connect to Google Calendar: ${(err as Error).message}`);
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: `Failed to connect to Google Calendar: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      });
+      setError(`Failed to connect to Google Calendar: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setConnecting(false);
     }
   };
@@ -226,18 +255,34 @@ const CalendarSettings = () => {
       
       // Use the full Supabase URL for the function call
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      
+      // Get the auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+      
+      if (!authToken) {
+        throw new Error("No authentication token available");
+      }
+      
       const response = await fetch(`${supabaseUrl}/functions/v1/google-calendar-disconnect`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ userId: user.id }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to disconnect Google Calendar");
+        const errorText = await response.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || "Failed to disconnect Google Calendar";
+        } catch (e) {
+          errorMessage = `Error: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       toast({
@@ -265,18 +310,34 @@ const CalendarSettings = () => {
       
       // Use the full Supabase URL for the function call
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      
+      // Get the auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+      
+      if (!authToken) {
+        throw new Error("No authentication token available");
+      }
+      
       const response = await fetch(`${supabaseUrl}/functions/v1/sync-google-calendars`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ userId: user.id }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to sync calendars");
+        const errorText = await response.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || "Failed to sync calendars";
+        } catch (e) {
+          errorMessage = `Error: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       toast({
@@ -307,11 +368,20 @@ const CalendarSettings = () => {
       
       // Use the full Supabase URL for the function call
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      
+      // Get the auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+      
+      if (!authToken) {
+        throw new Error("No authentication token available");
+      }
+      
       const response = await fetch(`${supabaseUrl}/functions/v1/toggle-calendar-visibility`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ 
           userId: user.id,
@@ -321,15 +391,16 @@ const CalendarSettings = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update calendar visibility");
+        const errorText = await response.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || "Failed to update calendar visibility";
+        } catch (e) {
+          errorMessage = `Error: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
-      
-      // Update settings in state
-      setCalendarSettings(prev => ({
-        ...prev,
-        [calendarId]: enabled
-      }));
       
       toast({
         title: enabled ? "Calendar Enabled" : "Calendar Disabled",
@@ -351,14 +422,6 @@ const CalendarSettings = () => {
         description: "Could not update calendar visibility. Please try again.",
       });
     }
-  };
-
-  // Helper function to get color style from calendar backgroundColor
-  const getCalendarColor = (color: string) => {
-    if (!color) return "bg-gray-400";
-    
-    // Google Calendar colors are in #RRGGBB format
-    return `bg-[${color}]`;
   };
 
   if (loading) {

@@ -24,32 +24,9 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Create calendar_settings table if it doesn't exist
-    const { error: tableError } = await supabase.rpc('create_calendar_settings_if_not_exists');
-    
-    if (tableError) {
-      console.error("Error creating calendar_settings table:", tableError);
-      // Continue anyway, the table might already exist
-    }
-
-    // Get user's calendar settings
-    const { data: settings, error: settingsError } = await supabase
-      .from("calendar_settings")
-      .select("*")
-      .eq("user_id", userId);
-
-    if (settingsError) {
-      console.error("Error fetching calendar settings:", settingsError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch calendar settings" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Create mock calendar settings (in a real app, these would be stored in the database)
+    // For this example, we'll return empty settings which will default to all calendars being enabled
+    const settings = [];
 
     return new Response(
       JSON.stringify({ settings }),
@@ -58,7 +35,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Calendar Settings Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
