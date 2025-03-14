@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
 import { toast } from 'sonner';
 import { mapDbTaskToTask, mapTaskToDb } from './use-task-mapper';
+import { ensureDateFormat } from '@/components/tasks/utils';
 
 export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
@@ -18,20 +19,23 @@ export const useTaskOperations = (user: any) => {
     try {
       setOperationLoading(true);
       
+      // Ensure date is in correct format
+      const dueDate = taskData.dueDate ? ensureDateFormat(taskData.dueDate) : null;
+      
       // Prepare task data for database
       const dbTask = {
         user_id: user.id,
         title: taskData.title,
         description: taskData.description || '',
         priority: taskData.priority,
-        due_date: taskData.dueDate instanceof Date 
-          ? taskData.dueDate.toISOString() 
-          : taskData.dueDate,
+        due_date: dueDate,
         completed: taskData.completed || false,
         start_time: taskData.startTime,
         end_time: taskData.endTime,
         sync_source: 'app'
       };
+
+      console.log("Creating task with data:", dbTask);
 
       // Insert task into database
       const { data, error } = await supabase
@@ -41,6 +45,7 @@ export const useTaskOperations = (user: any) => {
         .single();
 
       if (error) {
+        console.error("Supabase insert error:", error);
         throw new Error(error.message);
       }
 
@@ -71,6 +76,8 @@ export const useTaskOperations = (user: any) => {
     try {
       setOperationLoading(true);
       
+      console.log("Updating task:", id, "with data:", updates);
+      
       // Check if we're dealing with mock data (IDs from mock data are numeric strings)
       if (/^\d+$/.test(id)) {
         console.log('Updating mock task:', id);
@@ -97,11 +104,9 @@ export const useTaskOperations = (user: any) => {
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
       
-      // Convert date to ISO string if it's a Date object
+      // Convert date to ISO string if it's a Date object or string date
       if (updates.dueDate !== undefined) {
-        dbUpdates.due_date = updates.dueDate instanceof Date 
-          ? updates.dueDate.toISOString() 
-          : updates.dueDate;
+        dbUpdates.due_date = ensureDateFormat(updates.dueDate);
       }
       
       if (updates.completed !== undefined) dbUpdates.completed = updates.completed;
@@ -112,6 +117,8 @@ export const useTaskOperations = (user: any) => {
       dbUpdates.sync_source = 'app';
       dbUpdates.updated_at = new Date().toISOString();
 
+      console.log("Sending to database:", dbUpdates);
+
       const { data, error } = await supabase
         .from('tasks')
         .update(dbUpdates)
@@ -120,8 +127,11 @@ export const useTaskOperations = (user: any) => {
         .single();
 
       if (error) {
+        console.error("Supabase update error:", error);
         throw new Error(error.message);
       }
+
+      console.log("Update successful, response:", data);
 
       // Trigger sync to Google Calendar
       syncTaskWithGoogleCalendar(user.id, id);

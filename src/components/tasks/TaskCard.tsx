@@ -10,6 +10,8 @@ import TaskCardSwipeIndicator from './TaskCardSwipeIndicator';
 import TaskCardActions from './TaskCardActions';
 import { useTasksContext } from '@/contexts/TasksContext';
 import CreateTaskModal from './CreateTaskModal';
+import { ensureDateFormat } from './utils';
+import { toast } from 'sonner';
 
 interface TaskCardProps extends TaskProps {
   onClick?: () => void;
@@ -113,33 +115,63 @@ const TaskCard = ({
   };
 
   const handleSubmitEdit = async (taskData: any) => {
-    console.log("Submitting edit for task:", id, taskData);
-    // Convert the data to the format expected by the updateTask function
-    const formattedData: Partial<TaskProps> = {
-      title: taskData.title,
-      description: taskData.description || '',
-      priority: taskData.priority,
-      dueDate: new Date(taskData.dueDate),
-      tags: taskData.tags || []
-    };
-
-    // Include recurring data if present
-    if (taskData.recurring && taskData.recurring !== 'none') {
-      formattedData.recurring = {
-        frequency: taskData.recurring,
-        customDays: taskData.selectedWeekdays || []
+    try {
+      console.log("Submitting edit for task:", id, taskData);
+      
+      // Ensure proper date format for the database
+      const dueDateFormatted = ensureDateFormat(taskData.dueDate);
+      
+      // Convert the data to the format expected by the updateTask function
+      const formattedData: Partial<TaskProps> = {
+        title: taskData.title,
+        description: taskData.description || '',
+        priority: taskData.priority,
+        dueDate: dueDateFormatted,
+        tags: taskData.tags || []
       };
-
-      // Add end date or count if specified
-      if (taskData.recurrenceEndType === 'date' && taskData.recurrenceEndDate) {
-        formattedData.recurring.endDate = new Date(taskData.recurrenceEndDate);
-      } else if (taskData.recurrenceEndType === 'after' && taskData.recurrenceCount) {
-        formattedData.recurring.endAfter = taskData.recurrenceCount;
+      
+      // Add time data if present
+      if (taskData.startTime) {
+        formattedData.startTime = taskData.startTime;
       }
-    }
+      
+      if (taskData.endTime) {
+        formattedData.endTime = taskData.endTime;
+      }
 
-    await updateTask(id, formattedData);
-    setIsEditModalOpen(false);
+      // Include recurring data if present
+      if (taskData.recurring && taskData.recurring !== 'none') {
+        formattedData.recurring = {
+          frequency: taskData.recurring,
+          customDays: taskData.selectedWeekdays || []
+        };
+
+        // Add end date or count if specified
+        if (taskData.recurrenceEndType === 'date' && taskData.recurrenceEndDate) {
+          formattedData.recurring.endDate = ensureDateFormat(taskData.recurrenceEndDate);
+        } else if (taskData.recurrenceEndType === 'after' && taskData.recurrenceCount) {
+          formattedData.recurring.endAfter = taskData.recurrenceCount;
+        }
+      } else {
+        // If recurring is set to none, explicitly set to undefined to remove it
+        formattedData.recurring = undefined;
+      }
+      
+      console.log("Formatted data for update:", formattedData);
+      
+      const result = await updateTask(id, formattedData);
+      
+      if (result) {
+        toast.success("Task updated successfully");
+      } else {
+        toast.error("Failed to update task");
+      }
+      
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast.error("Error updating task: " + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   return (

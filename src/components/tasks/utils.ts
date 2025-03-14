@@ -48,8 +48,26 @@ export const getRecurringLabel = (frequency?: 'daily' | 'weekly' | 'monthly' | '
   }
 };
 
-// New function to format dates for Google Calendar
+// Format dates for Google Calendar
 export const formatGoogleCalendarDate = (date: Date | string): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return format(dateObj, 'yyyy-MM-dd');
+};
+
+// Ensure proper ISO string for dates going to the database
+export const ensureDateFormat = (dateStr: string | Date): string => {
+  if (typeof dateStr === 'string' && dateStr.includes('T')) {
+    // Already in ISO format
+    return dateStr;
+  }
+  
+  const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+  
+  // Check if it's a valid date
+  if (isNaN(date.getTime())) {
+    console.error('Invalid date:', dateStr);
+    return new Date().toISOString();
+  }
+  
+  return date.toISOString();
 };
