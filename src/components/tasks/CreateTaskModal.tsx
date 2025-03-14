@@ -145,11 +145,6 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
     onClose();
   };
 
-  // Prevent event bubbling for the modal content
-  const handleModalContentClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
   // Use solid color backgrounds that blend white with priority colors
   const getPriorityBackgroundColor = () => {
     switch (taskData.priority) {
@@ -181,13 +176,13 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
 
   return (
     <div 
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 pointer-events-auto"
       onClick={onClose}
     >
       <div 
         className={`w-full max-w-lg max-h-[90vh] bg-background rounded-lg shadow-lg overflow-hidden animate-in fade-in border-l-4 ${getPriorityBorderColor()}`}
         style={{ backgroundColor: getPriorityBackgroundColor() }}
-        onClick={handleModalContentClick}
+        onClick={(e) => e.stopPropagation()}
       >
         <TaskModalHeader 
           title={editMode ? 'Edit Task' : 'New Task'} 
@@ -197,7 +192,6 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
         <form 
           onSubmit={handleSubmit} 
           className="overflow-y-auto max-h-[calc(90vh-8rem)]"
-          onClick={handleModalContentClick}
         >
           <div className="p-6 space-y-4">
             <TaskFormBasicFields 

@@ -51,18 +51,16 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
     setIsFormVisible(false);
   };
 
-  // Improved event handling functions that actually stop propagation
-  const handleContentClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
   if (!isFormVisible) {
     return (
       <ButtonCustom
         variant="ghost"
         size="sm"
         className="w-full justify-start text-muted-foreground hover:text-foreground group"
-        onClick={() => setIsFormVisible(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsFormVisible(true);
+        }}
       >
         <Plus className="h-4 w-4 mr-2 text-muted-foreground group-hover:text-primary" />
         Add task
@@ -73,7 +71,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
   return (
     <div 
       className="border border-border rounded-md p-3 shadow-sm" 
-      onClick={handleContentClick}
+      onClick={(e) => e.stopPropagation()}
     >
       <Form {...form}>
         <form 
@@ -82,7 +80,6 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
             form.handleSubmit(handleSubmit)(e);
           }} 
           className="space-y-3"
-          onClick={handleContentClick}
         >
           <FormField
             control={form.control}
@@ -93,13 +90,6 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                   <Input
                     placeholder="Task name"
                     {...field}
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                    onFocus={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      field.onChange(e);
-                    }}
                     autoFocus
                   />
                 </FormControl>
