@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, ListTodo, Search, Menu, Tag, Settings, HelpCircle, LogOut, Plus } from 'lucide-react';
@@ -187,10 +186,7 @@ const MobileNavigation = ({ toggleCreateModal }: MobileNavigationProps) => {
       </div>
       
       {/* Search Modal */}
-      <SearchTasksSheet 
-        isOpen={isSearchOpen} 
-        onOpenChange={setIsSearchOpen} 
-      />
+      <SearchTasksSheet isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </div>
   );
 };

@@ -4,8 +4,7 @@ import { TaskProps } from './types';
 import TaskCard from './TaskCard';
 import { formatFullDate } from './utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useTasksContext } from '@/contexts/TasksContext';
-import InlineTaskForm from './InlineTaskForm';
+import { useTasks } from '@/contexts/TasksContext';
 
 interface TaskSectionProps {
   title: string;
@@ -27,7 +26,7 @@ const TaskSection = ({
     handleDragLeave,
     handleDrop,
     handleDragEnd
-  } = useTasksContext();
+  } = useTasks();
   
   // Format the selected date for display if provided
   const getSelectedDateDisplay = () => {
@@ -59,13 +58,10 @@ const TaskSection = ({
             </div>
           ))
         ) : (
-          <div className="text-muted-foreground text-sm mb-3">
-            No tasks scheduled for this day.
+          <div className="text-center py-6">
+            <p className="text-muted-foreground text-sm">No tasks scheduled for this day.</p>
           </div>
         )}
-        
-        {/* Add inline task form component */}
-        {selectedDate && <InlineTaskForm date={selectedDate} />}
       </div>
     </div>
   );

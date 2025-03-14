@@ -1,8 +1,6 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { TaskProps } from '@/components/tasks/types';
-import { useTasks as useTasksHook } from '@/hooks/use-tasks';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface TasksContextType {
   tasks: TaskProps[];
@@ -15,52 +13,30 @@ interface TasksContextType {
   handleDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
   handleDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
-  createTask: (taskData: Omit<TaskProps, 'id'>) => Promise<TaskProps | null>;
-  updateTask: (id: string, updates: Partial<TaskProps>) => Promise<TaskProps | null>;
-  deleteTask: (id: string) => Promise<boolean>;
-  loading: boolean;
 }
 
 const TasksContext = createContext<TasksContextType | undefined>(undefined);
 
-export const useTasksContext = () => {
+export const useTasks = () => {
   const context = useContext(TasksContext);
   if (!context) {
-    throw new Error('useTasksContext must be used within a TasksProvider');
+    throw new Error('useTasks must be used within a TasksProvider');
   }
   return context;
 };
 
 interface TasksProviderProps {
   children: React.ReactNode;
-  initialTasks?: TaskProps[]; // Added for compatibility with SearchTasksSheet and TagTaskList
+  initialTasks: TaskProps[];
 }
 
 export const TasksProvider: React.FC<TasksProviderProps> = ({ 
-  children,
-  initialTasks
+  children, 
+  initialTasks 
 }) => {
-  const { user } = useAuth();
-  const { 
-    tasks: dbTasks,
-    createTask,
-    updateTask,
-    deleteTask,
-    loading
-  } = useTasksHook();
-  
+  const [tasks] = useState<TaskProps[]>(initialTasks);
   const [isOverdueOpen, setIsOverdueOpen] = useState(true);
-  const [customOrder, setCustomOrder] = useState<string[]>([]);
-  
-  // Use initialTasks if provided, otherwise use dbTasks
-  const tasksToUse = initialTasks || dbTasks;
-
-  // Update customOrder when tasks change
-  useEffect(() => {
-    if (tasksToUse.length > 0) {
-      setCustomOrder(tasksToUse.map(task => task.id));
-    }
-  }, [tasksToUse]);
+  const [customOrder, setCustomOrder] = useState<string[]>(initialTasks.map(task => task.id));
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
@@ -100,7 +76,7 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
 
   return (
     <TasksContext.Provider value={{
-      tasks: tasksToUse,
+      tasks,
       customOrder,
       isOverdueOpen,
       setIsOverdueOpen,
@@ -109,11 +85,7 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
       handleDragOver,
       handleDragLeave,
       handleDrop,
-      handleDragEnd,
-      createTask,
-      updateTask,
-      deleteTask,
-      loading
+      handleDragEnd
     }}>
       {children}
     </TasksContext.Provider>

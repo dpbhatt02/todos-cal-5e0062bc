@@ -77,7 +77,7 @@ const SidebarHeader = ({
       
       <div className={cn(
         "flex items-center",
-        isSidebarOpen ? "justify-between mt-4" : "justify-center flex-col gap-5 mt-6"
+        isSidebarOpen ? "justify-between" : "justify-center flex-col gap-3"
       )}>
         <TooltipProvider>
           <Tooltip>

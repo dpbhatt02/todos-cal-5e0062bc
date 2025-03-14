@@ -5,16 +5,16 @@ import OverdueTasksSection from './OverdueTasksSection';
 import TaskSection from './TaskSection';
 import WeekView from './WeekView';
 import { formatFullDate } from './utils';
-import { useTasksContext } from '@/contexts/TasksContext';
+import { TasksProvider } from '@/contexts/TasksContext';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
-import { useAuth } from '@/contexts/AuthContext';
+import { mockTasks } from './mockData';
 
 const TaskList = () => {
   const [viewOption, setViewOption] = useState('active');
   const [sortOption, setSortOption] = useState('date');
-  const { user } = useAuth();
-  const { tasks, loading, customOrder, isOverdueOpen, setIsOverdueOpen } = useTasksContext();
+  const [customOrder, setCustomOrder] = useState<string[]>(mockTasks.map(task => task.id));
+  const [isOverdueOpen, setIsOverdueOpen] = useState(true);
   
   const {
     currentDate,
@@ -32,7 +32,7 @@ const TaskList = () => {
     overdueTasks,
     todayTasks,
     futureDatesGrouped
-  } = useTaskDateGroups(tasks, viewOption, sortOption, customOrder, selectedDate);
+  } = useTaskDateGroups(mockTasks, viewOption, sortOption, customOrder, selectedDate);
   
   // Add scroll event listener to detect when to make WeekView compact
   useEffect(() => {
@@ -48,42 +48,29 @@ const TaskList = () => {
     };
   }, [setIsScrolled]);
 
-  if (!user) {
-    return (
-      <div className="max-w-5xl mx-auto mt-8 text-center">
-        <h2 className="text-2xl font-semibold mb-4">Please Login</h2>
-        <p className="text-muted-foreground">You need to be logged in to view and manage your tasks.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-5xl mx-auto">
-      <TaskListFilters 
-        viewOption={viewOption}
-        sortOption={sortOption}
-        setViewOption={setViewOption}
-        setSortOption={setSortOption}
-      />
-      
-      <div className={`sticky top-0 bg-background z-10 transition-all duration-200 ${isScrolled ? 'pb-1 shadow-sm' : 'pb-3'}`}>
-        <WeekView 
-          currentDate={currentDate}
-          selectedDate={selectedDate}
-          tasks={sortedTasks}
-          onPreviousWeek={previousWeek}
-          onNextWeek={nextWeek}
-          onToday={goToToday}
-          onSelectDay={setSelectedDate}
-          isCompact={isScrolled}
+    <TasksProvider initialTasks={mockTasks}>
+      <div className="max-w-5xl mx-auto">
+        <TaskListFilters 
+          viewOption={viewOption}
+          sortOption={sortOption}
+          setViewOption={setViewOption}
+          setSortOption={setSortOption}
         />
-      </div>
-      
-      {loading ? (
-        <div className="py-8 text-center">
-          <p className="text-muted-foreground">Loading tasks...</p>
+        
+        <div className={`sticky top-0 bg-background z-10 transition-all duration-200 ${isScrolled ? 'pb-1 shadow-sm' : 'pb-3'}`}>
+          <WeekView 
+            currentDate={currentDate}
+            selectedDate={selectedDate}
+            tasks={sortedTasks}
+            onPreviousWeek={previousWeek}
+            onNextWeek={nextWeek}
+            onToday={goToToday}
+            onSelectDay={setSelectedDate}
+            isCompact={isScrolled}
+          />
         </div>
-      ) : (
+        
         <div className="space-y-6">
           <OverdueTasksSection 
             tasks={overdueTasks}
@@ -102,6 +89,8 @@ const TaskList = () => {
           
           {/* Upcoming Tasks grouped by date */}
           {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
+            if (tasks.length === 0) return null;
+            
             const date = new Date(dateString);
             
             return (
@@ -115,8 +104,8 @@ const TaskList = () => {
             );
           })}
         </div>
-      )}
-    </div>
+      </div>
+    </TasksProvider>
   );
 };
 

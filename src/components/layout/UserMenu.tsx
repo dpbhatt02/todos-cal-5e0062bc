@@ -1,6 +1,7 @@
 
 import { User, UserCog, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ButtonCustom } from '@/components/ui/button-custom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
@@ -49,17 +50,6 @@ const UserMenu = ({ isSidebarOpen, menuItems = [] }: UserMenuProps) => {
     }
   };
 
-  const getInitials = (name: string) => {
-    if (!name) return 'U';
-    
-    const nameParts = name.trim().split(' ');
-    if (nameParts.length === 1) {
-      return nameParts[0].charAt(0).toUpperCase();
-    }
-    
-    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
-  };
-
   const renderUserIcon = () => {
     if (user?.photoURL) {
       return (
@@ -70,13 +60,7 @@ const UserMenu = ({ isSidebarOpen, menuItems = [] }: UserMenuProps) => {
         />
       );
     }
-    
-    // Display initials when no photo
-    return (
-      <div className="w-full h-full rounded-full flex items-center justify-center bg-primary/10 text-primary-foreground">
-        <span className="font-semibold">{getInitials(user?.name || 'User')}</span>
-      </div>
-    );
+    return <User className="h-5 w-5" />;
   };
 
   const userButton = (

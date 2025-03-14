@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { TaskProps } from './types';
@@ -8,14 +9,6 @@ import { useSwipeGesture } from '@/hooks/use-swipe-gesture';
 import TaskCardCheckbox from './TaskCardCheckbox';
 import TaskCardSwipeIndicator from './TaskCardSwipeIndicator';
 import TaskCardActions from './TaskCardActions';
-import { useTasksContext } from '@/contexts/TasksContext';
-import CreateTaskModal from './CreateTaskModal';
-import { ensureDateFormat } from './utils';
-import { toast } from 'sonner';
-
-interface TaskCardProps extends TaskProps {
-  onClick?: () => void;
-}
 
 const TaskCard = ({ 
   id, 
@@ -23,22 +16,20 @@ const TaskCard = ({
   description, 
   priority, 
   dueDate, 
-  completed,
-  startTime,
-  endTime,
+  completed, 
   tags = [],
   recurring,
-  onClick
-}: TaskCardProps) => {
+  onEdit,
+  onDelete,
+  onReschedule
+}: TaskProps) => {
   const [isCompleted, setIsCompleted] = useState(completed);
   const [isHovered, setIsHovered] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(
     typeof dueDate === 'string' ? new Date(dueDate) : dueDate
   );
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { updateTask, deleteTask } = useTasksContext();
 
   // Create a task object for reuse
   const task = {
@@ -48,36 +39,19 @@ const TaskCard = ({
     priority,
     dueDate,
     completed: isCompleted,
-    startTime,
-    endTime,
     tags,
-    recurring
+    recurring,
+    onEdit,
+    onDelete,
+    onReschedule
   };
 
-  const handleCheckboxChange = async (checked: boolean | string) => {
+  const handleCheckboxChange = (checked: boolean | string) => {
     // Convert checked to boolean (in case it comes as string)
     const isChecked = checked === true || checked === 'true';
     setIsCompleted(isChecked);
-    
-    // Update task completion status in the database
-    await updateTask(id, { completed: isChecked });
-  };
-
-  const handleEdit = (taskToEdit: TaskProps) => {
-    console.log("Editing task:", taskToEdit);
-    // Open the edit modal with the task data for editing
-    setIsEditModalOpen(true);
-    // Close the details modal if it's open
-    setIsDetailsModalOpen(false);
-  };
-
-  const handleDelete = async (taskId: string) => {
-    await deleteTask(taskId);
-  };
-
-  const handleReschedule = async (taskId: string, newDate: Date) => {
-    setSelectedDate(newDate);
-    await updateTask(taskId, { dueDate: newDate });
+    // In a real app, you would trigger API calls here
+    console.log(`Task ${id} marked as ${isChecked ? 'completed' : 'incomplete'}`);
   };
 
   const handleSwipeLeft = () => {
@@ -87,8 +61,15 @@ const TaskCard = ({
 
   const handleSwipeRight = () => {
     console.log("Swipe right detected for task:", id);
-    // On swipe right, open details sheet
-    setIsDetailsModalOpen(true);
+    // On swipe right, invoke the edit function if available
+    if (onEdit && isMobile) {
+      console.log("Invoking onEdit function for task:", id);
+      onEdit(task);
+    } else {
+      // If not available or not on mobile, fall back to opening details sheet
+      console.log("Opening details modal for task:", id);
+      setIsModalOpen(true);
+    }
   };
 
   const { handlers, state, elementRef } = useSwipeGesture({
@@ -97,80 +78,20 @@ const TaskCard = ({
     threshold: 40,
   });
 
-  const handleOpenDetailsModal = () => {
-    console.log("Opening details modal for task:", id);
-    setIsDetailsModalOpen(true);
-    // Call the onClick prop if provided
-    if (onClick) {
-      onClick();
-    }
+  const handleOpenModal = () => {
+    console.log("Opening modal for task:", id);
+    setIsModalOpen(true);
   };
 
-  const handleCloseDetailsModal = () => {
-    setIsDetailsModalOpen(false);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
 
-  const handleCloseEditModal = () => {
-    setIsEditModalOpen(false);
-  };
-
-  const handleSubmitEdit = async (taskData: any) => {
-    try {
-      console.log("Submitting edit for task:", id, taskData);
-      
-      // Ensure proper date format for the database
-      const dueDateFormatted = ensureDateFormat(taskData.dueDate);
-      
-      // Convert the data to the format expected by the updateTask function
-      const formattedData: Partial<TaskProps> = {
-        title: taskData.title,
-        description: taskData.description || '',
-        priority: taskData.priority,
-        dueDate: dueDateFormatted,
-        tags: taskData.tags || []
-      };
-      
-      // Add time data if present
-      if (taskData.startTime) {
-        formattedData.startTime = taskData.startTime;
-      }
-      
-      if (taskData.endTime) {
-        formattedData.endTime = taskData.endTime;
-      }
-
-      // Include recurring data if present
-      if (taskData.recurring && taskData.recurring !== 'none') {
-        formattedData.recurring = {
-          frequency: taskData.recurring,
-          customDays: taskData.selectedWeekdays || []
-        };
-
-        // Add end date or count if specified
-        if (taskData.recurrenceEndType === 'date' && taskData.recurrenceEndDate) {
-          formattedData.recurring.endDate = ensureDateFormat(taskData.recurrenceEndDate);
-        } else if (taskData.recurrenceEndType === 'after' && taskData.recurrenceCount) {
-          formattedData.recurring.endAfter = taskData.recurrenceCount;
-        }
-      } else {
-        // If recurring is set to none, explicitly set to undefined to remove it
-        formattedData.recurring = undefined;
-      }
-      
-      console.log("Formatted data for update:", formattedData);
-      
-      const result = await updateTask(id, formattedData);
-      
-      if (result) {
-        toast.success("Task updated successfully");
-      } else {
-        toast.error("Failed to update task");
-      }
-      
-      setIsEditModalOpen(false);
-    } catch (error) {
-      console.error("Error updating task:", error);
-      toast.error("Error updating task: " + (error instanceof Error ? error.message : String(error)));
+  // Fixed the handleReschedule function to correctly pass id and date to onReschedule
+  const handleReschedule = (date: Date | undefined) => {
+    if (date && onReschedule) {
+      setSelectedDate(date);
+      onReschedule(id, date);
     }
   };
 
@@ -189,7 +110,7 @@ const TaskCard = ({
         } : undefined}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        onClick={handleOpenDetailsModal}
+        onClick={handleOpenModal}
         {...(isMobile ? handlers : {})}
       >
         <TaskCardSwipeIndicator 
@@ -213,8 +134,6 @@ const TaskCard = ({
             description={description}
             priority={priority}
             dueDate={dueDate}
-            startTime={startTime}
-            endTime={endTime}
             tags={tags}
             recurring={recurring}
             isCompleted={isCompleted}
@@ -227,50 +146,19 @@ const TaskCard = ({
             isHovered={isHovered}
             selectedDate={selectedDate}
             isCompleted={isCompleted}
-            openModal={handleOpenDetailsModal}
-            onEdit={(e) => {
-              e.stopPropagation();
-              handleEdit(task);
-            }}
-            onDelete={handleDelete}
-            onReschedule={(date) => date && handleReschedule(id, date)}
+            openModal={handleOpenModal}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onReschedule={handleReschedule}
             isMobile={isMobile}
           />
         </div>
       </div>
 
       <TaskDetailsSheet 
-        isOpen={isDetailsModalOpen}
-        onClose={handleCloseDetailsModal}
-        task={{
-          ...task,
-          onEdit: handleEdit,
-          onDelete: handleDelete,
-          onReschedule: (id, newDate) => handleReschedule(id, newDate)
-        }}
-      />
-
-      <CreateTaskModal
-        isOpen={isEditModalOpen}
-        onClose={handleCloseEditModal}
-        onSubmit={handleSubmitEdit}
-        editMode={true}
-        initialData={{
-          title,
-          description: description || '',
-          priority,
-          dueDate: typeof dueDate === 'string' ? dueDate : dueDate.toISOString().split('T')[0],
-          startTime: startTime || '',
-          endTime: endTime || '',
-          tags: tags || [],
-          recurring: recurring?.frequency || 'none',
-          selectedWeekdays: recurring?.customDays || [],
-          recurrenceEndType: recurring?.endDate ? 'date' : recurring?.endAfter ? 'after' : 'never',
-          recurrenceEndDate: recurring?.endDate ? 
-            (typeof recurring.endDate === 'string' ? recurring.endDate : recurring.endDate.toISOString().split('T')[0]) : 
-            '',
-          recurrenceCount: recurring?.endAfter || 5
-        }}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        task={task}
       />
     </>
   );

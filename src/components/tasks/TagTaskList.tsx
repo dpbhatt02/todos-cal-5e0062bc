@@ -1,4 +1,3 @@
-
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -8,11 +7,11 @@ import OverdueTasksSection from './OverdueTasksSection';
 import TaskSection from './TaskSection';
 import WeekView from './WeekView';
 import { formatFullDate } from './utils';
-import { TasksProvider, useTasksContext } from '@/contexts/TasksContext';
+import { TasksProvider } from '@/contexts/TasksContext';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useTasks } from '@/hooks/use-tasks';
+import { mockTasks } from './mockData';
 
 interface TagTaskListProps {
   tagFilter: string;
@@ -21,16 +20,8 @@ interface TagTaskListProps {
 const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
   const [viewOption, setViewOption] = useState('active');
   const [sortOption, setSortOption] = useState('date');
+  const [customOrder, setCustomOrder] = useState<string[]>(mockTasks.map(task => task.id));
   const [isOverdueOpen, setIsOverdueOpen] = useState(true);
-  const { tasks: allTasks, loading } = useTasks();
-  const [customOrder, setCustomOrder] = useState<string[]>([]);
-  
-  // Update customOrder when tasks change
-  useEffect(() => {
-    if (allTasks.length > 0) {
-      setCustomOrder(allTasks.map(task => task.id));
-    }
-  }, [allTasks]);
   
   const {
     currentDate,
@@ -43,8 +34,8 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
     goToToday
   } = useWeekController();
   
-  // Filter tasks based on tag
-  const filteredByTagTasks = allTasks.filter(task => task.tags?.includes(tagFilter));
+  // Filter tasks based on tag before using our hook
+  const filteredByTagTasks = mockTasks.filter(task => task.tags?.includes(tagFilter));
   
   const {
     sortedTasks,
@@ -70,14 +61,6 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
   // Create a today variable for the today section
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  if (loading) {
-    return (
-      <div className="py-8 text-center">
-        <p className="text-muted-foreground">Loading tasks...</p>
-      </div>
-    );
-  }
 
   return (
     <TasksProvider initialTasks={filteredByTagTasks}>
@@ -118,8 +101,10 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
             selectedDate={today}
           />
           
-          {/* Upcoming Tasks grouped by date - display all days even if no tasks */}
+          {/* Upcoming Tasks grouped by date */}
           {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
+            if (tasks.length === 0) return null;
+            
             const date = new Date(dateString);
             
             return (

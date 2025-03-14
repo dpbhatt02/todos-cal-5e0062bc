@@ -6,8 +6,6 @@ export interface TaskProps {
   priority: 'low' | 'medium' | 'high';
   dueDate: Date | string;
   completed: boolean;
-  startTime?: string;
-  endTime?: string;
   tags?: string[];
   recurring?: {
     frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -18,11 +16,6 @@ export interface TaskProps {
   onEdit?: (task: TaskProps) => void;
   onDelete?: (id: string) => void;
   onReschedule?: (id: string, newDate: Date) => void;
-  googleCalendarEventId?: string;
-  googleCalendarId?: string;
-  lastSyncedAt?: string;
-  isAllDay?: boolean;
-  syncSource?: 'app' | 'google_calendar';
 }
 
 export const priorityClasses: Record<string, string> = {

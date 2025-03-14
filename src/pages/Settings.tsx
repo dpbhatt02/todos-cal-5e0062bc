@@ -3,30 +3,14 @@ import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GeneralSettings } from "@/components/settings/GeneralSettings";
 import { AccountSettings } from "@/components/settings/AccountSettings";
-import CalendarSettings from "@/components/settings/CalendarSettings";
+import { CalendarSettings } from "@/components/settings/CalendarSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { toast } from "sonner";
-import { useSearchParams } from "react-router-dom";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
   const isMobile = useIsMobile();
-  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Check for success or error from Google Calendar callback
-    const success = searchParams.get('success');
-    const error = searchParams.get('error');
-    const source = searchParams.get('source');
-    
-    if (success === 'true' && source === 'google_calendar') {
-      toast.success('Google Calendar connected successfully');
-      setActiveTab('calendars');
-    } else if (error && source === 'google_calendar') {
-      toast.error(`Failed to connect Google Calendar: ${error}`);
-      setActiveTab('calendars');
-    }
-    
     // Check localStorage for an active tab setting
     const savedTab = window.localStorage.getItem('settings-active-tab');
     if (savedTab) {
@@ -34,7 +18,7 @@ const Settings = () => {
       // Clear the localStorage item after using it
       window.localStorage.removeItem('settings-active-tab');
     }
-  }, [searchParams]);
+  }, []);
 
   return (
     <div className="container mx-auto py-4 md:py-6 px-2 md:px-6 max-w-4xl">
