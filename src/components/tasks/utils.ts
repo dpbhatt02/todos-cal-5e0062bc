@@ -47,3 +47,9 @@ export const getRecurringLabel = (frequency?: 'daily' | 'weekly' | 'monthly' | '
       return '';
   }
 };
+
+// New function to format dates for Google Calendar
+export const formatGoogleCalendarDate = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return format(dateObj, 'yyyy-MM-dd');
+};

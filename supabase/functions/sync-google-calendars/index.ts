@@ -328,23 +328,25 @@ async function syncTasksToEvents(supabase, accessToken, primaryCalendarId, userI
         const eventData = {
           summary: task.title,
           description: task.description || "",
-          start: {
-            dateTime: task.start_time ? new Date(task.start_time).toISOString() : null,
-            date: !task.start_time ? new Date(task.due_date).toISOString().split("T")[0] : null
-          },
-          end: {
-            dateTime: task.end_time ? new Date(task.end_time).toISOString() : 
-                    task.start_time ? new Date(new Date(task.start_time).getTime() + 30 * 60000).toISOString() : null,
-            date: !task.start_time ? new Date(task.due_date).toISOString().split("T")[0] : null
-          },
+          start: {},
+          end: {},
           status: task.completed ? "completed" : "confirmed"
         };
 
-        // Remove null values
-        if (!eventData.start.dateTime) delete eventData.start.dateTime;
-        if (!eventData.start.date) delete eventData.start.date;
-        if (!eventData.end.dateTime) delete eventData.end.dateTime;
-        if (!eventData.end.date) delete eventData.end.date;
+        // Format dates correctly for Google Calendar
+        if (task.start_time) {
+          // For events with a specific time
+          eventData.start.dateTime = new Date(task.start_time).toISOString();
+          eventData.end.dateTime = task.end_time 
+            ? new Date(task.end_time).toISOString() 
+            : new Date(new Date(task.start_time).getTime() + 30 * 60000).toISOString();
+        } else if (task.due_date) {
+          // For all-day events, we need YYYY-MM-DD format without time portion
+          const dueDate = new Date(task.due_date);
+          const formattedDate = `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}-${String(dueDate.getDate()).padStart(2, '0')}`;
+          eventData.start.date = formattedDate;
+          eventData.end.date = formattedDate;
+        }
 
         // Add or update event on Google Calendar
         let eventResponse;
