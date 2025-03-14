@@ -170,8 +170,15 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string | null
+          end_time: string | null
+          google_calendar_event_id: string | null
+          google_calendar_id: string | null
           id: string
+          is_all_day: boolean | null
+          last_synced_at: string | null
           priority: string | null
+          start_time: string | null
+          sync_source: string | null
           title: string
           updated_at: string
           user_id: string
@@ -181,8 +188,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          end_time?: string | null
+          google_calendar_event_id?: string | null
+          google_calendar_id?: string | null
           id?: string
+          is_all_day?: boolean | null
+          last_synced_at?: string | null
           priority?: string | null
+          start_time?: string | null
+          sync_source?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -192,8 +206,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          end_time?: string | null
+          google_calendar_event_id?: string | null
+          google_calendar_id?: string | null
           id?: string
+          is_all_day?: boolean | null
+          last_synced_at?: string | null
           priority?: string | null
+          start_time?: string | null
+          sync_source?: string | null
           title?: string
           updated_at?: string
           user_id?: string
