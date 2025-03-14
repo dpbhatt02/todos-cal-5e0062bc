@@ -170,7 +170,7 @@ const TaskListContent = () => {
             tasks={overdueTasks.map(task => ({
               ...task,
               onEdit: handleTaskUpdate,
-              onDelete: handleDeleteTask,
+              onDelete: handleTaskDelete,
               onReschedule: handleTaskReschedule
             }))}
             isOpen={isOverdueOpen}
@@ -184,7 +184,7 @@ const TaskListContent = () => {
             tasks={todayTasks.map(task => ({
               ...task,
               onEdit: handleTaskUpdate,
-              onDelete: handleDeleteTask,
+              onDelete: handleTaskDelete,
               onReschedule: handleTaskReschedule
             }))}
             sortOption={sortOption}
@@ -204,7 +204,7 @@ const TaskListContent = () => {
                 tasks={tasks.map(task => ({
                   ...task,
                   onEdit: handleTaskUpdate,
-                  onDelete: handleDeleteTask,
+                  onDelete: handleTaskDelete,
                   onReschedule: handleTaskReschedule
                 }))}
                 sortOption={sortOption}
