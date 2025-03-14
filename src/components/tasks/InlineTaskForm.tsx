@@ -35,6 +35,8 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
   });
 
   const handleSubmit = async (values: FormValues) => {
+    console.log("Form submitted with values:", values);
+    
     const taskData: Omit<TaskProps, 'id'> = {
       title: values.title,
       description: '',

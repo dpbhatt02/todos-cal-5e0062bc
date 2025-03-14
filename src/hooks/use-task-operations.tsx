@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
 import { toast } from 'sonner';
 import { mapDbTaskToTask, mapTaskToDb } from './use-task-mapper';
-import { ensureDateFormat } from '@/components/tasks/utils';
+import { ensureDateFormat, shouldTriggerSync } from '@/components/tasks/utils';
 
 export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
@@ -53,7 +53,10 @@ export const useTaskOperations = (user: any) => {
       const newTask = mapDbTaskToTask(data);
 
       // Trigger sync to Google Calendar if integration exists
-      syncTaskWithGoogleCalendar(user.id, newTask.id);
+      // Only sync on create operation
+      if (shouldTriggerSync('create')) {
+        syncTaskWithGoogleCalendar(user.id, newTask.id);
+      }
 
       toast.success('Task created successfully');
       return newTask;
@@ -133,8 +136,10 @@ export const useTaskOperations = (user: any) => {
 
       console.log("Update successful, response:", data);
 
-      // Trigger sync to Google Calendar
-      syncTaskWithGoogleCalendar(user.id, id);
+      // Only sync when specific fields change
+      if (shouldTriggerSync('update', dbUpdates)) {
+        syncTaskWithGoogleCalendar(user.id, id);
+      }
 
       return mapDbTaskToTask(data);
     } catch (err) {
@@ -181,6 +186,7 @@ export const useTaskOperations = (user: any) => {
       
       // If task has Google Calendar event, delete it from Google Calendar
       if (task?.google_calendar_event_id && task?.google_calendar_id) {
+        // Always sync on delete, no need to check shouldTriggerSync
         deleteGoogleCalendarEvent(user.id, task.google_calendar_id, task.google_calendar_event_id);
       }
 
@@ -207,6 +213,8 @@ export const useTaskOperations = (user: any) => {
   // Sync a task with Google Calendar
   const syncTaskWithGoogleCalendar = async (userId: string, taskId: string) => {
     try {
+      console.log(`Syncing task ${taskId} with Google Calendar`);
+      
       // Call the sync function
       const { data, error } = await supabase.functions.invoke('sync-google-calendars', {
         body: { 
@@ -229,6 +237,8 @@ export const useTaskOperations = (user: any) => {
   // Delete an event from Google Calendar
   const deleteGoogleCalendarEvent = async (userId: string, calendarId: string, eventId: string) => {
     try {
+      console.log(`Deleting event ${eventId} from Google Calendar ${calendarId}`);
+      
       // Call a separate function to delete the event from Google Calendar
       const { data, error } = await supabase.functions.invoke('delete-google-calendar-event', {
         body: { 

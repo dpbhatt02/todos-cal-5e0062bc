@@ -69,5 +69,37 @@ export const ensureDateFormat = (dateStr: string | Date): string => {
     return new Date().toISOString();
   }
   
+  // Set time to noon to avoid timezone issues
+  date.setHours(12, 0, 0, 0);
+  
   return date.toISOString();
+};
+
+// Determine if a sync should be triggered based on changes
+export const shouldTriggerSync = (
+  action: 'create' | 'update' | 'delete',
+  changes?: Record<string, any>
+): boolean => {
+  // Always sync on create or delete
+  if (action === 'create' || action === 'delete') {
+    return true;
+  }
+  
+  // Only sync on update if certain fields have changed
+  if (action === 'update' && changes) {
+    const relevantFields = [
+      'title', 
+      'description', 
+      'dueDate', 
+      'due_date',
+      'startTime', 
+      'start_time',
+      'endTime', 
+      'end_time'
+    ];
+    
+    return relevantFields.some(field => field in changes);
+  }
+  
+  return false;
 };
