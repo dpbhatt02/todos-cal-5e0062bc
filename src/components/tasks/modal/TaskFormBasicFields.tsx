@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -99,21 +100,8 @@ const TaskFormBasicFields = ({
     setTextSelection({ start: 0, end: 0, text: '' });
   };
 
-  // Improved event handlers to effectively stop propagation
-  const handleInputClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  const handleInputKeyDown = (e: React.KeyboardEvent) => {
-    e.stopPropagation();
-  };
-
-  const handleInputFocus = (e: React.FocusEvent) => {
-    e.stopPropagation();
-  };
-
+  // Simple handlers without event propagation prevention
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    e.stopPropagation();
     const { name, value } = e.target;
     
     switch (name) {
@@ -136,18 +124,15 @@ const TaskFormBasicFields = ({
   };
 
   return (
-    <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+    <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="title">Task Title</Label>
         <Input
           id="title"
           name="title"
           placeholder="What needs to be done?"
-         // value={title}
-          // onChange={handleChange}
-          onClick={handleInputClick}
-          onFocus={handleInputFocus}
-          onKeyDown={handleInputKeyDown}
+          value={title}
+          onChange={handleChange}
           required
         />
       </div>
@@ -162,12 +147,9 @@ const TaskFormBasicFields = ({
           id="description"
           name="description"
           placeholder="Add details about this task..."
-          //value={description}
+          value={description}
           onChange={handleChange}
           onSelect={handleTextSelection}
-          onClick={handleInputClick}
-          onFocus={handleInputFocus}
-          onKeyDown={handleInputKeyDown}
           ref={textareaRef}
           rows={3}
         />
@@ -187,11 +169,8 @@ const TaskFormBasicFields = ({
               id="dueDate"
               name="dueDate"
               type="date"
-              //value={dueDate}
+              value={dueDate}
               onChange={handleChange}
-              onClick={handleInputClick}
-              onFocus={handleInputFocus}
-              onKeyDown={handleInputKeyDown}
               className="pl-9"
               required
             />
@@ -202,7 +181,7 @@ const TaskFormBasicFields = ({
           <Label>Priority</Label>
           <ToggleGroup 
             type="single" 
-            //value={priority}
+            value={priority}
             onValueChange={(value) => {
               if (value) onPriorityChange(value);
             }}
@@ -233,11 +212,8 @@ const TaskFormBasicFields = ({
               id="startTime"
               name="startTime"
               type="time"
-              //value={startTime}
+              value={startTime}
               onChange={handleChange}
-              onClick={handleInputClick}
-              onFocus={handleInputFocus}
-              onKeyDown={handleInputKeyDown}
               className="pl-9"
             />
           </div>
@@ -251,11 +227,8 @@ const TaskFormBasicFields = ({
               id="endTime"
               name="endTime"
               type="time"
-             // value={endTime}
+              value={endTime}
               onChange={handleChange}
-              onClick={handleInputClick}
-              onFocus={handleInputFocus}
-              onKeyDown={handleInputKeyDown}
               className="pl-9"
             />
           </div>

@@ -4,11 +4,12 @@ import { ButtonCustom } from '@/components/ui/button-custom';
 interface TaskModalFooterProps {
   onClose: () => void;
   isEditMode: boolean;
+  isLoading?: boolean;
 }
 
-const TaskModalFooter = ({ onClose, isEditMode }: TaskModalFooterProps) => {
+const TaskModalFooter = ({ onClose, isEditMode, isLoading = false }: TaskModalFooterProps) => {
   const handleCancel = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.preventDefault();
     onClose();
   };
 
@@ -24,6 +25,7 @@ const TaskModalFooter = ({ onClose, isEditMode }: TaskModalFooterProps) => {
       <ButtonCustom 
         type="submit" 
         variant="primary"
+        isLoading={isLoading}
       >
         {isEditMode ? 'Update Task' : 'Create Task'}
       </ButtonCustom>

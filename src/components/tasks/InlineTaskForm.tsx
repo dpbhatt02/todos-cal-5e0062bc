@@ -24,6 +24,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { createTask } = useTasksContext();
 
   const form = useForm<FormValues>({
@@ -35,20 +36,27 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
   });
 
   const handleSubmit = async (values: FormValues) => {
-    console.log("Form submitted with values:", values);
-    
-    const taskData: Omit<TaskProps, 'id'> = {
-      title: values.title,
-      description: '',
-      priority: values.priority as 'low' | 'medium' | 'high',
-      dueDate: date,
-      completed: false,
-      tags: []
-    };
+    try {
+      setIsSubmitting(true);
+      console.log("Form submitted with values:", values);
+      
+      const taskData: Omit<TaskProps, 'id'> = {
+        title: values.title,
+        description: '',
+        priority: values.priority as 'low' | 'medium' | 'high',
+        dueDate: date,
+        completed: false,
+        tags: []
+      };
 
-    await createTask(taskData);
-    form.reset();
-    setIsFormVisible(false);
+      await createTask(taskData);
+      form.reset();
+      setIsFormVisible(false);
+    } catch (error) {
+      console.error("Error creating task:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isFormVisible) {
@@ -57,10 +65,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
         variant="ghost"
         size="sm"
         className="w-full justify-start text-muted-foreground hover:text-foreground group"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsFormVisible(true);
-        }}
+        onClick={() => setIsFormVisible(true)}
       >
         <Plus className="h-4 w-4 mr-2 text-muted-foreground group-hover:text-primary" />
         Add task
@@ -69,18 +74,9 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
   }
 
   return (
-    <div 
-      className="border border-border rounded-md p-3 shadow-sm" 
-      onClick={(e) => e.stopPropagation()}
-    >
+    <div className="border border-border rounded-md p-3 shadow-sm">
       <Form {...form}>
-        <form 
-          onSubmit={(e) => {
-            e.stopPropagation();
-            form.handleSubmit(handleSubmit)(e);
-          }} 
-          className="space-y-3"
-        >
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3">
           <FormField
             control={form.control}
             name="title"
@@ -104,20 +100,18 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
               render={({ field }) => (
                 <FormItem className="flex-1">
                   <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                    }}
+                    onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger onClick={(e) => e.stopPropagation()}>
+                      <SelectTrigger>
                         <SelectValue placeholder="Priority" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent onClick={(e) => e.stopPropagation()}>
-                      <SelectItem value="low" onClick={(e) => e.stopPropagation()}>Low</SelectItem>
-                      <SelectItem value="medium" onClick={(e) => e.stopPropagation()}>Medium</SelectItem>
-                      <SelectItem value="high" onClick={(e) => e.stopPropagation()}>High</SelectItem>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormItem>
@@ -129,10 +123,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                 type="button" 
                 variant="outline" 
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsFormVisible(false);
-                }}
+                onClick={() => setIsFormVisible(false)}
               >
                 Cancel
               </ButtonCustom>
@@ -140,7 +131,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                 type="submit" 
                 variant="primary" 
                 size="sm"
-                onClick={(e) => e.stopPropagation()}
+                isLoading={isSubmitting}
               >
                 Add
               </ButtonCustom>
