@@ -13,7 +13,7 @@ const TaskModalFooter = ({ onClose, isEditMode }: TaskModalFooterProps) => {
   };
 
   return (
-    <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/30" onClick={}>
+    <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/30" >
       <ButtonCustom 
         type="button" 
         variant="ghost" 
@@ -24,7 +24,6 @@ const TaskModalFooter = ({ onClose, isEditMode }: TaskModalFooterProps) => {
       <ButtonCustom 
         type="submit" 
         variant="primary"
-        onClick={}
       >
         {isEditMode ? 'Update Task' : 'Create Task'}
       </ButtonCustom>
