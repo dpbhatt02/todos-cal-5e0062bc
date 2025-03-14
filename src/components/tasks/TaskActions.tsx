@@ -7,6 +7,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { addDays } from 'date-fns';
 
 interface TaskActionsProps {
   id: string;
@@ -43,14 +45,34 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
             <Calendar className="h-4 w-4" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 z-50" align="end">
-          <CalendarComponent
-            mode="single"
-            selected={selectedDate}
-            onSelect={onReschedule}
-            initialFocus
-            className="pointer-events-auto"
-          />
+        <PopoverContent className="w-auto p-0" align="end">
+          <div className="p-2 flex flex-col gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-start"
+              onClick={() => onReschedule(new Date())}
+            >
+              Today
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-start"
+              onClick={() => onReschedule(addDays(new Date(), 1))}
+            >
+              Tomorrow
+            </Button>
+            <div className="pt-2 border-t mt-1">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={onReschedule}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </div>
+          </div>
         </PopoverContent>
       </Popover>
       
