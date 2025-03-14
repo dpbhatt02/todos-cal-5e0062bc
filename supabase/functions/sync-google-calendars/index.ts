@@ -1,7 +1,12 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { formatGoogleCalendarDate } from "../../../src/components/tasks/utils.ts";
+import { format } from "https://esm.sh/date-fns@3.6.0";
+
+// Move the utility function into the edge function instead of importing it
+const formatGoogleCalendarDate = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return format(dateObj, 'yyyy-MM-dd');
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -394,11 +399,10 @@ async function syncTasksToEvents(supabase, accessToken, primaryCalendarId, userI
             ? new Date(task.end_time).toISOString() 
             : new Date(new Date(task.start_time).getTime() + 30 * 60000).toISOString();
         } else if (task.due_date) {
-          // For all-day events, we need YYYY-MM-DD format without time portion
+          // For all-day events, use the formatGoogleCalendarDate function to get YYYY-MM-DD format
           const dueDate = new Date(task.due_date);
-          const formattedDate = `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, '0')}-${String(dueDate.getDate()).padStart(2, '0')}`;
-          eventData.start.date = formattedDate;
-          eventData.end.date = formattedDate;
+          eventData.start.date = formatGoogleCalendarDate(dueDate);
+          eventData.end.date = formatGoogleCalendarDate(dueDate);
         }
 
         // Add or update event on Google Calendar
