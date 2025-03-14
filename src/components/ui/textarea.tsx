@@ -15,24 +15,24 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           className
         )}
         ref={ref}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.onClick) {
-            props.onClick(e as React.MouseEvent<HTMLTextAreaElement>);
-          }
-        }}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-          if (props.onKeyDown) {
-            props.onKeyDown(e);
-          }
-        }}
-        onFocus={(e) => {
-          e.stopPropagation();
-          if (props.onFocus) {
-            props.onFocus(e);
-          }
-        }}
+        // onClick={(e) => {
+        //   e.stopPropagation();
+        //   if (props.onClick) {
+        //     props.onClick(e as React.MouseEvent<HTMLTextAreaElement>);
+        //   }
+        // }}
+        // onKeyDown={(e) => {
+        //   e.stopPropagation();
+        //   if (props.onKeyDown) {
+        //     props.onKeyDown(e);
+        //   }
+        // }}
+        // onFocus={(e) => {
+        //   e.stopPropagation();
+        //   if (props.onFocus) {
+        //     props.onFocus(e);
+        //   }
+        // }}
         {...props}
       />
     )

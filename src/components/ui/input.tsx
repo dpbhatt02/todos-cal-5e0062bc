@@ -13,18 +13,18 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.onClick) {
-            props.onClick(e);
-          }
-        }}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-          if (props.onKeyDown) {
-            props.onKeyDown(e);
-          }
-        }}
+        // onClick={(e) => {
+        //   e.stopPropagation();
+        //   if (props.onClick) {
+        //     props.onClick(e);
+        //   }
+        // }}
+        // onKeyDown={(e) => {
+        //   e.stopPropagation();
+        //   if (props.onKeyDown) {
+        //     props.onKeyDown(e);
+        //   }
+        // }}
         {...props}
       />
     )
