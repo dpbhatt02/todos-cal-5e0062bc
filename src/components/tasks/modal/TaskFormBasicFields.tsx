@@ -162,7 +162,7 @@ const TaskFormBasicFields = ({
           id="description"
           name="description"
           placeholder="Add details about this task..."
-          value={description}
+          //value={description}
           onChange={handleChange}
           onSelect={handleTextSelection}
           onClick={handleInputClick}
@@ -187,7 +187,7 @@ const TaskFormBasicFields = ({
               id="dueDate"
               name="dueDate"
               type="date"
-              value={dueDate}
+              //value={dueDate}
               onChange={handleChange}
               onClick={handleInputClick}
               onFocus={handleInputFocus}
@@ -202,7 +202,7 @@ const TaskFormBasicFields = ({
           <Label>Priority</Label>
           <ToggleGroup 
             type="single" 
-            value={priority}
+            //value={priority}
             onValueChange={(value) => {
               if (value) onPriorityChange(value);
             }}
@@ -233,7 +233,7 @@ const TaskFormBasicFields = ({
               id="startTime"
               name="startTime"
               type="time"
-              value={startTime}
+              //value={startTime}
               onChange={handleChange}
               onClick={handleInputClick}
               onFocus={handleInputFocus}
@@ -251,7 +251,7 @@ const TaskFormBasicFields = ({
               id="endTime"
               name="endTime"
               type="time"
-              value={endTime}
+             // value={endTime}
               onChange={handleChange}
               onClick={handleInputClick}
               onFocus={handleInputFocus}
