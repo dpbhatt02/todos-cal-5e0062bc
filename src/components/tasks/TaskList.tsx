@@ -8,16 +8,13 @@ import { formatFullDate } from './utils';
 import { useTasksContext } from '@/contexts/TasksContext';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
-import { useTasks } from '@/hooks/use-tasks';
 import { useAuth } from '@/contexts/AuthContext';
 
 const TaskList = () => {
   const [viewOption, setViewOption] = useState('active');
   const [sortOption, setSortOption] = useState('date');
-  const [customOrder, setCustomOrder] = useState<string[]>([]);
-  const [isOverdueOpen, setIsOverdueOpen] = useState(true);
   const { user } = useAuth();
-  const { tasks, loading } = useTasks();
+  const { tasks, loading, customOrder, isOverdueOpen, setIsOverdueOpen } = useTasksContext();
   
   const {
     currentDate,
@@ -29,12 +26,6 @@ const TaskList = () => {
     nextWeek,
     goToToday
   } = useWeekController();
-  
-  useEffect(() => {
-    if (tasks.length > 0) {
-      setCustomOrder(tasks.map(task => task.id));
-    }
-  }, [tasks]);
   
   const {
     sortedTasks,
