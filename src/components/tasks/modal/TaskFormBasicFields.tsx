@@ -99,16 +99,16 @@ const TaskFormBasicFields = ({
     setTextSelection({ start: 0, end: 0, text: '' });
   };
 
-  // Event handlers to prevent propagation
+  // Improved event handlers to effectively stop propagation
   const handleInputClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
-  const handleInputFocus = (e: React.FocusEvent) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation();
   };
 
-  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+  const handleInputFocus = (e: React.FocusEvent) => {
     e.stopPropagation();
   };
 
@@ -136,7 +136,7 @@ const TaskFormBasicFields = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
       <div className="space-y-2">
         <Label htmlFor="title">Task Title</Label>
         <Input
@@ -208,15 +208,15 @@ const TaskFormBasicFields = ({
             }}
             className="justify-start"
           >
-            <ToggleGroupItem value="low" aria-label="Low priority">
+            <ToggleGroupItem value="low" aria-label="Low priority" onClick={(e) => e.stopPropagation()}>
               <span className="h-2 w-2 rounded-full bg-priority-low mr-1.5"></span>
               Low
             </ToggleGroupItem>
-            <ToggleGroupItem value="medium" aria-label="Medium priority">
+            <ToggleGroupItem value="medium" aria-label="Medium priority" onClick={(e) => e.stopPropagation()}>
               <span className="h-2 w-2 rounded-full bg-priority-medium mr-1.5"></span>
               Med
             </ToggleGroupItem>
-            <ToggleGroupItem value="high" aria-label="High priority">
+            <ToggleGroupItem value="high" aria-label="High priority" onClick={(e) => e.stopPropagation()}>
               <span className="h-2 w-2 rounded-full bg-priority-high mr-1.5"></span>
               High
             </ToggleGroupItem>

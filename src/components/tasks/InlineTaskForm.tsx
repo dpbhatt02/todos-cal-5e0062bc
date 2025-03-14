@@ -51,16 +51,8 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
     setIsFormVisible(false);
   };
 
-  // Improved event handling functions
-  const handleInputClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  const handleInputKeyDown = (e: React.KeyboardEvent) => {
-    e.stopPropagation();
-  };
-
-  const handleInputFocus = (e: React.FocusEvent) => {
+  // Improved event handling functions that actually stop propagation
+  const handleContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
@@ -81,7 +73,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
   return (
     <div 
       className="border border-border rounded-md p-3 shadow-sm" 
-      onClick={handleInputClick}
+      onClick={handleContentClick}
     >
       <Form {...form}>
         <form 
@@ -90,7 +82,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
             form.handleSubmit(handleSubmit)(e);
           }} 
           className="space-y-3"
-          onClick={handleInputClick}
+          onClick={handleContentClick}
         >
           <FormField
             control={form.control}
@@ -101,9 +93,9 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                   <Input
                     placeholder="Task name"
                     {...field}
-                    onClick={handleInputClick}
-                    onKeyDown={handleInputKeyDown}
-                    onFocus={handleInputFocus}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    onFocus={(e) => e.stopPropagation()}
                     onChange={(e) => {
                       e.stopPropagation();
                       field.onChange(e);
@@ -128,14 +120,14 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger onClick={handleInputClick}>
+                      <SelectTrigger onClick={(e) => e.stopPropagation()}>
                         <SelectValue placeholder="Priority" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                    <SelectContent onClick={(e) => e.stopPropagation()}>
+                      <SelectItem value="low" onClick={(e) => e.stopPropagation()}>Low</SelectItem>
+                      <SelectItem value="medium" onClick={(e) => e.stopPropagation()}>Medium</SelectItem>
+                      <SelectItem value="high" onClick={(e) => e.stopPropagation()}>High</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormItem>
@@ -158,6 +150,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                 type="submit" 
                 variant="primary" 
                 size="sm"
+                onClick={(e) => e.stopPropagation()}
               >
                 Add
               </ButtonCustom>
