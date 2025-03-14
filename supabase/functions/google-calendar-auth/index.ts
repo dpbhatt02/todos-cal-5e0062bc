@@ -30,6 +30,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Initiating Google Calendar auth with redirectUrl:", redirectUrl);
+
     // OAuth 2.0 config
     const CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID");
     const REDIRECT_URI = redirectUrl;
@@ -55,6 +57,8 @@ serve(async (req) => {
     authUrl.searchParams.append("access_type", "offline");
     authUrl.searchParams.append("prompt", "consent");
     authUrl.searchParams.append("state", userId); // Pass userId in state param
+
+    console.log("Generated Google auth URL with redirect_uri:", REDIRECT_URI);
 
     return new Response(
       JSON.stringify({ authUrl: authUrl.toString() }),

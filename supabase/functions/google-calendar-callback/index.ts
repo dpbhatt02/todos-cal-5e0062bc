@@ -25,7 +25,7 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Redirect URL for after processing
+  // Redirect URL for after processing - use the origin of the request
   const redirectUrl = new URL(url.origin);
   redirectUrl.pathname = "/settings";
   
@@ -44,15 +44,19 @@ serve(async (req) => {
       return Response.redirect(redirectUrl.toString());
     }
 
+    console.log("Processing OAuth callback with code and state:", { code: code.substring(0, 10) + "...", state });
+
     // Exchange code for tokens
     const tokenUrl = "https://oauth2.googleapis.com/token";
     const tokenParams = new URLSearchParams({
       code,
       client_id: Deno.env.get("GOOGLE_CLIENT_ID") || "",
       client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET") || "",
-      redirect_uri: url.origin, // Should match the redirect URI used for auth
+      redirect_uri: `${url.origin}/api/google-calendar-callback`, // Use dynamic origin for production/development
       grant_type: "authorization_code",
     });
+
+    console.log("Exchanging code for token with redirect_uri:", `${url.origin}/api/google-calendar-callback`);
 
     const tokenResponse = await fetch(tokenUrl, {
       method: "POST",
@@ -88,6 +92,11 @@ serve(async (req) => {
       return Response.redirect(redirectUrl.toString());
     }
 
+    console.log("Retrieved user info from Google:", { 
+      email: userInfo.email,
+      id: userInfo.id ? userInfo.id.substring(0, 5) + "..." : "missing"
+    });
+
     // Store token and user info in the database
     const { error: upsertError } = await supabase
       .from("user_integrations")
@@ -109,6 +118,8 @@ serve(async (req) => {
       redirectUrl.searchParams.append("error", "database_error");
       return Response.redirect(redirectUrl.toString());
     }
+
+    console.log("Successfully stored Google Calendar integration for user:", state);
 
     // Redirect back to the app
     redirectUrl.searchParams.append("success", "true");
