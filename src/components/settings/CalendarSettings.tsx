@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +52,9 @@ const CalendarSettings = () => {
   const [calendars, setCalendars] = useState<CalendarItem[]>([]);
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // Add a state for sync progress
+  const [isSyncingTasks, setIsSyncingTasks] = useState(false);
 
   // Check if user has connected Google Calendar
   useEffect(() => {
@@ -202,6 +204,32 @@ const CalendarSettings = () => {
     }
   };
   
+  const handleSyncTasks = async () => {
+    if (!user) return;
+    
+    setIsSyncingTasks(true);
+    try {
+      // Trigger two-way sync between tasks and Google Calendar
+      const { data, error } = await supabase.functions.invoke('sync-google-calendars', {
+        body: { userId: user.id, direction: 'both' }
+      });
+
+      if (error) {
+        console.error('Error syncing tasks with Google Calendar:', error);
+        toast.error('Failed to sync tasks with Google Calendar');
+        return;
+      }
+
+      console.log('Sync result:', data);
+      toast.success(`Sync complete: ${data.syncResults?.eventsImported || 0} events imported, ${data.syncResults?.tasksExported || 0} tasks exported`);
+    } catch (error) {
+      console.error('Error syncing tasks with Google Calendar:', error);
+      toast.error('Failed to sync tasks with Google Calendar');
+    } finally {
+      setIsSyncingTasks(false);
+    }
+  };
+  
   const handleSyncToggle = async (id: string) => {
     if (!user) return;
     
@@ -302,7 +330,7 @@ const CalendarSettings = () => {
                     ) : (
                       <RefreshCw className="h-4 w-4 mr-2" />
                     )}
-                    Resync
+                    Resync Calendars
                   </Button>
                   <Button 
                     variant="outline" 
@@ -361,6 +389,31 @@ const CalendarSettings = () => {
                     </div>
                   )}
                 </div>
+              </div>
+              
+              <Separator className="mt-6" />
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium">Synchronize Tasks with Calendar</h3>
+                  <Button 
+                    onClick={handleSyncTasks}
+                    disabled={isSyncingTasks}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {isSyncingTasks ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Sync Tasks Now
+                  </Button>
+                </div>
+                
+                <p className="text-sm text-muted-foreground">
+                  Push your tasks to Google Calendar and import Google Calendar events as tasks.
+                </p>
               </div>
               
               <Separator className="mt-6" />

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
 import { toast } from 'sonner';
-import { mapDbTaskToTask } from './use-task-mapper';
+import { mapDbTaskToTask, mapTaskToDb } from './use-task-mapper';
 
 export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
@@ -17,21 +17,26 @@ export const useTaskOperations = (user: any) => {
 
     try {
       setOperationLoading(true);
-      // Convert date to ISO string if it's a Date object
-      const dueDate = taskData.dueDate instanceof Date 
-        ? taskData.dueDate.toISOString() 
-        : taskData.dueDate;
+      
+      // Prepare task data for database
+      const dbTask = {
+        user_id: user.id,
+        title: taskData.title,
+        description: taskData.description || '',
+        priority: taskData.priority,
+        due_date: taskData.dueDate instanceof Date 
+          ? taskData.dueDate.toISOString() 
+          : taskData.dueDate,
+        completed: taskData.completed || false,
+        start_time: taskData.startTime,
+        end_time: taskData.endTime,
+        sync_source: 'app'
+      };
 
+      // Insert task into database
       const { data, error } = await supabase
         .from('tasks')
-        .insert({
-          user_id: user.id,
-          title: taskData.title,
-          description: taskData.description,
-          priority: taskData.priority,
-          due_date: dueDate,
-          completed: taskData.completed || false,
-        })
+        .insert(dbTask)
         .select()
         .single();
 
@@ -39,8 +44,14 @@ export const useTaskOperations = (user: any) => {
         throw new Error(error.message);
       }
 
+      // Map to task props
+      const newTask = mapDbTaskToTask(data);
+
+      // Trigger sync to Google Calendar if integration exists
+      syncTaskWithGoogleCalendar(user.id, newTask.id);
+
       toast.success('Task created successfully');
-      return mapDbTaskToTask(data);
+      return newTask;
     } catch (err) {
       console.error('Error creating task:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to create task');
@@ -80,7 +91,6 @@ export const useTaskOperations = (user: any) => {
         return mockUpdatedTask;
       }
       
-      // Continue with real database update for UUID task IDs
       // Convert to database format
       const dbUpdates: any = {};
       if (updates.title !== undefined) dbUpdates.title = updates.title;
@@ -95,6 +105,12 @@ export const useTaskOperations = (user: any) => {
       }
       
       if (updates.completed !== undefined) dbUpdates.completed = updates.completed;
+      if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
+      if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
+      
+      // Mark as updated from app
+      dbUpdates.sync_source = 'app';
+      dbUpdates.updated_at = new Date().toISOString();
 
       const { data, error } = await supabase
         .from('tasks')
@@ -106,6 +122,9 @@ export const useTaskOperations = (user: any) => {
       if (error) {
         throw new Error(error.message);
       }
+
+      // Trigger sync to Google Calendar
+      syncTaskWithGoogleCalendar(user.id, id);
 
       return mapDbTaskToTask(data);
     } catch (err) {
@@ -139,6 +158,22 @@ export const useTaskOperations = (user: any) => {
         return true;
       }
       
+      // Get task first to check if it has a Google Calendar event
+      const { data: task, error: fetchError } = await supabase
+        .from('tasks')
+        .select('google_calendar_event_id, google_calendar_id')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) {
+        console.error('Error fetching task for deletion:', fetchError);
+      }
+      
+      // If task has Google Calendar event, delete it from Google Calendar
+      if (task?.google_calendar_event_id && task?.google_calendar_id) {
+        deleteGoogleCalendarEvent(user.id, task.google_calendar_id, task.google_calendar_event_id);
+      }
+
       const { error } = await supabase
         .from('tasks')
         .delete()
@@ -156,6 +191,50 @@ export const useTaskOperations = (user: any) => {
       return false;
     } finally {
       setOperationLoading(false);
+    }
+  };
+
+  // Sync a task with Google Calendar
+  const syncTaskWithGoogleCalendar = async (userId: string, taskId: string) => {
+    try {
+      // Call the sync function
+      const { data, error } = await supabase.functions.invoke('sync-google-calendars', {
+        body: { 
+          userId, 
+          direction: 'export',
+          taskIds: [taskId]
+        }
+      });
+
+      if (error) {
+        console.error('Error syncing task with Google Calendar:', error);
+      } else {
+        console.log('Task synced with Google Calendar:', data);
+      }
+    } catch (err) {
+      console.error('Error calling sync function:', err);
+    }
+  };
+
+  // Delete an event from Google Calendar
+  const deleteGoogleCalendarEvent = async (userId: string, calendarId: string, eventId: string) => {
+    try {
+      // Call a separate function to delete the event from Google Calendar
+      const { data, error } = await supabase.functions.invoke('delete-google-calendar-event', {
+        body: { 
+          userId,
+          calendarId,
+          eventId
+        }
+      });
+
+      if (error) {
+        console.error('Error deleting event from Google Calendar:', error);
+      } else {
+        console.log('Event deleted from Google Calendar:', data);
+      }
+    } catch (err) {
+      console.error('Error calling delete event function:', err);
     }
   };
 

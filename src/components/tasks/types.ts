@@ -18,6 +18,11 @@ export interface TaskProps {
   onEdit?: (task: TaskProps) => void;
   onDelete?: (id: string) => void;
   onReschedule?: (id: string, newDate: Date) => void;
+  googleCalendarEventId?: string;
+  googleCalendarId?: string;
+  lastSyncedAt?: string;
+  isAllDay?: boolean;
+  syncSource?: 'app' | 'google_calendar';
 }
 
 export const priorityClasses: Record<string, string> = {
