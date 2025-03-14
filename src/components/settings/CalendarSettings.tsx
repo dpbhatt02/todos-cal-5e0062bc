@@ -109,9 +109,14 @@ const CalendarSettings = () => {
       setLoadingCalendars(true);
       setError(null);
       
-      const response = await fetch('/api/fetch-google-calendars', {
+      // Use the full Supabase URL for the function call
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/fetch-google-calendars`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+        },
         body: JSON.stringify({ userId: user.id }),
       });
 
@@ -122,10 +127,13 @@ const CalendarSettings = () => {
 
       const { calendars: fetchedCalendars } = await response.json();
       
-      // Fetch user's calendar settings
-      const settingsResponse = await fetch('/api/calendar-settings', {
+      // Fetch user's calendar settings - using full URL
+      const settingsResponse = await fetch(`${supabaseUrl}/functions/v1/calendar-settings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+        },
         body: JSON.stringify({ userId: user.id }),
       });
 
@@ -166,20 +174,36 @@ const CalendarSettings = () => {
       setError(null);
 
       // Get the current hostname and protocol for the redirect URL
-      const redirectUrl = `${window.location.protocol}//${window.location.host}/api/google-calendar-callback`;
+      const redirectUrl = `${window.location.origin}/api/google-calendar-callback`;
       
-      const response = await fetch('/api/google-calendar-auth', {
+      // Use the full Supabase URL for the function call
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/google-calendar-auth`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+        },
         body: JSON.stringify({ userId: user.id, redirectUrl }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to initiate Google Calendar authentication");
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.error || "Failed to initiate Google Calendar authentication");
+        } catch (e) {
+          throw new Error(`Failed to initiate Google Calendar authentication: ${errorText.substring(0, 100)}...`);
+        }
       }
 
-      const { authUrl } = await response.json();
+      const responseData = await response.json();
+      const { authUrl } = responseData;
+      
+      if (!authUrl) {
+        throw new Error("No authentication URL returned from the server");
+      }
       
       // Save the current tab in localStorage so we can return to it
       window.localStorage.setItem('settings-active-tab', 'calendars');
@@ -188,7 +212,7 @@ const CalendarSettings = () => {
       window.location.href = authUrl;
     } catch (err) {
       console.error("Error connecting to Google Calendar:", err);
-      setError("Failed to connect to Google Calendar. Please try again.");
+      setError(`Failed to connect to Google Calendar: ${(err as Error).message}`);
       setConnecting(false);
     }
   };
@@ -200,9 +224,14 @@ const CalendarSettings = () => {
       setDisconnecting(true);
       setError(null);
       
-      const response = await fetch('/api/google-calendar-disconnect', {
+      // Use the full Supabase URL for the function call
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/google-calendar-disconnect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+        },
         body: JSON.stringify({ userId: user.id }),
       });
 
@@ -234,9 +263,14 @@ const CalendarSettings = () => {
       setSyncingCalendars(true);
       setError(null);
       
-      const response = await fetch('/api/sync-google-calendars', {
+      // Use the full Supabase URL for the function call
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/sync-google-calendars`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+        },
         body: JSON.stringify({ userId: user.id }),
       });
 
@@ -271,9 +305,14 @@ const CalendarSettings = () => {
         )
       );
       
-      const response = await fetch('/api/toggle-calendar-visibility', {
+      // Use the full Supabase URL for the function call
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/toggle-calendar-visibility`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+        },
         body: JSON.stringify({ 
           userId: user.id,
           calendarId,
