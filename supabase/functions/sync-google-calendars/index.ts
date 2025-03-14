@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { formatGoogleCalendarDate } from "../../../src/components/tasks/utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -104,6 +105,36 @@ serve(async (req) => {
       accessToken = tokenData.access_token;
     }
 
+    // Fetch all user's calendars to find primary calendar if no enabled ones
+    const calendarListResponse = await fetch(
+      "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!calendarListResponse.ok) {
+      const errorData = await calendarListResponse.json();
+      console.error("Error fetching calendar list:", errorData);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch calendar list" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const calendarList = await calendarListResponse.json();
+    
+    // Find primary calendar
+    const primaryCalendar = calendarList.items.find((cal: any) => cal.primary === true);
+    if (!primaryCalendar) {
+      return new Response(
+        JSON.stringify({ error: "No primary calendar found" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Get user's enabled calendars
     const { data: calendarSettings, error: settingsError } = await supabase
       .from("calendar_settings")
@@ -122,7 +153,29 @@ serve(async (req) => {
     // Create an array of enabled calendar IDs
     const enabledCalendarIds = calendarSettings?.map(setting => setting.calendar_id) || [];
     
+    // If no enabled calendars found, use the primary calendar and create a setting for it
     if (enabledCalendarIds.length === 0) {
+      console.log("No enabled calendars found, using primary calendar:", primaryCalendar.id);
+      
+      // Insert calendar setting for primary calendar
+      const { error: insertError } = await supabase
+        .from("calendar_settings")
+        .insert({
+          user_id: userId,
+          calendar_id: primaryCalendar.id,
+          enabled: true
+        });
+        
+      if (insertError) {
+        console.error("Error creating calendar setting for primary calendar:", insertError);
+      } else {
+        // Add primary calendar to enabled calendars
+        enabledCalendarIds.push(primaryCalendar.id);
+      }
+    }
+    
+    if (enabledCalendarIds.length === 0) {
+      // Still no enabled calendars after trying to enable primary
       return new Response(
         JSON.stringify({ message: "No enabled calendars found", syncResults: { eventsImported: 0, tasksExported: 0 } }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
