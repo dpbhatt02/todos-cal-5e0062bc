@@ -118,10 +118,8 @@ const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
             selectedDate={today}
           />
           
-          {/* Upcoming Tasks grouped by date */}
+          {/* Upcoming Tasks grouped by date - display all days even if no tasks */}
           {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
-            if (tasks.length === 0) return null;
-            
             const date = new Date(dateString);
             
             return (

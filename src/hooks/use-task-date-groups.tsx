@@ -61,8 +61,8 @@ export const useTaskDateGroups = (
       ? new Date(Math.max(...taskDates.map(date => date.getTime())))
       : addDays(today, 30);
     
-    // Determine how many days to show (max 30 days or until the latest task date)
-    const daysToShow = Math.min(30, differenceInDays(latestTaskDate, today) + 1);
+    // Always show at least 30 days
+    const daysToShow = Math.max(30, differenceInDays(latestTaskDate, today) + 1);
 
     // Group future tasks by date
     const futureDatesGrouped: { [key: string]: TaskProps[] } = {};

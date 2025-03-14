@@ -5,6 +5,7 @@ import TaskCard from './TaskCard';
 import { formatFullDate } from './utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTasksContext } from '@/contexts/TasksContext';
+import InlineTaskForm from './InlineTaskForm';
 
 interface TaskSectionProps {
   title: string;
@@ -58,10 +59,13 @@ const TaskSection = ({
             </div>
           ))
         ) : (
-          <div className="text-center py-6">
-            <p className="text-muted-foreground text-sm">No tasks scheduled for this day.</p>
+          <div className="text-muted-foreground text-sm mb-3">
+            No tasks scheduled for this day.
           </div>
         )}
+        
+        {/* Add inline task form component */}
+        {selectedDate && <InlineTaskForm date={selectedDate} />}
       </div>
     </div>
   );

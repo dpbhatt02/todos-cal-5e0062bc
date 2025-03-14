@@ -102,8 +102,6 @@ const TaskList = () => {
           
           {/* Upcoming Tasks grouped by date */}
           {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
-            if (tasks.length === 0) return null;
-            
             const date = new Date(dateString);
             
             return (
