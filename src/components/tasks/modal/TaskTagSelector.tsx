@@ -22,7 +22,6 @@ const TaskTagSelector = ({ availableTags, selectedTags, onToggleTag }: TaskTagSe
             key={tag.id}
             type="button"
             onClick={(e) => {
-              e.stopPropagation();
               onToggleTag(tag.id);
             }}
             className={`px-3 py-1.5 text-xs rounded-full transition-colors ${

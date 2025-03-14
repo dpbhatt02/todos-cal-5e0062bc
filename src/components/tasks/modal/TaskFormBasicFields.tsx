@@ -208,15 +208,15 @@ const TaskFormBasicFields = ({
             }}
             className="justify-start"
           >
-            <ToggleGroupItem value="low" aria-label="Low priority" onClick={(e) => e.stopPropagation()}>
+            <ToggleGroupItem value="low" aria-label="Low priority">
               <span className="h-2 w-2 rounded-full bg-priority-low mr-1.5"></span>
               Low
             </ToggleGroupItem>
-            <ToggleGroupItem value="medium" aria-label="Medium priority" onClick={(e) => e.stopPropagation()}>
+            <ToggleGroupItem value="medium" aria-label="Medium priority">
               <span className="h-2 w-2 rounded-full bg-priority-medium mr-1.5"></span>
               Med
             </ToggleGroupItem>
-            <ToggleGroupItem value="high" aria-label="High priority" onClick={(e) => e.stopPropagation()}>
+            <ToggleGroupItem value="high" aria-label="High priority">
               <span className="h-2 w-2 rounded-full bg-priority-high mr-1.5"></span>
               High
             </ToggleGroupItem>
