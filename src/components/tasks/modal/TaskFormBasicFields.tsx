@@ -138,11 +138,11 @@ const TaskFormBasicFields = ({
   return (
     <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
       <div className="space-y-2">
-        <Label htmlFor="title">Task Titles</Label>
+        <Label htmlFor="title">Task Title</Label>
         <Input
           id="title"
           name="title"
-          placeholder="What needs to be done?"
+          placeholder="What needs to be done??"
           value={title}
           onChange={handleChange}
           onClick={handleInputClick}
