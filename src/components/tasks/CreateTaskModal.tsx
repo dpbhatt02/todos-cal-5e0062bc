@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Bold, Italic, Link, List, Underline, Repeat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -23,18 +22,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (taskData: any) => void;
+  editMode?: boolean;
+  initialData?: any;
 }
 
 const WEEKDAYS = [
@@ -47,21 +41,43 @@ const WEEKDAYS = [
   { id: 'sunday', label: 'Sun' },
 ];
 
-const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) => {
+const defaultTaskData = {
+  title: '',
+  description: '',
+  priority: 'medium',
+  dueDate: formatDate(new Date()),
+  startTime: '09:00',
+  endTime: '10:00',
+  tags: [] as string[],
+  recurring: 'none',
+  recurrenceEndType: 'never', // 'never', 'date', 'after'
+  recurrenceEndDate: formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days from now
+  recurrenceCount: 5,
+  selectedWeekdays: [] as string[]
+};
+
+function formatDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialData = {} }: CreateTaskModalProps) => {
   const [taskData, setTaskData] = useState({
-    title: '',
-    description: '',
-    priority: 'medium',
-    dueDate: formatDate(new Date()),
-    startTime: '09:00',
-    endTime: '10:00',
-    tags: [] as string[],
-    recurring: 'none',
-    recurrenceEndType: 'never', // 'never', 'date', 'after'
-    recurrenceEndDate: formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days from now
-    recurrenceCount: 5,
-    selectedWeekdays: [] as string[]
+    ...defaultTaskData,
+    ...(editMode && initialData ? initialData : {})
   });
+
+  // Reset data when modal opens or closes or when initialData changes
+  useEffect(() => {
+    if (isOpen) {
+      setTaskData({
+        ...defaultTaskData,
+        ...(editMode && initialData ? initialData : {})
+      });
+    }
+  }, [isOpen, editMode, initialData]);
 
   const [textSelection, setTextSelection] = useState({
     start: 0,
@@ -77,13 +93,6 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
     { id: 'health', label: 'Health' },
     { id: 'learning', label: 'Learning' }
   ];
-
-  function formatDate(date: Date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -115,21 +124,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(taskData);
-    // Reset form
-    setTaskData({
-      title: '',
-      description: '',
-      priority: 'medium',
-      dueDate: formatDate(new Date()),
-      startTime: '09:00',
-      endTime: '10:00',
-      tags: [],
-      recurring: 'none',
-      recurrenceEndType: 'never',
-      recurrenceEndDate: formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
-      recurrenceCount: 5,
-      selectedWeekdays: []
-    });
+    // Don't reset form here as component will unmount on submit
     onClose();
   };
 
@@ -228,14 +223,14 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
       <div 
         className={`w-full max-w-lg max-h-[90vh] bg-background rounded-lg shadow-lg overflow-hidden animate-in fade-in border-l-4 ${getPriorityBorderColor()}`}
         style={{ backgroundColor: getPriorityBackgroundColor() }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold">New Task</h2>
+          <h2 className="text-lg font-semibold">{editMode ? 'Edit Task' : 'New Task'}</h2>
           <button 
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -581,7 +576,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit }: CreateTaskModalProps) =>
               type="submit" 
               variant="primary"
             >
-              Create Task
+              {editMode ? 'Update Task' : 'Create Task'}
             </ButtonCustom>
           </div>
         </form>

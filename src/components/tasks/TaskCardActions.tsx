@@ -12,7 +12,7 @@ interface TaskCardActionsProps {
   selectedDate: Date;
   isCompleted: boolean;
   openModal: () => void;
-  onEdit?: TaskProps['onEdit'];
+  onEdit?: (e: React.MouseEvent) => void;
   onDelete?: TaskProps['onDelete'];
   onReschedule: (date: Date | undefined) => void;
   isMobile: boolean;
@@ -37,7 +37,7 @@ const TaskCardActions = ({
     console.log("Edit button clicked for task:", id);
     
     if (onEdit) {
-      onEdit(task);
+      onEdit(e);
     } else {
       console.log("No onEdit callback provided for task:", id);
     }
@@ -57,8 +57,9 @@ const TaskCardActions = ({
 
   return (
     <div className="flex items-center space-x-1">
-      {isHovered && !isMobile && (
-        <div className="flex items-center space-x-1 mr-2 animate-in fade-in" onClick={(e) => e.stopPropagation()}>
+      {/* Always show actions on mobile, but only on hover for desktop */}
+      {(isHovered || isMobile) && (
+        <div className={`flex items-center space-x-1 mr-2 ${!isMobile ? 'animate-in fade-in' : ''}`} onClick={(e) => e.stopPropagation()}>
           <TaskActions 
             id={id}
             selectedDate={selectedDate}

@@ -43,7 +43,7 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
             <Calendar className="h-4 w-4" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
+        <PopoverContent className="w-auto p-0 z-50" align="end">
           <CalendarComponent
             mode="single"
             selected={selectedDate}

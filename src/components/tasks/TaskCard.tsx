@@ -10,6 +10,7 @@ import TaskCardCheckbox from './TaskCardCheckbox';
 import TaskCardSwipeIndicator from './TaskCardSwipeIndicator';
 import TaskCardActions from './TaskCardActions';
 import { useTasksContext } from '@/contexts/TasksContext';
+import CreateTaskModal from './CreateTaskModal';
 
 interface TaskCardProps extends TaskProps {
   onClick?: () => void;
@@ -31,7 +32,8 @@ const TaskCard = ({
   const [selectedDate, setSelectedDate] = useState<Date>(
     typeof dueDate === 'string' ? new Date(dueDate) : dueDate
   );
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const isMobile = useIsMobile();
   const { updateTask, deleteTask } = useTasksContext();
 
@@ -57,8 +59,11 @@ const TaskCard = ({
   };
 
   const handleEdit = (taskToEdit: TaskProps) => {
-    // Open the modal with the task data for editing
-    setIsModalOpen(true);
+    console.log("Editing task:", taskToEdit);
+    // Open the edit modal with the task data for editing
+    setIsEditModalOpen(true);
+    // Close the details modal if it's open
+    setIsDetailsModalOpen(false);
   };
 
   const handleDelete = async (taskId: string) => {
@@ -78,7 +83,7 @@ const TaskCard = ({
   const handleSwipeRight = () => {
     console.log("Swipe right detected for task:", id);
     // On swipe right, open details sheet
-    setIsModalOpen(true);
+    setIsDetailsModalOpen(true);
   };
 
   const { handlers, state, elementRef } = useSwipeGesture({
@@ -87,17 +92,51 @@ const TaskCard = ({
     threshold: 40,
   });
 
-  const handleOpenModal = () => {
-    console.log("Opening modal for task:", id);
-    setIsModalOpen(true);
+  const handleOpenDetailsModal = () => {
+    console.log("Opening details modal for task:", id);
+    setIsDetailsModalOpen(true);
     // Call the onClick prop if provided
     if (onClick) {
       onClick();
     }
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+  };
+
+  const handleSubmitEdit = async (taskData: any) => {
+    console.log("Submitting edit for task:", id, taskData);
+    // Convert the data to the format expected by the updateTask function
+    const formattedData: Partial<TaskProps> = {
+      title: taskData.title,
+      description: taskData.description || '',
+      priority: taskData.priority,
+      dueDate: new Date(taskData.dueDate),
+      tags: taskData.tags || []
+    };
+
+    // Include recurring data if present
+    if (taskData.recurring && taskData.recurring !== 'none') {
+      formattedData.recurring = {
+        frequency: taskData.recurring,
+        customDays: taskData.selectedWeekdays || []
+      };
+
+      // Add end date or count if specified
+      if (taskData.recurrenceEndType === 'date' && taskData.recurrenceEndDate) {
+        formattedData.recurring.endDate = new Date(taskData.recurrenceEndDate);
+      } else if (taskData.recurrenceEndType === 'after' && taskData.recurrenceCount) {
+        formattedData.recurring.endAfter = taskData.recurrenceCount;
+      }
+    }
+
+    await updateTask(id, formattedData);
+    setIsEditModalOpen(false);
   };
 
   return (
@@ -115,7 +154,7 @@ const TaskCard = ({
         } : undefined}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        onClick={handleOpenModal}
+        onClick={handleOpenDetailsModal}
         {...(isMobile ? handlers : {})}
       >
         <TaskCardSwipeIndicator 
@@ -151,8 +190,11 @@ const TaskCard = ({
             isHovered={isHovered}
             selectedDate={selectedDate}
             isCompleted={isCompleted}
-            openModal={handleOpenModal}
-            onEdit={handleEdit}
+            openModal={handleOpenDetailsModal}
+            onEdit={(e) => {
+              e.stopPropagation();
+              handleEdit(task);
+            }}
             onDelete={handleDelete}
             onReschedule={(date) => date && handleReschedule(id, date)}
             isMobile={isMobile}
@@ -161,13 +203,34 @@ const TaskCard = ({
       </div>
 
       <TaskDetailsSheet 
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseDetailsModal}
         task={{
           ...task,
           onEdit: handleEdit,
           onDelete: handleDelete,
           onReschedule: (id, newDate) => handleReschedule(id, newDate)
+        }}
+      />
+
+      <CreateTaskModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onSubmit={handleSubmitEdit}
+        editMode={true}
+        initialData={{
+          title,
+          description: description || '',
+          priority,
+          dueDate: typeof dueDate === 'string' ? dueDate : dueDate.toISOString().split('T')[0],
+          tags: tags || [],
+          recurring: recurring?.frequency || 'none',
+          selectedWeekdays: recurring?.customDays || [],
+          recurrenceEndType: recurring?.endDate ? 'date' : recurring?.endAfter ? 'after' : 'never',
+          recurrenceEndDate: recurring?.endDate ? 
+            (typeof recurring.endDate === 'string' ? recurring.endDate : recurring.endDate.toISOString().split('T')[0]) : 
+            '',
+          recurrenceCount: recurring?.endAfter || 5
         }}
       />
     </>
