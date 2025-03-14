@@ -2,14 +2,55 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { 
+  CalendarIcon, 
+  CheckCircle2, 
+  Calendar, 
+  Plus, 
+  RefreshCw, 
+  Eye, 
+  EyeOff,
+  Loader2
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Types for calendar data and user integrations
+interface CalendarItem {
+  id: string;
+  name: string;
+  color: string;
+  enabled: boolean;
+  primary?: boolean;
+  description?: string;
+  accessRole?: string;
+}
+
+interface UserIntegration {
+  id: string;
+  user_id: string;
+  provider: string;
+  provider_user_id?: string;
+  provider_email?: string;
+  access_token: string;
+  refresh_token?: string;
+  token_expires_at?: string;
+  connected: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 const CalendarSettings = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showEvents, setShowEvents] = useState(true);
+  const [calendars, setCalendars] = useState<CalendarItem[]>([]);
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
   const { user } = useAuth();
 
@@ -20,13 +61,16 @@ const CalendarSettings = () => {
 
       try {
         setIsLoading(true);
-        // Get saved connection status from database
+        // Get saved connection status from database using a type assertion
         const { data, error } = await supabase
           .from('user_integrations')
           .select('connected, provider_email')
           .eq('user_id', user.id)
           .eq('provider', 'google_calendar')
-          .maybeSingle();
+          .maybeSingle() as unknown as { 
+            data: Pick<UserIntegration, 'connected' | 'provider_email'> | null, 
+            error: any 
+          };
 
         if (error) {
           console.error('Error checking Google Calendar connection:', error);
@@ -36,6 +80,9 @@ const CalendarSettings = () => {
         if (data) {
           setIsConnected(data.connected);
           setGoogleEmail(data.provider_email);
+          if (data.connected) {
+            fetchCalendars();
+          }
         }
       } catch (error) {
         console.error('Error checking Google Calendar connection:', error);
@@ -46,6 +93,33 @@ const CalendarSettings = () => {
 
     checkGoogleConnection();
   }, [user]);
+
+  const fetchCalendars = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      // Fetch calendars from database or API
+      const { data, error } = await supabase.functions.invoke('fetch-calendars-with-settings', {
+        body: { userId: user.id }
+      });
+
+      if (error) {
+        console.error('Error fetching calendars:', error);
+        toast.error('Failed to fetch calendars');
+        return;
+      }
+
+      if (data && data.calendars) {
+        setCalendars(data.calendars);
+      }
+    } catch (error) {
+      console.error('Error fetching calendars:', error);
+      toast.error('Failed to fetch calendars');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleConnect = async () => {
     if (!user) {
@@ -102,12 +176,61 @@ const CalendarSettings = () => {
       // Update local state
       setIsConnected(false);
       setGoogleEmail(null);
+      setCalendars([]);
       toast.success('Disconnected from Google Calendar');
     } catch (error) {
       console.error('Error disconnecting from Google Calendar:', error);
       toast.error('Failed to disconnect from Google Calendar');
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const handleSync = async () => {
+    if (!user) return;
+    
+    setIsSyncing(true);
+    try {
+      // Refetch calendars
+      await fetchCalendars();
+      toast.success('Calendars synced successfully');
+    } catch (error) {
+      console.error('Error syncing calendars:', error);
+      toast.error('Failed to sync calendars');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+  
+  const handleSyncToggle = async (id: string) => {
+    if (!user) return;
+    
+    // Update local state immediately for better UX
+    setCalendars(calendars.map(cal => 
+      cal.id === id ? { ...cal, enabled: !cal.enabled } : cal
+    ));
+    
+    try {
+      // Save calendar visibility setting
+      const { error } = await supabase.functions.invoke('toggle-calendar-visibility', {
+        body: { 
+          userId: user.id,
+          calendarId: id,
+          enabled: !calendars.find(cal => cal.id === id)?.enabled
+        }
+      });
+
+      if (error) {
+        console.error('Error toggling calendar visibility:', error);
+        toast.error('Failed to update calendar settings');
+        // Revert local state on error
+        setCalendars(calendars);
+      }
+    } catch (error) {
+      console.error('Error toggling calendar visibility:', error);
+      toast.error('Failed to update calendar settings');
+      // Revert local state on error
+      setCalendars(calendars);
     }
   };
   
@@ -162,11 +285,25 @@ const CalendarSettings = () => {
                   <div>
                     <div className="font-medium">{googleEmail || "Connected Account"}</div>
                     <div className="flex items-center text-sm text-green-600">
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
                       Connected
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Resync
+                  </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -179,9 +316,71 @@ const CalendarSettings = () => {
                 </div>
               </div>
               
-              <p className="text-sm text-muted-foreground">
-                Your Google Calendar is connected. Calendar integration features coming soon!
-              </p>
+              <Separator />
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Show events in TodosCal</h3>
+                  <Switch 
+                    checked={showEvents} 
+                    onCheckedChange={setShowEvents}
+                  />
+                </div>
+                
+                <p className="text-sm text-muted-foreground">
+                  Events from your selected calendars will be shown in Today and Upcoming views.
+                </p>
+                
+                <div className="space-y-2 mt-6">
+                  {isLoading ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : calendars.length > 0 ? (
+                    calendars.map((calendar) => (
+                      <div key={calendar.id} className="flex items-center justify-between py-2 border-t">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-4 h-4 rounded-sm" 
+                            style={{ backgroundColor: calendar.color }}
+                          />
+                          <span>{calendar.name}</span>
+                        </div>
+                        <button 
+                          className="text-gray-400 hover:text-gray-600"
+                          onClick={() => handleSyncToggle(calendar.id)}
+                          aria-label={calendar.enabled ? "Hide calendar" : "Show calendar"}
+                        >
+                          {calendar.enabled ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No calendars found. Try syncing again.
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <Separator className="mt-6" />
+              
+              <div className="space-y-4">
+                <h3 className="font-medium">Sync Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="days-past">Days in the past</Label>
+                    <Input id="days-past" type="number" defaultValue="7" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="days-future">Days in the future</Label>
+                    <Input id="days-future" type="number" defaultValue="30" />
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <Button>Save Sync Settings</Button>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
