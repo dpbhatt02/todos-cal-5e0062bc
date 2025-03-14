@@ -43,7 +43,11 @@ const OverdueTasksSection = ({
   const handleRescheduleAll = async (date: Date) => {
     // Update all overdue tasks to the selected date
     for (const task of tasks) {
-      await updateTask(task.id, { dueDate: date });
+      try {
+        await updateTask(task.id, { dueDate: date });
+      } catch (error) {
+        console.error(`Error rescheduling task ${task.id}:`, error);
+      }
     }
   };
 

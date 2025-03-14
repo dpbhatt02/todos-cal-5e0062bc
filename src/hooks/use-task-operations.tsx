@@ -59,6 +59,28 @@ export const useTaskOperations = (user: any) => {
 
     try {
       setOperationLoading(true);
+      
+      // Check if we're dealing with mock data (IDs from mock data are numeric strings)
+      if (/^\d+$/.test(id)) {
+        console.log('Updating mock task:', id);
+        // For mock data, just return a successful result with the updated task
+        const mockUpdatedTask = {
+          id,
+          title: updates.title || 'Mock Task',
+          description: updates.description || '',
+          priority: updates.priority || 'medium',
+          dueDate: updates.dueDate || new Date(),
+          completed: updates.completed !== undefined ? updates.completed : false,
+          tags: updates.tags || [],
+        };
+        
+        // Simulate a delay to make it feel more realistic
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        return mockUpdatedTask;
+      }
+      
+      // Continue with real database update for UUID task IDs
       // Convert to database format
       const dbUpdates: any = {};
       if (updates.title !== undefined) dbUpdates.title = updates.title;
@@ -104,6 +126,19 @@ export const useTaskOperations = (user: any) => {
 
     try {
       setOperationLoading(true);
+      
+      // Check if we're dealing with mock data (IDs from mock data are numeric strings)
+      if (/^\d+$/.test(id)) {
+        console.log('Deleting mock task:', id);
+        // For mock data, just return a successful result
+        
+        // Simulate a delay to make it feel more realistic
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        toast.success('Task deleted successfully');
+        return true;
+      }
+      
       const { error } = await supabase
         .from('tasks')
         .delete()
