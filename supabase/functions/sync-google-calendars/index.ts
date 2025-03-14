@@ -29,9 +29,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // This function would normally sync calendar events from Google Calendar
-    // to your application's database. For now, we'll just simulate success.
-
     // Get user's Google Calendar integration
     const { data: integration, error: integrationError } = await supabase
       .from("user_integrations")
@@ -40,15 +37,78 @@ serve(async (req) => {
       .eq("provider", "google_calendar")
       .single();
 
-    if (integrationError || !integration) {
+    if (integrationError) {
+      console.error("Error fetching integration:", integrationError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch Google Calendar integration" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!integration) {
       return new Response(
         JSON.stringify({ error: "Google Calendar integration not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // In a real implementation, we would fetch events from Google Calendar
+    // Check if token is expired and refresh if needed
+    const now = new Date();
+    const tokenExpires = integration.token_expires_at ? new Date(integration.token_expires_at) : null;
+    let accessToken = integration.access_token;
+
+    if (tokenExpires && now >= tokenExpires && integration.refresh_token) {
+      console.log("Token expired, refreshing...");
+      
+      const tokenUrl = "https://oauth2.googleapis.com/token";
+      const tokenParams = new URLSearchParams({
+        client_id: Deno.env.get("GOOGLE_CLIENT_ID") || "",
+        client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET") || "",
+        refresh_token: integration.refresh_token,
+        grant_type: "refresh_token",
+      });
+
+      const tokenResponse = await fetch(tokenUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: tokenParams.toString(),
+      });
+
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenResponse.ok) {
+        console.error("Token refresh error:", tokenData);
+        return new Response(
+          JSON.stringify({ error: "Failed to refresh token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update token in database
+      const { error: updateError } = await supabase
+        .from("user_integrations")
+        .update({
+          access_token: tokenData.access_token,
+          token_expires_at: new Date(
+            Date.now() + tokenData.expires_in * 1000
+          ).toISOString(),
+        })
+        .eq("id", integration.id);
+
+      if (updateError) {
+        console.error("Error updating token:", updateError);
+      }
+
+      accessToken = tokenData.access_token;
+    }
+
+    // In a real implementation, we would fetch events from Google Calendar API
     // and store them in our database
+
+    // For now, we'll simulate success
+    console.log("Calendar sync initiated for user:", userId);
 
     return new Response(
       JSON.stringify({ success: true, message: "Calendar sync initiated" }),
