@@ -6,6 +6,8 @@ export interface TaskProps {
   priority: 'low' | 'medium' | 'high';
   dueDate: Date | string;
   completed: boolean;
+  startTime?: string;
+  endTime?: string;
   tags?: string[];
   recurring?: {
     frequency: 'daily' | 'weekly' | 'monthly' | 'custom';

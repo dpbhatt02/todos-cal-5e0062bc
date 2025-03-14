@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { TaskProps } from './types';
@@ -22,7 +21,9 @@ const TaskCard = ({
   description, 
   priority, 
   dueDate, 
-  completed, 
+  completed,
+  startTime,
+  endTime,
   tags = [],
   recurring,
   onClick
@@ -45,6 +46,8 @@ const TaskCard = ({
     priority,
     dueDate,
     completed: isCompleted,
+    startTime,
+    endTime,
     tags,
     recurring
   };
@@ -178,6 +181,8 @@ const TaskCard = ({
             description={description}
             priority={priority}
             dueDate={dueDate}
+            startTime={startTime}
+            endTime={endTime}
             tags={tags}
             recurring={recurring}
             isCompleted={isCompleted}
@@ -223,6 +228,8 @@ const TaskCard = ({
           description: description || '',
           priority,
           dueDate: typeof dueDate === 'string' ? dueDate : dueDate.toISOString().split('T')[0],
+          startTime: startTime || '',
+          endTime: endTime || '',
           tags: tags || [],
           recurring: recurring?.frequency || 'none',
           selectedWeekdays: recurring?.customDays || [],
