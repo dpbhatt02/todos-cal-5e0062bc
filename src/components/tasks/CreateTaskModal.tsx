@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Bold, Italic, Link, List, Underline, Repeat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -96,6 +97,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    console.log(`Input changed: ${name} = ${value}`);
     setTaskData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -123,6 +125,8 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Stop event propagation
+    console.log("Submitting task data:", taskData);
     onSubmit(taskData);
     // Don't reset form here as component will unmount on submit
     onClose();
@@ -222,8 +226,16 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
 
   if (!isOpen) return null;
 
+  // Stop event propagation for all input fields
+  const handleInputClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div 
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+      onClick={onClose}
+    >
       <div 
         className={`w-full max-w-lg max-h-[90vh] bg-background rounded-lg shadow-lg overflow-hidden animate-in fade-in border-l-4 ${getPriorityBorderColor()}`}
         style={{ backgroundColor: getPriorityBackgroundColor() }}
@@ -250,6 +262,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                 placeholder="What needs to be done?"
                 value={taskData.title}
                 onChange={handleChange}
+                onClick={handleInputClick}
                 required
               />
             </div>
@@ -315,6 +328,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                 value={taskData.description}
                 onChange={handleChange}
                 onSelect={handleTextSelection}
+                onClick={handleInputClick}
                 ref={textareaRef}
                 rows={3}
               />
@@ -336,6 +350,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                     type="date"
                     value={taskData.dueDate}
                     onChange={handleChange}
+                    onClick={handleInputClick}
                     className="pl-9"
                     required
                   />
@@ -379,6 +394,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                     type="time"
                     value={taskData.startTime}
                     onChange={handleChange}
+                    onClick={handleInputClick}
                     className="pl-9"
                   />
                 </div>
@@ -394,6 +410,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                     type="time"
                     value={taskData.endTime}
                     onChange={handleChange}
+                    onClick={handleInputClick}
                     className="pl-9"
                   />
                 </div>

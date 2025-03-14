@@ -51,6 +51,11 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
     setIsFormVisible(false);
   };
 
+  // Stop event propagation to prevent modal from closing
+  const handleInputClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   if (!isFormVisible) {
     return (
       <ButtonCustom
@@ -66,7 +71,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
   }
 
   return (
-    <div className="border border-border rounded-md p-3 shadow-sm">
+    <div className="border border-border rounded-md p-3 shadow-sm" onClick={handleInputClick}>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3">
           <FormField
@@ -78,6 +83,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                   <Input
                     placeholder="Task name"
                     {...field}
+                    onClick={handleInputClick}
                     autoFocus
                   />
                 </FormControl>
@@ -96,7 +102,7 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger onClick={handleInputClick}>
                         <SelectValue placeholder="Priority" />
                       </SelectTrigger>
                     </FormControl>
@@ -115,7 +121,10 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
                 type="button" 
                 variant="outline" 
                 size="sm"
-                onClick={() => setIsFormVisible(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFormVisible(false);
+                }}
               >
                 Cancel
               </ButtonCustom>
