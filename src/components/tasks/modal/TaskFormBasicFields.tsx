@@ -142,9 +142,9 @@ const TaskFormBasicFields = ({
         <Input
           id="title"
           name="title"
-          placeholder="What needs to be done??"
+          placeholder="What needs to be done?"
          // value={title}
-          onChange={handleChange}
+          // onChange={handleChange}
           onClick={handleInputClick}
           onFocus={handleInputFocus}
           onKeyDown={handleInputKeyDown}
