@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,7 +33,7 @@ serve(async (req) => {
     // If redirectUrl is provided, use it; otherwise, use a default
     let callbackUrl;
     if (redirectUrl) {
-      callbackUrl = redirectUrl;
+      callbackUrl = new URL("/api/google-calendar-callback", redirectUrl).toString();
     } else {
       // If no redirectUrl is provided, we need to make a reasonable guess
       callbackUrl = "https://todos-cal.lovable.app/api/google-calendar-callback";

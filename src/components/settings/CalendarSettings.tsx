@@ -1,584 +1,191 @@
 
-import React, { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Calendar, Check, Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-
-type CalendarItem = {
-  id: string;
-  summary: string;
-  primary: boolean;
-  backgroundColor: string;
-  accessRole: string;
-  enabled?: boolean;
-};
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CalendarSettings = () => {
-  const { toast } = useToast();
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
   const { user } = useAuth();
-  const [loading, setLoading] = useState<boolean>(true);
-  const [connecting, setConnecting] = useState<boolean>(false);
-  const [disconnecting, setDisconnecting] = useState<boolean>(false);
-  const [syncingCalendars, setSyncingCalendars] = useState<boolean>(false);
-  const [connected, setConnected] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>("");
-  const [calendars, setCalendars] = useState<CalendarItem[]>([]);
-  const [loadingCalendars, setLoadingCalendars] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
+  // Check if user has connected Google Calendar
   useEffect(() => {
-    if (user) {
-      loadIntegrationStatus();
-    }
+    const checkGoogleConnection = async () => {
+      if (!user) return;
+
+      try {
+        setIsLoading(true);
+        // Get saved connection status from database
+        const { data, error } = await supabase
+          .from('user_integrations')
+          .select('connected, provider_email')
+          .eq('user_id', user.id)
+          .eq('provider', 'google_calendar')
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error checking Google Calendar connection:', error);
+          return;
+        }
+
+        if (data) {
+          setIsConnected(data.connected);
+          setGoogleEmail(data.provider_email);
+        }
+      } catch (error) {
+        console.error('Error checking Google Calendar connection:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkGoogleConnection();
   }, [user]);
 
-  const loadIntegrationStatus = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Query the user_integrations table
-      const { data, error: queryError } = await supabase
-        .from('user_integrations')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('provider', 'google_calendar')
-        .maybeSingle(); // Use maybeSingle() instead of single() to handle no rows
-
-      if (queryError) {
-        // Only throw if it's not a "no rows returned" error
-        if (!queryError.message?.includes("no rows")) {
-          throw queryError;
-        }
-      }
-
-      // Check if we found an integration
-      if (data) {
-        setConnected(data.connected || false);
-        setEmail(data.provider_email || "");
-        
-        if (data.connected) {
-          fetchCalendars();
-        }
-      } else {
-        setConnected(false);
-        setEmail("");
-      }
-    } catch (err) {
-      console.error("Error loading integration status:", err);
-      setError("Failed to load integration status. Please try again.");
-    } finally {
-      setLoading(false);
+  const handleConnect = async () => {
+    if (!user) {
+      toast.error('You must be logged in to connect your Google Calendar');
+      return;
     }
-  };
 
-  const fetchCalendars = async () => {
-    if (!user) return;
-    
+    setIsLoading(true);
     try {
-      setLoadingCalendars(true);
-      setError(null);
-      
-      // Use the full Supabase URL for the function call
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
-      
-      // Get the auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token;
-      
-      if (!authToken) {
-        throw new Error("No authentication token available");
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/fetch-google-calendars`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ userId: user.id }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || "Failed to fetch calendars";
-        } catch (e) {
-          errorMessage = `Error: ${response.status} ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const { calendars: fetchedCalendars } = await response.json();
-      
-      // Fetch user's calendar settings - using full URL
-      const settingsResponse = await fetch(`${supabaseUrl}/functions/v1/calendar-settings`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ userId: user.id }),
-      });
-
-      if (!settingsResponse.ok) {
-        const errorText = await settingsResponse.text();
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || "Failed to fetch calendar settings";
-        } catch (e) {
-          errorMessage = `Error: ${settingsResponse.status} ${settingsResponse.statusText}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const { settings } = await settingsResponse.json();
-      const settingsMap: Record<string, boolean> = {};
-      
-      // Create a settings map with calendar_id as key and enabled as value
-      settings?.forEach((setting: any) => {
-        settingsMap[setting.calendar_id] = setting.enabled;
-      });
-      
-      // Merge calendars with settings
-      const calendarsWithSettings = fetchedCalendars.map((cal: CalendarItem) => ({
-        ...cal,
-        enabled: settingsMap[cal.id] !== undefined ? settingsMap[cal.id] : true,
-      }));
-      
-      setCalendars(calendarsWithSettings);
-    } catch (err) {
-      console.error("Error fetching calendars:", err);
-      setError(`Failed to fetch calendars: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoadingCalendars(false);
-    }
-  };
-
-  const connectGoogleCalendar = async () => {
-    if (!user) return;
-    
-    try {
-      setConnecting(true);
-      setError(null);
-
-      // Get the current URL for the callback
-      const redirectUrl = `${window.location.origin}/api/google-calendar-callback`;
-      
-      // Use the full Supabase URL for the function call
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
-      
-      // Get the auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token;
-      
-      if (!authToken) {
-        throw new Error("No authentication token available");
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/google-calendar-auth`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ userId: user.id, redirectUrl }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || "Failed to initiate Google Calendar authentication";
-        } catch (e) {
-          errorMessage = `Error: ${response.status} ${response.statusText}`;
-          if (errorText.includes("<!DOCTYPE")) {
-            errorMessage = "Server returned HTML instead of JSON. Check server configuration.";
-          }
-        }
-        throw new Error(errorMessage);
-      }
-
-      const responseData = await response.json();
-      const { authUrl } = responseData;
-      
-      if (!authUrl) {
-        throw new Error("No authentication URL returned from the server");
-      }
-      
-      // Save the current tab in localStorage so we can return to it
-      window.localStorage.setItem('settings-active-tab', 'calendars');
-      
-      // Redirect to Google's authorization page
-      window.location.href = authUrl;
-    } catch (err) {
-      console.error("Error connecting to Google Calendar:", err);
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: `Failed to connect to Google Calendar: ${err instanceof Error ? err.message : 'Unknown error'}`,
-      });
-      setError(`Failed to connect to Google Calendar: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      setConnecting(false);
-    }
-  };
-
-  const disconnectGoogleCalendar = async () => {
-    if (!user) return;
-    
-    try {
-      setDisconnecting(true);
-      setError(null);
-      
-      // Use the full Supabase URL for the function call
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
-      
-      // Get the auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token;
-      
-      if (!authToken) {
-        throw new Error("No authentication token available");
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/google-calendar-disconnect`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ userId: user.id }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || "Failed to disconnect Google Calendar";
-        } catch (e) {
-          errorMessage = `Error: ${response.status} ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      toast({
-        title: "Disconnected",
-        description: "Google Calendar has been disconnected successfully.",
-      });
-      
-      setConnected(false);
-      setEmail("");
-      setCalendars([]);
-    } catch (err) {
-      console.error("Error disconnecting Google Calendar:", err);
-      setError("Failed to disconnect Google Calendar. Please try again.");
-    } finally {
-      setDisconnecting(false);
-    }
-  };
-
-  const syncCalendars = async () => {
-    if (!user) return;
-    
-    try {
-      setSyncingCalendars(true);
-      setError(null);
-      
-      // Use the full Supabase URL for the function call
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
-      
-      // Get the auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token;
-      
-      if (!authToken) {
-        throw new Error("No authentication token available");
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/sync-google-calendars`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ userId: user.id }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || "Failed to sync calendars";
-        } catch (e) {
-          errorMessage = `Error: ${response.status} ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      toast({
-        title: "Calendars Synced",
-        description: "Your Google Calendars have been synced successfully.",
-      });
-      
-      // Refresh calendar list
-      fetchCalendars();
-    } catch (err) {
-      console.error("Error syncing calendars:", err);
-      setError("Failed to sync calendars. Please try again.");
-    } finally {
-      setSyncingCalendars(false);
-    }
-  };
-
-  const toggleCalendarVisibility = async (calendarId: string, enabled: boolean) => {
-    if (!user) return;
-    
-    try {
-      // Optimistically update UI
-      setCalendars(prev => 
-        prev.map(cal => 
-          cal.id === calendarId ? { ...cal, enabled } : cal
-        )
-      );
-      
-      // Use the full Supabase URL for the function call
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jytgracbheteftrayvyo.supabase.co';
-      
-      // Get the auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token;
-      
-      if (!authToken) {
-        throw new Error("No authentication token available");
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/toggle-calendar-visibility`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ 
+      // Start Google OAuth flow
+      const { data, error } = await supabase.functions.invoke('google-calendar-auth', {
+        body: { 
           userId: user.id,
-          calendarId,
-          enabled
-        }),
+          redirectUrl: window.location.origin
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || "Failed to update calendar visibility";
-        } catch (e) {
-          errorMessage = `Error: ${response.status} ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
+      if (error) {
+        console.error('Error starting Google auth flow:', error);
+        toast.error('Failed to connect to Google Calendar');
+        return;
       }
-      
-      toast({
-        title: enabled ? "Calendar Enabled" : "Calendar Disabled",
-        description: `Calendar "${calendars.find(c => c.id === calendarId)?.summary}" has been ${enabled ? 'enabled' : 'disabled'}.`,
-      });
-    } catch (err) {
-      console.error("Error toggling calendar visibility:", err);
-      
-      // Revert UI changes on error
-      setCalendars(prev => 
-        prev.map(cal => 
-          cal.id === calendarId ? { ...cal, enabled: !enabled } : cal
-        )
-      );
-      
-      toast({
-        variant: "destructive",
-        title: "Failed to update",
-        description: "Could not update calendar visibility. Please try again.",
-      });
+
+      if (data && data.authUrl) {
+        // Save to localStorage that we're heading to settings and want the "calendar" tab
+        window.localStorage.setItem('settings-active-tab', 'calendars');
+        // Redirect to Google OAuth consent screen
+        window.location.href = data.authUrl;
+      }
+    } catch (error) {
+      console.error('Error connecting to Google Calendar:', error);
+      toast.error('Failed to connect to Google Calendar');
+    } finally {
+      setIsLoading(false);
     }
   };
+  
+  const handleDisconnect = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      // Revoke Google Calendar access
+      const { error } = await supabase.functions.invoke('google-calendar-disconnect', {
+        body: { userId: user.id }
+      });
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    );
-  }
+      if (error) {
+        console.error('Error disconnecting from Google Calendar:', error);
+        toast.error('Failed to disconnect from Google Calendar');
+        return;
+      }
 
+      // Update local state
+      setIsConnected(false);
+      setGoogleEmail(null);
+      toast.success('Disconnected from Google Calendar');
+    } catch (error) {
+      console.error('Error disconnecting from Google Calendar:', error);
+      toast.error('Failed to disconnect from Google Calendar');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Calendar Integration</h2>
-        <p className="text-muted-foreground mb-4">
-          Connect your Google Calendar to manage your events alongside your tasks.
-        </p>
-      </div>
-
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Google Calendar
-          </CardTitle>
+          <CardTitle className="text-2xl">Calendars</CardTitle>
           <CardDescription>
-            Sync your Google Calendar events with Tasks & Calendar
+            Connect and sync your calendars to manage all your events in one place.
           </CardDescription>
         </CardHeader>
-
         <CardContent>
-          {connected ? (
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <div>
-                  <p className="font-medium">Connected as</p>
-                  <p className="text-sm text-muted-foreground">{email}</p>
-                </div>
-                <Badge variant="outline" className="ml-auto flex items-center gap-1 text-green-600">
-                  <Check className="h-3 w-3" />
-                  Connected
-                </Badge>
+          {!isConnected ? (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <CalendarIcon className="h-16 w-16 text-muted-foreground" />
+              <div className="text-center space-y-2">
+                <h3 className="font-medium text-lg">Connect to Google Calendar</h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Link your Google Calendar to sync events with your tasks and see everything in one place.
+                </p>
               </div>
-              
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={syncCalendars}
-                  disabled={syncingCalendars}
-                >
-                  {syncingCalendars && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sync Calendars
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  onClick={fetchCalendars}
-                  disabled={loadingCalendars}
-                >
-                  {loadingCalendars && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Refresh Calendar List
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p className="mb-4">
-                Connect your Google Calendar to see and manage your events alongside your tasks.
-              </p>
               <Button 
-                onClick={connectGoogleCalendar}
-                disabled={connecting}
+                onClick={handleConnect} 
+                className="mt-4 gap-2"
+                disabled={isLoading}
               >
-                {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <svg 
+                    viewBox="0 0 24 24" 
+                    width="16" 
+                    height="16" 
+                    className="fill-current"
+                  >
+                    <path 
+                      d="M12 0C5.372 0 0 5.373 0 12s5.372 12 12 12c6.627 0 12-5.373 12-12S18.627 0 12 0zm.14 19.018c-3.868 0-7-3.14-7-7.018 0-3.878 3.132-7.018 7-7.018 1.89 0 3.47.697 4.682 1.829l-1.974 1.978v-.004c-.735-.702-1.667-1.062-2.708-1.062-2.31 0-4.187 1.956-4.187 4.273 0 2.315 1.877 4.277 4.187 4.277 2.096 0 3.522-1.202 3.816-2.852H12.14v-2.737h6.585c.088.47.135.96.135 1.474 0 4.01-2.677 6.86-6.72 6.86z"
+                    />
+                  </svg>
+                )}
                 Connect Google Calendar
               </Button>
             </div>
-          )}
-        </CardContent>
-        
-        {connected && (
-          <CardFooter className="border-t pt-4 flex justify-between">
-            <p className="text-sm text-muted-foreground">
-              You can disconnect at any time to remove access.
-            </p>
-            <Button 
-              variant="outline" 
-              onClick={disconnectGoogleCalendar}
-              disabled={disconnecting}
-            >
-              {disconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Disconnect
-            </Button>
-          </CardFooter>
-        )}
-      </Card>
-
-      {connected && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Calendar Visibility</CardTitle>
-            <CardDescription>
-              Choose which calendars to display in your app.
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            {loadingCalendars ? (
-              <div className="space-y-3">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : calendars.length > 0 ? (
-              <div className="space-y-4">
-                {calendars.map((calendar) => (
-                  <div key={calendar.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: calendar.backgroundColor }}
-                      />
-                      <div>
-                        <p className="font-medium">{calendar.summary}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {calendar.primary ? 'Primary Calendar' : calendar.accessRole}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id={`calendar-${calendar.id}`}
-                        checked={calendar.enabled}
-                        onCheckedChange={(checked) => toggleCalendarVisibility(calendar.id, checked)}
-                      />
-                      <Label htmlFor={`calendar-${calendar.id}`}>
-                        {calendar.enabled ? 'Visible' : 'Hidden'}
-                      </Label>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-1 rounded">
+                    <CalendarIcon className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{googleEmail || "Connected Account"}</div>
+                    <div className="flex items-center text-sm text-green-600">
+                      Connected
                     </div>
                   </div>
-                ))}
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleDisconnect}
+                    className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                    disabled={isLoading}
+                  >
+                    Disconnect
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <p className="text-muted-foreground">No calendars found. Try refreshing the calendar list.</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              
+              <p className="text-sm text-muted-foreground">
+                Your Google Calendar is connected. Calendar integration features coming soon!
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
