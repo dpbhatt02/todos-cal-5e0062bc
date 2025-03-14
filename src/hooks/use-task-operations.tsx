@@ -52,11 +52,7 @@ export const useTaskOperations = (user: any) => {
       // Map to task props
       const newTask = mapDbTaskToTask(data);
 
-      // Trigger sync to Google Calendar if integration exists
-      // Only sync on create operation
-      if (shouldTriggerSync('create')) {
-        syncTaskWithGoogleCalendar(user.id, newTask.id);
-      }
+      // Removed auto sync functionality - now only manual sync through the button
 
       toast.success('Task created successfully');
       return newTask;
@@ -136,10 +132,7 @@ export const useTaskOperations = (user: any) => {
 
       console.log("Update successful, response:", data);
 
-      // Only sync when specific fields change
-      if (shouldTriggerSync('update', dbUpdates)) {
-        syncTaskWithGoogleCalendar(user.id, id);
-      }
+      // Removed auto sync functionality - now only manual sync through the button
 
       return mapDbTaskToTask(data);
     } catch (err) {
@@ -184,11 +177,7 @@ export const useTaskOperations = (user: any) => {
         console.error('Error fetching task for deletion:', fetchError);
       }
       
-      // If task has Google Calendar event, delete it from Google Calendar
-      if (task?.google_calendar_event_id && task?.google_calendar_id) {
-        // Always sync on delete, no need to check shouldTriggerSync
-        deleteGoogleCalendarEvent(user.id, task.google_calendar_id, task.google_calendar_event_id);
-      }
+      // Removed auto delete of Google Calendar event - now only manual sync through the button
 
       const { error } = await supabase
         .from('tasks')
@@ -210,7 +199,7 @@ export const useTaskOperations = (user: any) => {
     }
   };
 
-  // Sync a task with Google Calendar
+  // Sync a task with Google Calendar - kept for potential manual use
   const syncTaskWithGoogleCalendar = async (userId: string, taskId: string) => {
     try {
       console.log(`Syncing task ${taskId} with Google Calendar`);
@@ -234,7 +223,7 @@ export const useTaskOperations = (user: any) => {
     }
   };
 
-  // Delete an event from Google Calendar
+  // Delete an event from Google Calendar - kept for potential manual use
   const deleteGoogleCalendarEvent = async (userId: string, calendarId: string, eventId: string) => {
     try {
       console.log(`Deleting event ${eventId} from Google Calendar ${calendarId}`);
@@ -263,5 +252,7 @@ export const useTaskOperations = (user: any) => {
     createTask,
     updateTask,
     deleteTask,
+    syncTaskWithGoogleCalendar,
+    deleteGoogleCalendarEvent
   };
 };
