@@ -29,6 +29,19 @@ type CalendarItem = {
   enabled?: boolean;
 };
 
+// Define the integration type to avoid TypeScript errors
+type UserIntegration = {
+  id: string;
+  user_id: string;
+  provider: string;
+  provider_email: string | null;
+  provider_user_id: string | null;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  connected: boolean;
+};
+
 const CalendarSettings = () => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -54,21 +67,24 @@ const CalendarSettings = () => {
       setLoading(true);
       setError(null);
       
-      // Use type assertion for now (TypeScript will be updated when Supabase regenerates types)
-      const { data, error } = await supabase
-        .from('user_integrations' as any)
+      // Query the user_integrations table
+      const { data, error: queryError } = await supabase
+        .from('user_integrations')
         .select('*')
         .eq('user_id', user?.id)
         .eq('provider', 'google_calendar')
         .single();
 
-      if (error) throw error;
+      if (queryError) throw queryError;
 
+      // Since we're using .single(), data will be a single object or null
       if (data) {
-        setConnected(data.connected);
-        setEmail(data.provider_email || "");
+        // Use type assertion to tell TypeScript we know the structure
+        const integration = data as unknown as UserIntegration;
+        setConnected(integration.connected || false);
+        setEmail(integration.provider_email || "");
         
-        if (data.connected) {
+        if (integration.connected) {
           fetchCalendars();
         }
       } else {

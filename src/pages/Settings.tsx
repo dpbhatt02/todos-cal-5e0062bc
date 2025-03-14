@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GeneralSettings } from "@/components/settings/GeneralSettings";
 import { AccountSettings } from "@/components/settings/AccountSettings";
-import { CalendarSettings } from "@/components/settings/CalendarSettings";
+import CalendarSettings from "@/components/settings/CalendarSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Settings = () => {
