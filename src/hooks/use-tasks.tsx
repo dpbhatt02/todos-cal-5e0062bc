@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TaskProps } from '@/components/tasks/types';
 import { mapDbTaskToTask } from './use-task-mapper';
 import { useTaskOperations } from './use-task-operations';
+import { mockTasks } from '@/components/tasks/mockData';
 
 export function useTasks() {
   const [tasks, setTasks] = useState<TaskProps[]>([]);
@@ -16,7 +17,9 @@ export function useTasks() {
   // Fetch tasks
   useEffect(() => {
     if (!user) {
-      setTasks([]);
+      // Use mock data when no user is logged in
+      console.log('No user logged in, using mock data');
+      setTasks(mockTasks);
       setLoading(false);
       return;
     }
@@ -41,10 +44,19 @@ export function useTasks() {
 
         // Map data to TaskProps
         const mappedTasks = data.map(mapDbTaskToTask);
-        setTasks(mappedTasks);
+        
+        // If there are no tasks in the database, use mock data
+        if (mappedTasks.length === 0) {
+          console.log('No tasks in database, using mock data');
+          setTasks(mockTasks);
+        } else {
+          setTasks(mappedTasks);
+        }
       } catch (err) {
         console.error('Error fetching tasks:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch tasks'));
+        // Use mock data in case of error
+        setTasks(mockTasks);
       } finally {
         setLoading(false);
       }

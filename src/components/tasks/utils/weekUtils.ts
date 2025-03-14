@@ -18,7 +18,10 @@ export const getWeekDays = (currentDate: Date, selectedDate: Date, tasks: TaskPr
       isToday: isSameDay(date, today),
       isSelected: isSameDay(date, selectedDate),
       hasTask: tasks.some(task => {
-        const taskDate = new Date(task.dueDate);
+        // Ensure we handle both Date objects and string dates
+        const taskDate = task.dueDate instanceof Date 
+          ? task.dueDate 
+          : new Date(task.dueDate);
         return isSameDay(taskDate, date);
       })
     });
