@@ -53,8 +53,10 @@ serve(async (req) => {
 
     if (integrationError) {
       console.error("Error fetching integration:", integrationError.message);
-      // If the integration doesn't exist, we consider the disconnection successful
+      
+      // If the error is that no rows were returned, we consider the disconnection successful
       if (integrationError.code === "PGRST116") { // No rows returned
+        console.log("No integration found to disconnect");
         return new Response(
           JSON.stringify({ success: true, message: "No integration found to disconnect" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -67,8 +69,19 @@ serve(async (req) => {
       );
     }
 
+    // If integration doesn't exist, consider it already disconnected
+    if (!integration) {
+      console.log("No integration found to disconnect");
+      return new Response(
+        JSON.stringify({ success: true, message: "No integration found to disconnect" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // If the integration exists and has an access token, try to revoke it
-    if (integration && integration.access_token) {
+    let tokenRevocationSuccess = false;
+    
+    if (integration.access_token) {
       try {
         console.log("Attempting to revoke access token");
         // Revoke access token
@@ -88,43 +101,73 @@ serve(async (req) => {
           // We continue with the disconnection even if token revocation fails
         } else {
           console.log("Successfully revoked access token");
+          tokenRevocationSuccess = true;
         }
       } catch (revokeError) {
         console.error("Error during token revocation:", revokeError);
         // We continue with the disconnection even if token revocation fails
       }
+    } else {
+      console.log("No access token to revoke");
     }
 
     console.log("Updating integration record to disconnect");
+    
     // Update integration status in database
-    const { error: updateError } = await supabase
-      .from("user_integrations")
-      .update({
-        connected: false,
-        access_token: null,
-        refresh_token: null,
-        updated_at: new Date().toISOString()
-      })
-      .eq("user_id", userId)
-      .eq("provider", "google_calendar");
+    try {
+      const { error: updateError } = await supabase
+        .from("user_integrations")
+        .update({
+          connected: false,
+          access_token: null,
+          refresh_token: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", userId)
+        .eq("provider", "google_calendar");
 
-    if (updateError) {
-      console.error("Error updating integration status:", updateError);
+      if (updateError) {
+        console.error("Error updating integration status:", updateError);
+        
+        // If the update failed, but we revoked the token, we want to let the user know
+        if (tokenRevocationSuccess) {
+          return new Response(
+            JSON.stringify({ 
+              partialSuccess: true, 
+              message: "Token was revoked but database could not be updated",
+              details: updateError.message 
+            }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ error: "Failed to update integration status", details: updateError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } catch (updateException) {
+      console.error("Exception during integration update:", updateException);
       return new Response(
-        JSON.stringify({ error: "Failed to update integration status", details: updateError.message }),
+        JSON.stringify({ error: "Exception during update operation", details: updateException.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Also delete calendar settings for this user
-    console.log("Deleting calendar settings");
-    const { error: deleteError } = await supabase
-      .from("user_calendar_settings")
-      .delete()
-      .eq("user_id", userId);
-    
-    if (deleteError) {
-      console.error("Error deleting calendar settings:", deleteError);
+    try {
+      console.log("Deleting calendar settings");
+      const { error: deleteError } = await supabase
+        .from("calendar_settings")
+        .delete()
+        .eq("user_id", userId);
+      
+      if (deleteError) {
+        console.error("Error deleting calendar settings:", deleteError);
+        // Continue even if this fails
+      }
+    } catch (deleteException) {
+      console.error("Exception during calendar settings deletion:", deleteException);
       // Continue even if this fails
     }
 

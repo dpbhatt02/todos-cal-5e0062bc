@@ -15,7 +15,8 @@ import {
   RefreshCw, 
   Eye, 
   EyeOff,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +54,7 @@ const CalendarSettings = () => {
   const [showEvents, setShowEvents] = useState(true);
   const [calendars, setCalendars] = useState<CalendarItem[]>([]);
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   // Check if user has connected Google Calendar
@@ -62,6 +64,8 @@ const CalendarSettings = () => {
 
       try {
         setIsLoading(true);
+        setError(null);
+        
         // Get saved connection status from database using a type assertion
         const { data, error } = await supabase
           .from('user_integrations')
@@ -75,6 +79,7 @@ const CalendarSettings = () => {
 
         if (error) {
           console.error('Error checking Google Calendar connection:', error);
+          setError('Failed to check Google Calendar connection status');
           return;
         }
 
@@ -87,6 +92,7 @@ const CalendarSettings = () => {
         }
       } catch (error) {
         console.error('Error checking Google Calendar connection:', error);
+        setError('Unexpected error checking connection status');
       } finally {
         setIsLoading(false);
       }
@@ -99,23 +105,36 @@ const CalendarSettings = () => {
     if (!user) return;
     
     setIsLoading(true);
+    setError(null);
+    
     try {
-      // Fetch calendars from database or API
+      // Fetch calendars from the edge function
       const { data, error } = await supabase.functions.invoke('fetch-calendars-with-settings', {
         body: { userId: user.id }
       });
 
       if (error) {
         console.error('Error fetching calendars:', error);
+        setError('Failed to fetch calendars');
         toast.error('Failed to fetch calendars');
+        
+        // If there was an auth error, the integration might be disconnected
+        if (error.message?.includes('not connected') || error.message?.includes('authentication')) {
+          setIsConnected(false);
+        }
+        
         return;
       }
 
       if (data && data.calendars) {
         setCalendars(data.calendars);
+      } else {
+        setCalendars([]);
+        console.log('No calendars found');
       }
     } catch (error) {
       console.error('Error fetching calendars:', error);
+      setError('Unexpected error fetching calendars');
       toast.error('Failed to fetch calendars');
     } finally {
       setIsLoading(false);
@@ -129,6 +148,8 @@ const CalendarSettings = () => {
     }
 
     setIsLoading(true);
+    setError(null);
+    
     try {
       // Start Google OAuth flow
       const { data, error } = await supabase.functions.invoke('google-calendar-auth', {
@@ -140,6 +161,7 @@ const CalendarSettings = () => {
 
       if (error) {
         console.error('Error starting Google auth flow:', error);
+        setError('Failed to start Google authentication flow');
         toast.error('Failed to connect to Google Calendar');
         return;
       }
@@ -149,9 +171,13 @@ const CalendarSettings = () => {
         window.localStorage.setItem('settings-active-tab', 'calendars');
         // Redirect to Google OAuth consent screen
         window.location.href = data.authUrl;
+      } else {
+        setError('No authentication URL returned from server');
+        toast.error('Failed to start authentication process');
       }
     } catch (error) {
       console.error('Error connecting to Google Calendar:', error);
+      setError('Unexpected error during connection attempt');
       toast.error('Failed to connect to Google Calendar');
     } finally {
       setIsLoading(false);
@@ -165,7 +191,10 @@ const CalendarSettings = () => {
     }
     
     setIsDisconnecting(true);
-    toast.loading('Disconnecting from Google Calendar...');
+    setError(null);
+    
+    // Show loading toast that we'll dismiss later
+    const toastId = toast.loading('Disconnecting from Google Calendar...');
     
     try {
       // Revoke Google Calendar access
@@ -175,21 +204,32 @@ const CalendarSettings = () => {
 
       if (error) {
         console.error('Error disconnecting from Google Calendar:', error);
-        toast.dismiss();
-        toast.error('Failed to disconnect from Google Calendar');
+        toast.dismiss(toastId);
+        toast.error(`Failed to disconnect: ${error.message || 'Unknown error'}`);
+        setError('Failed to disconnect from Google Calendar');
         return;
       }
 
-      // Update local state
-      setIsConnected(false);
-      setGoogleEmail(null);
-      setCalendars([]);
-      toast.dismiss();
-      toast.success('Disconnected from Google Calendar');
+      if (data.partialSuccess) {
+        toast.dismiss(toastId);
+        toast.warning('Partially disconnected from Google Calendar. Some cleanup steps failed.');
+      } else if (data.success) {
+        // Update local state
+        setIsConnected(false);
+        setGoogleEmail(null);
+        setCalendars([]);
+        toast.dismiss(toastId);
+        toast.success('Disconnected from Google Calendar');
+      } else {
+        toast.dismiss(toastId);
+        toast.error('Unknown response from server');
+        setError('Received unexpected response from server');
+      }
     } catch (error) {
       console.error('Error disconnecting from Google Calendar:', error);
-      toast.dismiss();
+      toast.dismiss(toastId);
       toast.error('Failed to disconnect from Google Calendar');
+      setError('Unexpected error during disconnection');
     } finally {
       setIsDisconnecting(false);
     }
@@ -199,6 +239,8 @@ const CalendarSettings = () => {
     if (!user) return;
     
     setIsSyncing(true);
+    setError(null);
+    
     try {
       // Refetch calendars
       await fetchCalendars();
@@ -206,6 +248,7 @@ const CalendarSettings = () => {
     } catch (error) {
       console.error('Error syncing calendars:', error);
       toast.error('Failed to sync calendars');
+      setError('Failed to sync calendars');
     } finally {
       setIsSyncing(false);
     }
@@ -253,6 +296,26 @@ const CalendarSettings = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2 text-red-700">
+              <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Error</p>
+                <p className="text-sm">{error}</p>
+                {isConnected === false && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2" 
+                    onClick={() => setError(null)}
+                  >
+                    Dismiss
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+          
           {!isConnected ? (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <CalendarIcon className="h-16 w-16 text-muted-foreground" />
@@ -370,7 +433,9 @@ const CalendarSettings = () => {
                     ))
                   ) : (
                     <div className="text-center py-4 text-muted-foreground">
-                      No calendars found. Try syncing again.
+                      {error ? 
+                        "Could not load calendars. Try syncing again." : 
+                        "No calendars found. Try syncing again."}
                     </div>
                   )}
                 </div>
