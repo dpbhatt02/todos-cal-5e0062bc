@@ -15,6 +15,7 @@ serve(async (req) => {
   }
 
   try {
+    // Parse request body
     const { userId } = await req.json();
 
     if (!userId) {
@@ -27,6 +28,15 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase URL or service role key");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user's Google Calendar integration
@@ -37,20 +47,44 @@ serve(async (req) => {
       .eq("provider", "google_calendar")
       .single();
 
-    if (!integrationError && integration && integration.access_token) {
-      // Revoke access token
-      const revokeResponse = await fetch(
-        `https://oauth2.googleapis.com/revoke?token=${integration.access_token}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        }
+    if (integrationError) {
+      console.error("Error fetching integration:", integrationError.message);
+      // If the integration doesn't exist, we consider the disconnection successful
+      if (integrationError.code === "PGRST116") { // No rows returned
+        return new Response(
+          JSON.stringify({ success: true, message: "No integration found to disconnect" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch integration details" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
 
-      if (!revokeResponse.ok) {
-        console.error("Error revoking token:", await revokeResponse.text());
+    // If the integration exists and has an access token, try to revoke it
+    if (integration && integration.access_token) {
+      try {
+        // Revoke access token
+        const revokeResponse = await fetch(
+          `https://oauth2.googleapis.com/revoke?token=${integration.access_token}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          }
+        );
+
+        if (!revokeResponse.ok) {
+          const responseText = await revokeResponse.text();
+          console.error("Error revoking token:", responseText);
+          // We continue with the disconnection even if token revocation fails
+        }
+      } catch (revokeError) {
+        console.error("Error during token revocation:", revokeError);
+        // We continue with the disconnection even if token revocation fails
       }
     }
 
@@ -61,6 +95,7 @@ serve(async (req) => {
         connected: false,
         access_token: null,
         refresh_token: null,
+        updated_at: new Date().toISOString()
       })
       .eq("user_id", userId)
       .eq("provider", "google_calendar");
@@ -73,6 +108,17 @@ serve(async (req) => {
       );
     }
 
+    // Also delete calendar settings for this user
+    const { error: deleteError } = await supabase
+      .from("user_calendar_settings")
+      .delete()
+      .eq("user_id", userId);
+    
+    if (deleteError) {
+      console.error("Error deleting calendar settings:", deleteError);
+      // Continue even if this fails
+    }
+
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -80,7 +126,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Google Calendar Disconnect Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "Unknown error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

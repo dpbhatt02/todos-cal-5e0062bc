@@ -49,6 +49,7 @@ const CalendarSettings = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showEvents, setShowEvents] = useState(true);
   const [calendars, setCalendars] = useState<CalendarItem[]>([]);
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
@@ -160,15 +161,18 @@ const CalendarSettings = () => {
   const handleDisconnect = async () => {
     if (!user) return;
     
-    setIsLoading(true);
+    setIsDisconnecting(true);
+    toast.loading('Disconnecting from Google Calendar...');
+    
     try {
       // Revoke Google Calendar access
-      const { error } = await supabase.functions.invoke('google-calendar-disconnect', {
+      const { data, error } = await supabase.functions.invoke('google-calendar-disconnect', {
         body: { userId: user.id }
       });
 
       if (error) {
         console.error('Error disconnecting from Google Calendar:', error);
+        toast.dismiss();
         toast.error('Failed to disconnect from Google Calendar');
         return;
       }
@@ -177,12 +181,14 @@ const CalendarSettings = () => {
       setIsConnected(false);
       setGoogleEmail(null);
       setCalendars([]);
+      toast.dismiss();
       toast.success('Disconnected from Google Calendar');
     } catch (error) {
       console.error('Error disconnecting from Google Calendar:', error);
+      toast.dismiss();
       toast.error('Failed to disconnect from Google Calendar');
     } finally {
-      setIsLoading(false);
+      setIsDisconnecting(false);
     }
   };
   
@@ -309,9 +315,13 @@ const CalendarSettings = () => {
                     size="sm"
                     onClick={handleDisconnect}
                     className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
-                    disabled={isLoading}
+                    disabled={isDisconnecting}
                   >
-                    Disconnect
+                    {isDisconnecting ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      "Disconnect"
+                    )}
                   </Button>
                 </div>
               </div>
