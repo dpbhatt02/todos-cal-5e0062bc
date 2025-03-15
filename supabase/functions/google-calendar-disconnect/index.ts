@@ -16,9 +16,13 @@ serve(async (req) => {
 
   try {
     // Parse request body
-    const { userId } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { userId } = body;
+
+    console.log("Received disconnect request for user:", userId);
 
     if (!userId) {
+      console.error("Missing userId in request body");
       return new Response(
         JSON.stringify({ error: "User ID is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -45,7 +49,7 @@ serve(async (req) => {
       .select("*")
       .eq("user_id", userId)
       .eq("provider", "google_calendar")
-      .single();
+      .maybeSingle();
 
     if (integrationError) {
       console.error("Error fetching integration:", integrationError.message);
@@ -58,7 +62,7 @@ serve(async (req) => {
       }
       
       return new Response(
-        JSON.stringify({ error: "Failed to fetch integration details" }),
+        JSON.stringify({ error: "Failed to fetch integration details", details: integrationError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -66,6 +70,7 @@ serve(async (req) => {
     // If the integration exists and has an access token, try to revoke it
     if (integration && integration.access_token) {
       try {
+        console.log("Attempting to revoke access token");
         // Revoke access token
         const revokeResponse = await fetch(
           `https://oauth2.googleapis.com/revoke?token=${integration.access_token}`,
@@ -81,6 +86,8 @@ serve(async (req) => {
           const responseText = await revokeResponse.text();
           console.error("Error revoking token:", responseText);
           // We continue with the disconnection even if token revocation fails
+        } else {
+          console.log("Successfully revoked access token");
         }
       } catch (revokeError) {
         console.error("Error during token revocation:", revokeError);
@@ -88,6 +95,7 @@ serve(async (req) => {
       }
     }
 
+    console.log("Updating integration record to disconnect");
     // Update integration status in database
     const { error: updateError } = await supabase
       .from("user_integrations")
@@ -103,12 +111,13 @@ serve(async (req) => {
     if (updateError) {
       console.error("Error updating integration status:", updateError);
       return new Response(
-        JSON.stringify({ error: "Failed to update integration status" }),
+        JSON.stringify({ error: "Failed to update integration status", details: updateError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Also delete calendar settings for this user
+    console.log("Deleting calendar settings");
     const { error: deleteError } = await supabase
       .from("user_calendar_settings")
       .delete()
@@ -119,6 +128,7 @@ serve(async (req) => {
       // Continue even if this fails
     }
 
+    console.log("Successfully disconnected Google Calendar for user:", userId);
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

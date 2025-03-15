@@ -159,7 +159,10 @@ const CalendarSettings = () => {
   };
   
   const handleDisconnect = async () => {
-    if (!user) return;
+    if (!user) {
+      toast.error('You must be logged in to disconnect Google Calendar');
+      return;
+    }
     
     setIsDisconnecting(true);
     toast.loading('Disconnecting from Google Calendar...');
