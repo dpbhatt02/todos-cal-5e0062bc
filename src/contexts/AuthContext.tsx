@@ -1,8 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 // Define user type
 export interface User {
@@ -10,6 +9,12 @@ export interface User {
   email: string;
   name?: string;
   photoURL?: string;
+}
+
+// Define user update type
+interface UserUpdate {
+  name?: string;
+  photoURL?: string | null;
 }
 
 // Define auth context type
@@ -20,6 +25,7 @@ interface AuthContextType {
   signupWithEmail: (email: string, password: string, name: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (userData: UserUpdate) => Promise<void>;
 }
 
 // Create auth context with default values
@@ -30,20 +36,21 @@ const AuthContext = createContext<AuthContextType>({
   signupWithEmail: async () => {},
   loginWithGoogle: async () => {},
   logout: async () => {},
+  updateUser: async () => {},
 });
 
 // Custom hook to use auth context
 export const useAuth = () => useContext(AuthContext);
 
-// Helper function to map Supabase user to our user format
-const mapSupabaseUser = (supabaseUser: SupabaseUser | null): User | null => {
+// Helper to convert Supabase user to our User type
+const formatUser = (supabaseUser: SupabaseUser | null): User | null => {
   if (!supabaseUser) return null;
   
   return {
     id: supabaseUser.id,
     email: supabaseUser.email || '',
-    name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || '',
-    photoURL: supabaseUser.user_metadata?.avatar_url || undefined,
+    name: supabaseUser.user_metadata?.name,
+    photoURL: supabaseUser.user_metadata?.avatar_url,
   };
 };
 
@@ -52,62 +59,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Subscribe to auth state changes
+  // Check for existing user session on mount
   useEffect(() => {
-    setLoading(true);
-    
-    // Get initial session
-    const getInitialSession = async () => {
+    const checkAuthState = async () => {
       try {
+        setLoading(true);
+        
+        // Get current session
         const { data: { session } } = await supabase.auth.getSession();
-        handleSessionChange(session);
+        
+        // Set user if session exists
+        if (session?.user) {
+          setUser(formatUser(session.user));
+        }
       } catch (error) {
-        console.error('Error getting initial session:', error);
+        console.error('Error checking auth state:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    getInitialSession();
+    checkAuthState();
     
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        handleSessionChange(session);
-      }
-    );
-    
-    // Handle session change
-    function handleSessionChange(session: Session | null) {
-      if (session) {
-        setUser(mapSupabaseUser(session.user));
-      } else {
-        setUser(null);
-      }
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(formatUser(session?.user || null));
       setLoading(false);
-    }
+    });
     
-    // Cleanup subscription on unmount
+    // Clean up subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  // Login with email/password
+  // Login with email and password
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
       
-      if (!email || !password) {
-        throw new Error('Please provide both email and password');
-      }
-      
+      // Sign in with Supabase
       const { error } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
       
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message);
+      }
       
       toast.success('Successfully logged in');
     } catch (error) {
@@ -119,29 +118,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Sign up with email/password
+  // Sign up with email
   const signupWithEmail = async (email: string, password: string, name: string) => {
     try {
       setLoading(true);
       
-      if (!email || !password || !name) {
-        throw new Error('Please provide all required information');
-      }
-      
+      // Sign up with Supabase
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name,
-          },
-        },
+          }
+        }
       });
       
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message);
+      }
       
-      toast.success('Account created successfully');
-      toast.info('Check your email for the confirmation link');
+      toast.success('Account created successfully. Please check your email for verification.');
     } catch (error) {
       console.error('Signup error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create account');
@@ -159,13 +156,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
-        },
+          redirectTo: `${window.location.origin}/tasks`
+        }
       });
       
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message);
+      }
       
-      // Toast will show after redirect back to app
+      // Success message will be shown after redirect completion
     } catch (error) {
       console.error('Google login error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to login with Google');
@@ -182,12 +181,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const { error } = await supabase.auth.signOut();
       
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message);
+      }
       
       toast.success('Successfully logged out');
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Failed to logout');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update user profile
+  const updateUser = async (userData: UserUpdate) => {
+    try {
+      setLoading(true);
+      
+      if (!user) {
+        throw new Error('No user is logged in');
+      }
+      
+      // Update user metadata in Supabase
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          name: userData.name !== undefined ? userData.name : user.name,
+          avatar_url: userData.photoURL !== undefined ? userData.photoURL : user.photoURL,
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Update local user state
+      setUser(prev => {
+        if (!prev) return null;
+        
+        return {
+          ...prev,
+          name: userData.name !== undefined ? userData.name : prev.name,
+          photoURL: userData.photoURL !== undefined ? userData.photoURL : prev.photoURL,
+        };
+      });
+      
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -202,6 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signupWithEmail,
         loginWithGoogle,
         logout,
+        updateUser,
       }}
     >
       {children}

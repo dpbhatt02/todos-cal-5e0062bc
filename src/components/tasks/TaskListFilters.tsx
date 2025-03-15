@@ -95,7 +95,7 @@ const TaskListFilters = ({
                 className="flex items-center gap-1"
                 icon={getSortIcon()}
               >
-                {sortOption === 'date' ? 'Sort by Date' : 
+                {sortOption === 'date' ? 'Sort by Time' : 
                  sortOption === 'priority' ? 'Sort by Priority' : 
                  'Custom Order'}
                 <ChevronDown className="h-4 w-4 ml-1" />
@@ -104,7 +104,7 @@ const TaskListFilters = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setSortOption('date')}>
-              Sort by Date
+              Sort by Time
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setSortOption('priority')}>
               Sort by Priority

@@ -1,122 +1,131 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
-import { 
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
-import TaskCard from './TaskCard';
-import { useTasks } from '@/contexts/TasksContext';
-import { TaskProps } from './types';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import TaskCard from './TaskCard';
+import { TaskProps } from './types';
 import { TasksProvider } from '@/contexts/TasksContext';
-import { mockTasks } from './mockData';
+import { useTasks } from '@/hooks/use-tasks';
 
 interface SearchTasksSheetProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  trigger?: React.ReactNode;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const SearchTasksSheetContent = ({ isOpen, onOpenChange }: SearchTasksSheetProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<TaskProps[]>([]);
-  const { tasks } = useTasks();
+const SearchTasksSheet: React.FC<SearchTasksSheetProps> = ({ 
+  trigger,
+  isOpen,
+  onOpenChange
+}) => {
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { tasks, loading } = useTasks();
+  const [filteredTasks, setFilteredTasks] = useState<TaskProps[]>([]);
 
-  // Clear search when closing
+  // Sync internal open state with external control if provided
   useEffect(() => {
-    if (!isOpen) {
-      setSearchTerm('');
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
     }
   }, [isOpen]);
 
-  // Search tasks as user types
+  // Notify parent component about open state changes if callback provided
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (onOpenChange) {
+      onOpenChange(newOpen);
+    }
+  };
+
+  // Filter tasks based on search query
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setSearchResults([]);
+    if (!searchQuery.trim()) {
+      setFilteredTasks([]);
       return;
     }
 
-    const term = searchTerm.toLowerCase();
-    const filtered = tasks.filter(task => 
-      task.title.toLowerCase().includes(term) || 
-      (task.description && task.description.toLowerCase().includes(term)) ||
-      (task.tags && task.tags.some(tag => tag.toLowerCase().includes(term)))
+    const query = searchQuery.toLowerCase();
+    const results = tasks.filter(task => 
+      task.title.toLowerCase().includes(query) || 
+      (task.description && task.description.toLowerCase().includes(query))
     );
     
-    setSearchResults(filtered);
-  }, [searchTerm, tasks]);
+    setFilteredTasks(results);
+  }, [searchQuery, tasks]);
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[90%] p-0">
-        <SheetHeader className="text-left px-4 pt-4 pb-2 border-b sticky top-0 bg-background z-10">
-          <div className="flex items-center justify-between">
-            <SheetTitle>Search Tasks</SheetTitle>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={() => onOpenChange(false)}
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetTrigger asChild>
+        {trigger || (
+          <Button variant="outline" size="icon" className="h-9 w-9">
+            <Search className="h-4 w-4" />
+          </Button>
+        )}
+      </SheetTrigger>
+      <SheetContent side="right" className="w-full sm:max-w-md">
+        <SheetHeader className="mb-4">
+          <SheetTitle>Search Tasks</SheetTitle>
+        </SheetHeader>
+        
+        <div className="relative mb-6">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search by task title or description..."
+            className="pl-8 pr-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-9 w-9"
+              onClick={handleClearSearch}
             >
               <X className="h-4 w-4" />
             </Button>
-          </div>
-          <div className="relative w-full my-2">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              type="text" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Type to search tasks..." 
-              className="w-full pl-10 pr-4"
-              autoFocus
-            />
-            {searchTerm && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6"
-                onClick={() => setSearchTerm('')}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-        </SheetHeader>
-        <div className="px-4 py-2 space-y-2 overflow-y-auto max-h-[calc(100%-64px)]">
-          {searchResults.length > 0 ? (
-            <>
-              <p className="text-sm text-muted-foreground py-1">
-                Found {searchResults.length} {searchResults.length === 1 ? 'task' : 'tasks'}
-              </p>
-              {searchResults.map(task => (
-                <TaskCard key={task.id} {...task} />
-              ))}
-            </>
-          ) : (
-            <div className="text-center py-8">
-              {searchTerm ? (
-                <p className="text-muted-foreground">No tasks match your search</p>
-              ) : (
-                <p className="text-muted-foreground">Enter a search term to find tasks...</p>
-              )}
-            </div>
           )}
         </div>
+        
+        <TasksProvider initialTasks={filteredTasks}>
+          <ScrollArea className="h-[calc(100vh-180px)]">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <p className="text-muted-foreground">Loading tasks...</p>
+              </div>
+            ) : searchQuery.trim() === '' ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-muted-foreground">Enter a search term to find tasks</p>
+              </div>
+            ) : filteredTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-muted-foreground">No tasks found matching "{searchQuery}"</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredTasks.map(task => (
+                  <TaskCard 
+                    key={task.id} 
+                    {...task} 
+                    // Remove onClick prop as it's not in TaskProps
+                  />
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </TasksProvider>
       </SheetContent>
     </Sheet>
-  );
-};
-
-// Wrapper component that provides the TasksContext
-const SearchTasksSheet = (props: SearchTasksSheetProps) => {
-  return (
-    <TasksProvider initialTasks={mockTasks}>
-      <SearchTasksSheetContent {...props} />
-    </TasksProvider>
   );
 };
 

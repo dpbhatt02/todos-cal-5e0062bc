@@ -8,9 +8,7 @@ const TagTasks = () => {
 
   return (
     <div className={`container ${isMobile ? 'px-2 sm:px-4' : 'py-6'}`}>
-      <TasksProvider>
-        <TagTaskListWrapper />
-      </TasksProvider>
+      <TagTaskListWrapper />
     </div>
   );
 };

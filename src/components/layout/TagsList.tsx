@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Tag } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import {
@@ -10,99 +10,26 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 
 interface TagsListProps {
   isSidebarOpen: boolean;
 }
 
-interface TagItem {
-  id: string;
-  label: string;
-  color: string;
-}
-
 const TagsList = ({ isSidebarOpen }: TagsListProps) => {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [hoveredTag, setHoveredTag] = useState<string | null>(null);
-  const [tags, setTags] = useState<TagItem[]>([
+  const navigate = useNavigate();
+
+  const tags = [
     { id: 'work', label: 'Work', color: 'bg-blue-500' },
     { id: 'personal', label: 'Personal', color: 'bg-purple-500' },
     { id: 'health', label: 'Health', color: 'bg-green-500' },
     { id: 'learning', label: 'Learning', color: 'bg-amber-500' },
-  ]);
-  
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user } = useAuth();
-
-  // Load tags from tasks when user logs in
-  useEffect(() => {
-    const fetchTags = async () => {
-      // If no user is logged in, use default tags
-      if (!user) return;
-      
-      try {
-        const { data: tasksData, error: tasksError } = await supabase
-          .from('tasks')
-          .select('tags')
-          .eq('user_id', user.id);
-        
-        if (tasksError) {
-          console.error('Error fetching tags from tasks:', tasksError);
-          return;
-        }
-        
-        // Extract unique tags from tasks
-        const tagsFromTasks = Array.from(new Set(
-          tasksData
-            .flatMap(task => task.tags || [])
-            .filter(Boolean)
-        ));
-        
-        if (tagsFromTasks.length > 0) {
-          // Convert to tag items
-          const tagItems = tagsFromTasks.map(tag => {
-            const existingTag = tags.find(t => t.id === tag);
-            return existingTag || { 
-              id: tag, 
-              label: tag.charAt(0).toUpperCase() + tag.slice(1), 
-              color: tagColors[tag] || 'bg-gray-500' 
-            };
-          });
-          
-          setTags(tagItems);
-        }
-      } catch (error) {
-        console.error('Error processing tags:', error);
-      }
-    };
-    
-    fetchTags();
-  }, [user]);
-  
-  // Update active tag based on URL
-  useEffect(() => {
-    const tagMatch = location.pathname.match(/\/tag\/([^/]+)/);
-    if (tagMatch) {
-      setActiveTag(tagMatch[1]);
-    } else {
-      setActiveTag(null);
-    }
-  }, [location.pathname]);
+  ];
 
   const handleTagClick = (tagId: string) => {
     setActiveTag(tagId === activeTag ? null : tagId);
     navigate(`/tag/${tagId}`);
-  };
-  
-  // Temporary tagColors mapping
-  const tagColors: Record<string, string> = {
-    work: 'bg-blue-500',
-    personal: 'bg-purple-500',
-    health: 'bg-green-500',
-    learning: 'bg-amber-500',
   };
 
   // Show only the Tags header with icon when sidebar is closed

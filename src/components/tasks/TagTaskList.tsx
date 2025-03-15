@@ -1,211 +1,161 @@
 
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useTasks } from '@/contexts/TasksContext';
-import { TaskProps } from './types';
-import TaskCard from './TaskCard';
+import { useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { tagColors } from './types';
-import { ChevronDown, ChevronUp, Tag } from 'lucide-react';
+import TaskListFilters from './TaskListFilters';
+import OverdueTasksSection from './OverdueTasksSection';
+import TaskSection from './TaskSection';
+import WeekView from './WeekView';
+import { formatFullDate } from './utils';
+import { TasksProvider, useTasksContext } from '@/contexts/TasksContext';
+import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
+import { useWeekController } from '@/hooks/use-week-controller';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { toast } from 'sonner';
+import { useTasks } from '@/hooks/use-tasks';
 
-// Define the props for the TagTaskListWrapper component
-interface TagTaskListWrapperProps {}
+interface TagTaskListProps {
+  tagFilter: string;
+}
 
-const TagTaskListWrapper: React.FC<TagTaskListWrapperProps> = () => {
-  // Get the tag from the URL params
-  const { tag } = useParams<{ tag: string }>();
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
+const TagTaskList = ({ tagFilter }: TagTaskListProps) => {
+  const [viewOption, setViewOption] = useState('active');
+  const [sortOption, setSortOption] = useState('date');
+  const [isOverdueOpen, setIsOverdueOpen] = useState(true);
+  const { tasks: allTasks, loading } = useTasks();
+  const [customOrder, setCustomOrder] = useState<string[]>([]);
   
-  // Task management states
-  const { 
-    tasks, 
-    isLoading, 
-    error,
-    updateTask,
-    deleteTask,
-    rescheduleTask 
-  } = useTasks();
-  
-  // States for UI management
-  const [selectedTag, setSelectedTag] = useState<string>(tag || '');
-  const [isExpanded, setIsExpanded] = useState(true);
-  
-  // Filter tasks by the selected tag
-  const filteredTasks = tasks.filter(task => 
-    task.tags && task.tags.includes(selectedTag)
-  );
-  
-  // Group tasks by completion status
-  const completedTasks = filteredTasks.filter(task => task.completed);
-  const incompleteTasks = filteredTasks.filter(task => !task.completed);
-  
-  // Handle task updates
-  const handleUpdateTask = async (task: TaskProps) => {
-    try {
-      await updateTask(task.id, task);
-      toast.success('Task updated successfully!');
-    } catch (error) {
-      console.error('Error updating task:', error);
-      toast.error('Failed to update task');
-    }
-  };
-  
-  // Handle task deletion
-  const handleDeleteTask = async (id: string) => {
-    try {
-      await deleteTask(id);
-      toast.success('Task deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
-    }
-  };
-  
-  // Handle rescheduling a task
-  const handleRescheduleTask = async (id: string, newDate: Date) => {
-    try {
-      await rescheduleTask(id, newDate);
-      toast.success('Task rescheduled successfully!');
-    } catch (error) {
-      console.error('Error rescheduling task:', error);
-      toast.error('Failed to reschedule task');
-    }
-  };
-  
-  // Update selected tag when the URL param changes
+  // Update customOrder when tasks change
   useEffect(() => {
-    if (tag) {
-      setSelectedTag(tag);
+    if (allTasks.length > 0) {
+      setCustomOrder(allTasks.map(task => task.id));
     }
-  }, [tag]);
+  }, [allTasks]);
   
-  // Handle tag change
-  const handleTagChange = (value: string) => {
-    setSelectedTag(value);
-    if (value) {
-      navigate(`/tag/${value}`);
-    }
-  };
+  const {
+    currentDate,
+    selectedDate,
+    isScrolled,
+    setIsScrolled,
+    setSelectedDate,
+    previousWeek,
+    nextWeek,
+    goToToday
+  } = useWeekController();
   
-  // Find the unique tags from all tasks for the dropdown
-  const availableTags = [...new Set(
-    tasks.flatMap(task => task.tags || [])
-  )].filter(Boolean); // Ensure we only get non-empty tags
+  // Filter tasks based on tag
+  const filteredByTagTasks = allTasks.filter(task => task.tags?.includes(tagFilter));
+  
+  const {
+    sortedTasks,
+    overdueTasks,
+    todayTasks,
+    futureDatesGrouped
+  } = useTaskDateGroups(filteredByTagTasks, viewOption, sortOption, customOrder, selectedDate);
+  
+  // Add scroll event listener
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 50);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [setIsScrolled]);
 
-  if (isLoading) {
-    return <div className="text-center py-10">Loading tasks...</div>;
+  // Create a today variable for the today section
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (loading) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">Loading tasks...</p>
+      </div>
+    );
   }
 
-  if (error) {
-    return <div className="text-center py-10 text-destructive">Error: {error}</div>;
-  }
-  
   return (
-    <div className="max-w-5xl mx-auto">
-      {/* Tag selection dropdown */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">Tasks by Tag</h1>
-            
-            <select 
-              className="p-2 rounded border"
-              value={selectedTag}
-              onChange={(e) => handleTagChange(e.target.value)}
-            >
-              <option value="">Select a tag</option>
-              {availableTags.map(tag => (
-                <option key={tag} value={tag}>{tag}</option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Toggle for completed tasks */}
-          {completedTasks.length > 0 && (
-            <button 
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-1 text-sm text-muted-foreground"
-            >
-              {isExpanded ? (
-                <>
-                  <ChevronUp className="h-4 w-4" /> Hide Completed
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-4 w-4" /> Show Completed ({completedTasks.length})
-                </>
-              )}
-            </button>
-          )}
+    <TasksProvider initialTasks={filteredByTagTasks}>
+      <div className="max-w-5xl mx-auto">
+        <TaskListFilters 
+          viewOption={viewOption}
+          sortOption={sortOption}
+          setViewOption={setViewOption}
+          setSortOption={setSortOption}
+        />
+        
+        <div className={`sticky top-0 bg-background z-10 transition-all duration-200 ${isScrolled ? 'pb-1 shadow-sm' : 'pb-3'}`}>
+          <WeekView 
+            currentDate={currentDate}
+            selectedDate={selectedDate}
+            tasks={sortedTasks}
+            onPreviousWeek={previousWeek}
+            onNextWeek={nextWeek}
+            onToday={goToToday}
+            onSelectDay={setSelectedDate}
+            isCompact={isScrolled}
+          />
         </div>
         
-        {selectedTag && (
-          <div 
-            className={`px-3 py-1 text-xs rounded-full inline-block mt-2 ${tagColors[selectedTag] || 'bg-gray-500'} text-white`}
-          >
-            {selectedTag}
-          </div>
-        )}
-      </div>
-      
-      {/* Show message if no tag selected */}
-      {!selectedTag ? (
-        <div className="text-center py-10 text-muted-foreground">
-          Please select a tag to view tasks
+        <div className="space-y-6">
+          <OverdueTasksSection 
+            tasks={overdueTasks}
+            isOpen={isOverdueOpen}
+            onOpenChange={setIsOverdueOpen}
+            selectedDate={selectedDate}
+            sortOption={sortOption}
+          />
+          
+          <TaskSection 
+            title="Today"
+            tasks={todayTasks}
+            sortOption={sortOption}
+            selectedDate={today}
+          />
+          
+          {/* Upcoming Tasks grouped by date - display all days even if no tasks */}
+          {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
+            const date = new Date(dateString);
+            
+            return (
+              <TaskSection
+                key={dateString}
+                title={formatFullDate(date)}
+                tasks={tasks}
+                sortOption={sortOption}
+                selectedDate={date}
+              />
+            );
+          })}
         </div>
-      ) : (
-        <>
-          {/* Show message if no tasks for the selected tag */}
-          {filteredTasks.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              No tasks found with the tag "{selectedTag}"
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Incomplete tasks */}
-              {incompleteTasks.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-semibold mb-2">Active Tasks</h2>
-                  <div className="space-y-2">
-                    {incompleteTasks.map(task => (
-                      <TaskCard
-                        key={task.id}
-                        {...task}
-                        onEdit={handleUpdateTask}
-                        onDelete={handleDeleteTask}
-                        onReschedule={handleRescheduleTask}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Completed tasks (collapsible) */}
-              {completedTasks.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-semibold mb-2">Completed Tasks</h2>
-                  {isExpanded && (
-                    <div className="space-y-2">
-                      {completedTasks.map(task => (
-                        <TaskCard
-                          key={task.id}
-                          {...task}
-                          onEdit={handleUpdateTask}
-                          onDelete={handleDeleteTask}
-                          onReschedule={handleRescheduleTask}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+      </div>
+    </TasksProvider>
+  );
+};
+
+// Wrapper component to get the tag from URL params
+const TagTaskListWrapper = () => {
+  const { tagId } = useParams<{ tagId: string }>();
+  const isMobile = useIsMobile();
+  
+  // Format the tag name for display (capitalize first letter)
+  const formatTagName = (tag: string) => {
+    return tag.charAt(0).toUpperCase() + tag.slice(1);
+  };
+
+  return (
+    <>
+      <div className="mb-6 flex items-center">
+        <div className={cn("h-3 w-3 rounded-full mr-2", tagColors[tagId || ''] || 'bg-gray-400')} />
+        <h1 className="text-2xl font-semibold">{formatTagName(tagId || '')}</h1>
+      </div>
+      <TagTaskList tagFilter={tagId || ''} />
+    </>
   );
 };
 

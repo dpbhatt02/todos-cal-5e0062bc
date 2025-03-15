@@ -1,13 +1,11 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TaskProps } from '@/components/tasks/types';
-import { TaskService } from '@/services/TaskService';
-import { toast } from 'sonner';
+import { useTasks as useTasksHook } from '@/hooks/use-tasks';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TasksContextType {
   tasks: TaskProps[];
-  isLoading: boolean;
-  error: string | null;
   customOrder: string[];
   isOverdueOpen: boolean;
   setIsOverdueOpen: (value: boolean) => void;
@@ -17,109 +15,52 @@ interface TasksContextType {
   handleDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (e: React.DragEvent<HTMLDivElement>, taskId: string) => void;
   handleDragEnd: (e: React.DragEvent<HTMLDivElement>) => void;
-  createTask: (task: Omit<TaskProps, 'id'>) => Promise<TaskProps>;
-  updateTask: (taskId: string, updates: Partial<TaskProps>) => Promise<void>;
-  deleteTask: (taskId: string) => Promise<void>;
-  rescheduleTask: (taskId: string, newDate: Date) => Promise<void>;
+  createTask: (taskData: Omit<TaskProps, 'id'>) => Promise<TaskProps | null>;
+  updateTask: (id: string, updates: Partial<TaskProps>) => Promise<TaskProps | null>;
+  deleteTask: (id: string) => Promise<boolean>;
+  loading: boolean;
 }
 
 const TasksContext = createContext<TasksContextType | undefined>(undefined);
 
-export const useTasks = () => {
+export const useTasksContext = () => {
   const context = useContext(TasksContext);
   if (!context) {
-    throw new Error('useTasks must be used within a TasksProvider');
+    throw new Error('useTasksContext must be used within a TasksProvider');
   }
   return context;
 };
 
 interface TasksProviderProps {
   children: React.ReactNode;
-  initialTasks?: TaskProps[];
+  initialTasks?: TaskProps[]; // Added for compatibility with SearchTasksSheet and TagTaskList
 }
 
 export const TasksProvider: React.FC<TasksProviderProps> = ({ 
-  children, 
-  initialTasks = [] 
+  children,
+  initialTasks
 }) => {
-  const [tasks, setTasks] = useState<TaskProps[]>(initialTasks);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { 
+    tasks: dbTasks,
+    createTask,
+    updateTask,
+    deleteTask,
+    loading
+  } = useTasksHook();
+  
   const [isOverdueOpen, setIsOverdueOpen] = useState(true);
-  const [customOrder, setCustomOrder] = useState<string[]>(initialTasks.map(task => task.id));
+  const [customOrder, setCustomOrder] = useState<string[]>([]);
+  
+  // Use initialTasks if provided, otherwise use dbTasks
+  const tasksToUse = initialTasks || dbTasks;
 
-  // Fetch tasks on mount
+  // Update customOrder when tasks change
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        setIsLoading(true);
-        const fetchedTasks = await TaskService.getTasks();
-        setTasks(fetchedTasks);
-        setCustomOrder(fetchedTasks.map(task => task.id));
-        setError(null);
-      } catch (err) {
-        setError('Failed to fetch tasks');
-        toast.error('Failed to load tasks');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, []);
-
-  // Create a new task
-  const createTask = async (task: Omit<TaskProps, 'id'>): Promise<TaskProps> => {
-    try {
-      const newTask = await TaskService.createTask(task);
-      setTasks(prevTasks => [...prevTasks, newTask]);
-      setCustomOrder(prevOrder => [...prevOrder, newTask.id]);
-      return newTask;
-    } catch (error) {
-      console.error('Error creating task:', error);
-      throw error;
+    if (tasksToUse.length > 0) {
+      setCustomOrder(tasksToUse.map(task => task.id));
     }
-  };
-
-  // Update an existing task
-  const updateTask = async (taskId: string, updates: Partial<TaskProps>): Promise<void> => {
-    try {
-      await TaskService.updateTask(taskId, updates);
-      setTasks(prevTasks => 
-        prevTasks.map(task => task.id === taskId ? { ...task, ...updates } : task)
-      );
-    } catch (error) {
-      console.error('Error updating task:', error);
-      throw error;
-    }
-  };
-
-  // Delete a task
-  const deleteTask = async (taskId: string): Promise<void> => {
-    try {
-      await TaskService.deleteTask(taskId);
-      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-      setCustomOrder(prevOrder => prevOrder.filter(id => id !== taskId));
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      throw error;
-    }
-  };
-
-  // Reschedule a task
-  const rescheduleTask = async (taskId: string, newDate: Date): Promise<void> => {
-    try {
-      await TaskService.rescheduleTask(taskId, newDate);
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId ? { ...task, dueDate: newDate } : task
-        )
-      );
-    } catch (error) {
-      console.error('Error rescheduling task:', error);
-      throw error;
-    }
-  };
+  }, [tasksToUse]);
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
@@ -159,9 +100,7 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
 
   return (
     <TasksContext.Provider value={{
-      tasks,
-      isLoading,
-      error,
+      tasks: tasksToUse,
       customOrder,
       isOverdueOpen,
       setIsOverdueOpen,
@@ -174,7 +113,7 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
       createTask,
       updateTask,
       deleteTask,
-      rescheduleTask
+      loading
     }}>
       {children}
     </TasksContext.Provider>

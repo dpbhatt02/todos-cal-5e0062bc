@@ -12,6 +12,8 @@ interface TaskCardContentProps {
   description?: string;
   priority: 'low' | 'medium' | 'high';
   dueDate: Date | string;
+  startTime?: string;
+  endTime?: string;
   tags?: string[];
   recurring?: {
     frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -28,6 +30,8 @@ const TaskCardContent = ({
   description,
   priority,
   dueDate,
+  startTime,
+  endTime,
   tags = [],
   recurring,
   isCompleted,
@@ -38,6 +42,19 @@ const TaskCardContent = ({
     medium: 'bg-priority-medium',
     high: 'bg-priority-high'
   };
+
+  // Format the time display
+  const getTimeDisplay = () => {
+    if (!startTime) return null;
+    
+    if (endTime) {
+      return `${startTime} - ${endTime}`;
+    }
+    
+    return startTime;
+  };
+
+  const timeDisplay = getTimeDisplay();
 
   return (
     <div className="flex-1 min-w-0">
@@ -73,7 +90,10 @@ const TaskCardContent = ({
       <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
         <div className="flex items-center text-muted-foreground" style={{fontSize: isMobile ? '0.65rem' : '0.75rem'}}>
           <Clock className={isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1"} />
-          <span>{formatDate(dueDate)}</span>
+          <span>
+            {formatDate(dueDate)}
+            {timeDisplay && <span className="ml-1 font-medium">{timeDisplay}</span>}
+          </span>
         </div>
         
         {recurring && (
