@@ -237,12 +237,18 @@ const CalendarSettings = () => {
         toast.error('Unknown response from server');
         setError('Received unexpected response from server');
       }
+      
+      // Force a small delay before considering the operation complete
+      // This gives the UI time to update before any other components might re-fetch the connection status
+      setTimeout(() => {
+        setIsDisconnecting(false);
+      }, 1000);
+      
     } catch (error) {
       console.error('Error disconnecting from Google Calendar:', error);
       toast.dismiss(toastId);
       toast.error('Failed to disconnect from Google Calendar');
       setError('Unexpected error during disconnection');
-    } finally {
       setIsDisconnecting(false);
     }
   };

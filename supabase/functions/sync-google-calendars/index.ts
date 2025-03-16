@@ -71,6 +71,15 @@ serve(async (req) => {
     let accessToken = integration.access_token;
     let refreshSuccessful = false;
 
+    // Check if the access token is a placeholder (disconnected)
+    if (accessToken === "DISCONNECTED") {
+      console.log("Integration is marked as disconnected (has placeholder token)");
+      return new Response(
+        JSON.stringify({ error: "Google Calendar integration is disconnected" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (tokenExpires && now >= tokenExpires && integration.refresh_token) {
       console.log("Token expired, refreshing...");
       
@@ -103,6 +112,7 @@ serve(async (req) => {
               .from("user_integrations")
               .update({
                 connected: false,
+                access_token: "DISCONNECTED", // Use placeholder instead of null
                 updated_at: new Date().toISOString()
               })
               .eq("id", integration.id);
@@ -171,6 +181,7 @@ serve(async (req) => {
             .from("user_integrations")
             .update({
               connected: false,
+              access_token: "DISCONNECTED", // Use placeholder instead of null
               updated_at: new Date().toISOString()
             })
             .eq("id", integration.id);

@@ -117,14 +117,15 @@ serve(async (req) => {
     console.log("Updating integration record to disconnect");
     
     // Always mark as disconnected regardless of token revocation
+    // Instead of setting tokens to null, use an empty string to satisfy NOT NULL constraint
     try {
       const { error: updateError } = await supabase
         .from("user_integrations")
         .update({
           connected: false,
-          access_token: null,
-          refresh_token: null,
-          token_expires_at: null,
+          access_token: "DISCONNECTED", // Use a placeholder value instead of null
+          refresh_token: null, // This can be null as it allows NULL
+          token_expires_at: null, // This can be null as it allows NULL
           updated_at: new Date().toISOString()
         })
         .eq("user_id", userId)
@@ -155,7 +156,7 @@ serve(async (req) => {
       
       if (deleteError) {
         console.error("Error deleting calendar settings:", deleteError);
-        // Continue even if this fails, but don't report partial success
+        // Continue even if this fails, but report partial success
         return new Response(
           JSON.stringify({ 
             success: true, 
