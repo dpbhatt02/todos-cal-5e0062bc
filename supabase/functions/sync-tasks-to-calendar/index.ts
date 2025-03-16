@@ -169,20 +169,30 @@ serve(async (req) => {
     }
 
     // Fetch task(s) to sync
+    //===db to solve update_at
+    // let tasksQuery = supabase
+    //   .from("tasks")
+    //   .select("*")
+    //   .eq("user_id", userId);
     let tasksQuery = supabase
-      .from("tasks")
-      .select("*")
-      .eq("user_id", userId);
-      
+    .from("tasks")
+    .select("id, title, due_date, updated_at, google_calendar_event_id, last_synced_at")
+    .eq("user_id", userId);
+    //===  
     // If taskId is provided, only sync that specific task
     if (taskId) {
       tasksQuery = tasksQuery.eq("id", taskId);
     } else {
       // FIXED: Proper column comparison with proper SQL syntax
       // Get tasks that haven't been synced yet or have been updated since last sync
+      //==== db
+      // tasksQuery = tasksQuery.or(
+      //   'google_calendar_event_id.is.null,and(last_synced_at.lt.updated_at)'
+      // );
       tasksQuery = tasksQuery.or(
-        'google_calendar_event_id.is.null,and(last_synced_at.lt.updated_at)'
+        'google_calendar_event_id.is.null,or(last_synced_at.is.null,last_synced_at.lt.updated_at)'
       );
+      //===
     }
     
     const { data: tasks, error: tasksError } = await tasksQuery;
@@ -194,7 +204,11 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
+    //===db log
+    // 🔍 Debug: Check if `updated_at` is present
+    console.log("Fetched Tasks:", tasks);
+    tasks.forEach(task => console.log(`Task ID: ${task.id}, Updated At:`, task.updated_at));
+    //====
     if (!tasks || tasks.length === 0) {
       console.log("No tasks to sync");
       return new Response(
@@ -304,6 +318,7 @@ serve(async (req) => {
             google_calendar_event_id: eventData2.id,
             google_calendar_id: eventData2.calendarId || defaultCalendarId,
             last_synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),  //=== db Ensure `updated_at` updates
             sync_source: "app"
           })
           .eq("id", task.id);
