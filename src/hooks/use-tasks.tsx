@@ -192,10 +192,11 @@ export function useTasks() {
           }
         }
       );
-      //===db
-        console.log('db data log:'+data);
-      //===
+     
       if (error) {
+         //===db
+         console.log('db data log:'+data);
+         //===
         console.error('Error syncing tasks to calendar:', error);
         toast.error('Failed to sync tasks to calendar');
         return false;
