@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -177,10 +178,10 @@ serve(async (req) => {
     if (taskId) {
       tasksQuery = tasksQuery.eq("id", taskId);
     } else {
-      // Otherwise, get tasks that haven't been synced yet or have been updated since last sync
-      // FIX: Use proper column comparison instead of string comparison
+      // FIXED: Proper column comparison with proper SQL syntax
+      // Get tasks that haven't been synced yet or have been updated since last sync
       tasksQuery = tasksQuery.or(
-        'google_calendar_event_id.is.null,last_synced_at.lt.updated_at'
+        'google_calendar_event_id.is.null,and(last_synced_at.lt.updated_at)'
       );
     }
     
