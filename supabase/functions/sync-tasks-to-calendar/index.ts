@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -168,33 +167,21 @@ serve(async (req) => {
       console.log("No enabled calendars found, using primary calendar");
     }
 
-    // Fetch task(s) to sync
-    //===db to solve update_at
-    // let tasksQuery = supabase
-    //   .from("tasks")
-    //   .select("*")
-    //   .eq("user_id", userId);
+    // Fetch task(s) to sync - FIXED QUERY SYNTAX
     let tasksQuery = supabase
-    .from("tasks")
-    .select("id, title, due_date, updated_at, google_calendar_event_id, last_synced_at")
-    .eq("user_id", userId);
-    //===  
+      .from("tasks")
+      .select("id, title, due_date, updated_at, google_calendar_event_id, last_synced_at, description, priority, start_time, end_time, is_all_day")
+      .eq("user_id", userId);
+    
     // If taskId is provided, only sync that specific task
     if (taskId) {
       tasksQuery = tasksQuery.eq("id", taskId);
     } else {
-      // FIXED: Proper column comparison with proper SQL syntax
-      // Get tasks that haven't been synced yet or have been updated since last sync
-      //==== db
-      // tasksQuery = tasksQuery.or(
-      //   'google_calendar_event_id.is.null,and(last_synced_at.lt.updated_at)'
-      // );
-      tasksQuery = tasksQuery.or(
-        'google_calendar_event_id.is.null,or(last_synced_at.is.null,last_synced_at.lt.updated_at)'
-      );
-      //===
+      // Use proper PostgreSQL filter syntax
+      tasksQuery = tasksQuery.or('google_calendar_event_id.is.null,last_synced_at.is.null,last_synced_at.lt.updated_at');
     }
     
+    console.log("Running tasks query with filters");
     const { data: tasks, error: tasksError } = await tasksQuery;
     
     if (tasksError) {
@@ -204,11 +191,12 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    //===db log
-    // 🔍 Debug: Check if `updated_at` is present
+    
     console.log("Fetched Tasks:", tasks);
-    tasks.forEach(task => console.log(`Task ID: ${task.id}, Updated At:`, task.updated_at));
-    //====
+    if (tasks) {
+      tasks.forEach(task => console.log(`Task ID: ${task.id}, Title: ${task.title}, Updated At: ${task.updated_at}, Last Synced: ${task.last_synced_at}`));
+    }
+    
     if (!tasks || tasks.length === 0) {
       console.log("No tasks to sync");
       return new Response(
@@ -311,14 +299,16 @@ serve(async (req) => {
         
         const eventData2 = await response.json();
         
+        // Create an ISO timestamp for the last_synced_at value
+        const nowISOString = new Date().toISOString();
+        
         // Update task with Google Calendar event ID and last synced time
         const { error: updateError } = await supabase
           .from("tasks")
           .update({
             google_calendar_event_id: eventData2.id,
             google_calendar_id: eventData2.calendarId || defaultCalendarId,
-            last_synced_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),  //=== db Ensure `updated_at` updates
+            last_synced_at: nowISOString,
             sync_source: "app"
           })
           .eq("id", task.id);

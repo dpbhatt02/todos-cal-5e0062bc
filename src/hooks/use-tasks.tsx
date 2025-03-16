@@ -151,10 +151,7 @@ export function useTasks() {
           }
         }
       );
-      //===tmp by db
-      console.log('Fetched Task:', tasks);
-      //console.log('Updated At:', tasks.updated_at, typeof tasks.updated_at);
-      //====
+      
       if (error) {
         console.error('Error syncing task to calendar:', error);
         toast.error('Failed to sync task to calendar');
@@ -180,120 +177,45 @@ export function useTasks() {
   };
   
   // Function to sync all tasks to Google Calendar
-  // const syncAllTasksToCalendar = async () => {
-  //   if (!user || !isCalendarConnected) return false;
+  const syncAllTasksToCalendar = async () => {
+    if (!user || !isCalendarConnected) return false;
     
-  //   try {
-  //     setSyncing(true);
-  //     toast.loading('Syncing tasks to Google Calendar...');
+    try {
+      setSyncing(true);
+      toast.loading('Syncing tasks to Google Calendar...');
       
-  //     const { data, error } = await supabase.functions.invoke(
-  //       'sync-tasks-to-calendar',
-  //       {
-  //         body: {
-  //           userId: user.id
-  //         }
-  //       }
-  //     );
+      const { data, error } = await supabase.functions.invoke(
+        'sync-tasks-to-calendar',
+        {
+          body: {
+            userId: user.id
+          }
+        }
+      );
     
-  //     if (error) {
-  //       console.error('Error syncing tasks to calendar:', error);
-  //       toast.error('Failed to sync tasks to calendar');
-  //       return false;
-  //     }
-      
-  //     console.log('Tasks sync result:', data);
-      
-  //     if (data.success) {
-  //       toast.success(`${data.message}`);
-  //       return true;
-  //     } else {
-  //       toast.error(data.error || 'Failed to sync tasks to calendar');
-  //       return false;
-  //     }
-  //   } catch (err) {
-  //     console.error('Error syncing tasks to calendar:', err);
-  //     toast.error('Failed to sync tasks to calendar');
-  //     return false;
-  //   } finally {
-  //     setSyncing(false);
-  //   }
-  // };
-  
-//=== from project chat by db to try to solve tasks to cal
-const syncAllTasksToCalendar = async () => {
-  if (!user || !isCalendarConnected) return false;
-
-  try {
-    setSyncing(true);
-    toast.loading('Syncing tasks to Google Calendar...');
-
-    const { data, error } = await supabase.functions.invoke(
-      'sync-tasks-to-calendar',
-      {
-        body: { userId: user.id }
+      if (error) {
+        console.error('Error syncing tasks to calendar:', error);
+        toast.error('Failed to sync tasks to calendar');
+        return false;
       }
-    );
-
-    if (error) {
-      console.error('Error syncing tasks to calendar:', error);
+      
+      console.log('Tasks sync result:', data);
+      
+      if (data.success) {
+        toast.success(`${data.message}`);
+        return true;
+      } else {
+        toast.error(data.error || 'Failed to sync tasks to calendar');
+        return false;
+      }
+    } catch (err) {
+      console.error('Error syncing tasks to calendar:', err);
       toast.error('Failed to sync tasks to calendar');
       return false;
+    } finally {
+      setSyncing(false);
     }
-
-    console.log('Fetched Tasks:', data.tasks); // Debugging to confirm updated_at is included
-
-    if (!data.tasks || data.tasks.length === 0) {
-      toast.warning('No tasks found to sync.');
-      return false;
-    }
-
-    for (const task of data.tasks) {
-      console.log(`Task: ${task.title} | Updated At:`, task.updated_at); // Debug log
-
-      const updatedAt = task.updated_at ? new Date(task.updated_at).toISOString() : null;
-      const dueDate = task.dueDate ? new Date(task.dueDate).toISOString() : null;
-
-      const event = {
-        summary: task.title,
-        start: { dateTime: updatedAt || dueDate },
-        end: { dateTime: updatedAt || dueDate },
-      };
-
-      // Call Google Calendar API to create event
-      const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer YOUR_ACCESS_TOKEN`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(event),
-      });
-
-      if (!response.ok) {
-        console.error(`Failed to sync task "${task.title}" to Google Calendar.`);
-        continue;
-      }
-
-      console.log(`Task "${task.title}" successfully synced to Google Calendar.`);
-    }
-
-    toast.success('All tasks synced successfully!');
-    return true;
-
-  } catch (err) {
-    console.error('Error syncing tasks to calendar:', err);
-    toast.error('Failed to sync tasks to calendar');
-    return false;
-  } finally {
-    setSyncing(false);
-  }
-};
-
-
-//===
-
-
+  };
 
   // Function to sync events from Google Calendar to tasks
   const syncCalendarToTasks = async () => {
