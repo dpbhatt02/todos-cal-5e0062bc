@@ -1,96 +1,125 @@
 
-import { useState, useRef, useEffect, TouchEvent } from 'react';
+import { useState, useRef, useCallback, TouchEvent } from 'react';
 
-interface SwipeGestureOptions {
-  onSwipeLeft?: () => void;
-  onSwipeRight?: () => void;
-  threshold?: number;
-  preventScroll?: boolean;
+interface SwipeState {
+  isSwiping: boolean;
+  startX: number;
+  currentX: number;
+  startY: number;
+  currentY: number;
+  swipeOffset: number;
+  direction: 'left' | 'right' | 'none';
 }
 
-export const useSwipeGesture = ({ 
-  onSwipeLeft, 
-  onSwipeRight, 
-  threshold = 50,
-  preventScroll = false
-}: SwipeGestureOptions) => {
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [swiping, setSwiping] = useState(false);
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const elementRef = useRef<HTMLDivElement>(null);
+export interface SwipeGestureOptions {
+  threshold?: number;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  onSwipeEnd?: (offset: number, direction: 'left' | 'right' | 'none') => void;
+}
 
-  // Reset swipe state when unmounting
-  useEffect(() => {
-    return () => {
-      setTouchStart(null);
-      setTouchEnd(null);
-      setSwiping(false);
-      setSwipeOffset(0);
-    };
+export const useSwipeGesture = (options: SwipeGestureOptions = {}) => {
+  const {
+    threshold = 50,
+    onSwipeLeft,
+    onSwipeRight,
+    onSwipeEnd
+  } = options;
+
+  const [state, setState] = useState<SwipeState>({
+    isSwiping: false,
+    startX: 0,
+    currentX: 0,
+    startY: 0,
+    currentY: 0,
+    swipeOffset: 0,
+    direction: 'none'
+  });
+
+  const elementRef = useRef<HTMLElement | null>(null);
+
+  // Handle touch start
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    const touch = e.touches[0];
+    setState(prev => ({
+      ...prev,
+      isSwiping: true,
+      startX: touch.clientX,
+      currentX: touch.clientX,
+      startY: touch.clientY,
+      currentY: touch.clientY,
+      swipeOffset: 0,
+      direction: 'none'
+    }));
   }, []);
 
-  const onTouchStart = (e: TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-    setSwiping(true);
-    setSwipeOffset(0);
-  };
+  // Handle touch move
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!state.isSwiping) return;
 
-  const onTouchMove = (e: TouchEvent) => {
-    if (!touchStart) return;
-    
-    const currentTouch = e.targetTouches[0].clientX;
-    setTouchEnd(currentTouch);
-    
-    // Calculate the swipe offset for animation
-    const offset = currentTouch - touchStart;
-    
-    // Limit the swipe distance
-    const maxOffset = 100;
-    const limitedOffset = Math.min(Math.abs(offset), maxOffset) * Math.sign(offset);
-    setSwipeOffset(limitedOffset);
-    
-    // Prevent scrolling if specified
-    if (preventScroll && Math.abs(offset) > 10) {
-      e.preventDefault();
-    }
-  };
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - state.startX;
+    const deltaY = touch.clientY - state.startY;
 
-  const onTouchEnd = (e: TouchEvent) => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchEnd - touchStart;
-    const isLeftSwipe = distance < -threshold;
-    const isRightSwipe = distance > threshold;
-
-    console.log("Swipe detected - distance:", distance, "threshold:", threshold);
-    
-    if (isLeftSwipe && onSwipeLeft) {
-      console.log("Left swipe triggered");
-      onSwipeLeft();
-    } else if (isRightSwipe && onSwipeRight) {
-      console.log("Right swipe triggered");
-      onSwipeRight();
+    // If vertical movement is greater than horizontal, don't count as a swipe
+    if (Math.abs(deltaY) > Math.abs(deltaX) * 1.5) {
+      setState(prev => ({
+        ...prev,
+        isSwiping: false,
+        swipeOffset: 0,
+        direction: 'none'
+      }));
+      return;
     }
 
-    // Reset swipe state
-    setTouchStart(null);
-    setTouchEnd(null);
-    setSwiping(false);
-    setSwipeOffset(0);
+    // Determine direction
+    const direction = deltaX > 0 ? 'right' : deltaX < 0 ? 'left' : 'none';
+
+    setState(prev => ({
+      ...prev,
+      currentX: touch.clientX,
+      currentY: touch.clientY,
+      swipeOffset: deltaX,
+      direction
+    }));
+  }, [state.isSwiping, state.startX, state.startY]);
+
+  // Handle touch end
+  const handleTouchEnd = useCallback(() => {
+    if (!state.isSwiping) return;
+
+    const { swipeOffset, direction } = state;
+
+    if (Math.abs(swipeOffset) >= threshold) {
+      if (direction === 'left' && onSwipeLeft) {
+        onSwipeLeft();
+      } else if (direction === 'right' && onSwipeRight) {
+        onSwipeRight();
+      }
+    }
+
+    if (onSwipeEnd) {
+      onSwipeEnd(swipeOffset, direction);
+    }
+
+    setState(prev => ({
+      ...prev,
+      isSwiping: false,
+      swipeOffset: 0,
+      direction: 'none'
+    }));
+  }, [state, threshold, onSwipeLeft, onSwipeRight, onSwipeEnd]);
+
+  // Handlers object to be used with element
+  const handlers = {
+    onTouchStart: handleTouchStart,
+    onTouchMove: handleTouchMove,
+    onTouchEnd: handleTouchEnd
   };
 
   return {
-    handlers: {
-      onTouchStart,
-      onTouchMove,
-      onTouchEnd,
-    },
-    state: {
-      swiping,
-      swipeOffset,
-    },
-    elementRef,
+    handlers,
+    state,
+    elementRef
   };
 };

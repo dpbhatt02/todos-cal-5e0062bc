@@ -178,7 +178,7 @@ serve(async (req) => {
       tasksQuery = tasksQuery.eq("id", taskId);
     } else {
       // Otherwise, get tasks that haven't been synced yet or have been updated since last sync
-      // FIX: Changed the query to use proper column comparison instead of "updated_at" text
+      // FIX: Use proper column comparison instead of string comparison
       tasksQuery = tasksQuery.or(
         'google_calendar_event_id.is.null,last_synced_at.lt.updated_at'
       );

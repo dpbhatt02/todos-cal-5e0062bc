@@ -14,7 +14,7 @@ const TaskCardCheckbox = ({ isCompleted, onChange, isMobile }: TaskCardCheckboxP
     <div onClick={(e) => e.stopPropagation()}>
       <Checkbox 
         checked={isCompleted} 
-        onCheckedChange={onChange}
+        onCheckedChange={(checked) => onChange(checked === true)}
         className={cn(
           isMobile ? "h-3.5 w-3.5" : "",
           isCompleted && "opacity-50"
