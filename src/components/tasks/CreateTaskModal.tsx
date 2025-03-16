@@ -65,7 +65,12 @@ const defaultTaskData = {
   selectedWeekdays: [] as string[]
 };
 
-
+function formatDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialData = {} }: CreateTaskModalProps) => {
   
@@ -116,12 +121,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
     { id: 'learning', label: 'Learning' }
   ];
 
-  function formatDate(date: Date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
+  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
