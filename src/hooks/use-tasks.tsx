@@ -195,7 +195,7 @@ export function useTasks() {
      
       if (error) {
          //===db
-         console.log('db data log:'+data);
+         console.error('db data log:', data);
          //===
         console.error('Error syncing tasks to calendar:', error);
         toast.error('Failed to sync tasks to calendar');
