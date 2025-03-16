@@ -3,7 +3,7 @@ import { TaskProps } from '@/components/tasks/types';
 
 // Convert database task to TaskProps
 export const mapDbTaskToTask = (dbTask: any): TaskProps => {
-  return {
+  const task: TaskProps = {
     id: dbTask.id,
     title: dbTask.title,
     description: dbTask.description || '',
@@ -20,4 +20,16 @@ export const mapDbTaskToTask = (dbTask: any): TaskProps => {
     syncSource: dbTask.sync_source,
     lastSyncedAt: dbTask.last_synced_at,
   };
+
+  // Add recurring data if present
+  if (dbTask.recurring_frequency) {
+    task.recurring = {
+      frequency: dbTask.recurring_frequency as 'daily' | 'weekly' | 'monthly' | 'custom',
+      customDays: dbTask.recurring_custom_days || [],
+      endDate: dbTask.recurring_end_date,
+      endAfter: dbTask.recurring_end_after
+    };
+  }
+
+  return task;
 };

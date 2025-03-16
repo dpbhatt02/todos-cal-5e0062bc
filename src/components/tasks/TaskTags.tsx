@@ -19,7 +19,7 @@ const TaskTags = ({ tags }: TaskTagsProps) => {
           className="flex items-center text-xs px-1.5 py-0.5 rounded-full"
         >
           <span 
-            className={cn("h-2 w-2 rounded-full mr-1", tagColors[tag] || "bg-gray-400")}
+            className={cn("h-2 w-2 rounded-full mr-1", tagColors[tag] || tagColors.default)}
           />
           <span>{tag}</span>
         </div>

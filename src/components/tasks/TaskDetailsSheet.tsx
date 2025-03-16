@@ -34,7 +34,7 @@ const TaskDetailsSheet = ({ isOpen, onClose, task }: TaskDetailsSheetProps) => {
           <div className="space-y-1">
             <h3 className="text-sm font-medium">Priority</h3>
             <div className="flex items-center gap-2">
-              <div className={cn("h-3 w-3 rounded-full", priorityClasses[priority])} />
+              <div className={cn("h-3 w-3 rounded-full", priorityClasses[priority] || priorityClasses.default)} />
               <span className="text-sm capitalize">{priority}</span>
             </div>
           </div>
@@ -61,7 +61,9 @@ const TaskDetailsSheet = ({ isOpen, onClose, task }: TaskDetailsSheetProps) => {
               <h3 className="text-sm font-medium">Recurrence</h3>
               <div className="flex items-center gap-2">
                 <RefreshCcw className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{getRecurringLabel(recurring.frequency)}</span>
+                <span className="text-sm">
+                  {getRecurringLabel(recurring.frequency as 'daily' | 'weekly' | 'monthly' | 'custom')}
+                </span>
               </div>
               {recurring.endDate && (
                 <p className="text-xs text-muted-foreground">
@@ -86,7 +88,7 @@ const TaskDetailsSheet = ({ isOpen, onClose, task }: TaskDetailsSheetProps) => {
                     className="flex items-center text-xs px-2 py-1 bg-muted rounded-full"
                   >
                     <span 
-                      className={cn("h-2 w-2 rounded-full mr-1.5", tagColors[tag] || "bg-gray-400")}
+                      className={cn("h-2 w-2 rounded-full mr-1.5", tagColors[tag] || tagColors.default)}
                     />
                     <span>{tag}</span>
                   </div>

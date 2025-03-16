@@ -151,7 +151,7 @@ const TagTaskListWrapper = () => {
   return (
     <>
       <div className="mb-6 flex items-center">
-        <div className={cn("h-3 w-3 rounded-full mr-2", tagColors[tagId || ''] || 'bg-gray-400')} />
+        <div className={cn("h-3 w-3 rounded-full mr-2", tagColors[tagId || ''] || tagColors.default)} />
         <h1 className="text-2xl font-semibold">{formatTagName(tagId || '')}</h1>
       </div>
       <TagTaskList tagFilter={tagId || ''} />

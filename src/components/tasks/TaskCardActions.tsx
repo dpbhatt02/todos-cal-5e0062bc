@@ -13,7 +13,7 @@ interface TaskCardActionsProps {
   isCompleted: boolean;
   openModal: () => void;
   onEdit?: (e: React.MouseEvent) => void;
-  onDelete?: TaskProps['onDelete'];
+  onDelete?: (id: string) => void; // Changed type signature to match TaskActions
   onReschedule: (date: Date | undefined) => void;
   isMobile: boolean;
 }
