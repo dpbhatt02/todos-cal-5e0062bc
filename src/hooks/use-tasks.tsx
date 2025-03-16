@@ -195,7 +195,10 @@ export function useTasks() {
           }
         }
       );
-      
+      //===tmp by db
+      console.log('Fetched Task:', tasks);
+      //console.log('Updated At:', tasks.updated_at, typeof tasks.updated_at);
+      //====
       if (error) {
         console.error('Error syncing tasks to calendar:', error);
         toast.error('Failed to sync tasks to calendar');
