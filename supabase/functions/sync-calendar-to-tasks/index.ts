@@ -16,7 +16,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { userId, syncToken, pageToken } = body;
+    const { userId } = body;
 
     if (!userId) {
       return new Response(
@@ -25,7 +25,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Syncing events from Google Calendar for user: ${userId}`);
+    console.log(`Syncing events from Google Calendar to tasks for user: ${userId}`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
@@ -149,7 +149,7 @@ serve(async (req) => {
       }
     }
 
-    // Fetch calendar settings to get enabled calendars
+    // Fetch enabled calendar IDs
     const { data: calendarSettings, error: calendarSettingsError } = await supabase
       .from("calendar_settings")
       .select("*")
@@ -159,280 +159,260 @@ serve(async (req) => {
     if (calendarSettingsError) {
       console.error("Error fetching calendar settings:", calendarSettingsError);
       return new Response(
-        JSON.stringify({ error: "Failed to fetch calendar settings" }),
+        JSON.stringify({ error: "Failed to fetch calendar settings", details: calendarSettingsError }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
+    // If no calendars are enabled, insert the primary calendar as enabled
     if (!calendarSettings || calendarSettings.length === 0) {
-      console.log("No enabled calendars found");
-      return new Response(
-        JSON.stringify({ success: true, message: "No enabled calendars to sync from" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.log("No enabled calendars found, adding primary calendar as default");
+      
+      // First check if a calendar settings entry exists but is disabled
+      const { data: existingSettings, error: existingError } = await supabase
+        .from("calendar_settings")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("calendar_id", "primary");
+        
+      if (existingError) {
+        console.error("Error checking existing calendar settings:", existingError);
+      }
+      
+      if (existingSettings && existingSettings.length > 0) {
+        // Update existing setting to enabled
+        const { error: updateError } = await supabase
+          .from("calendar_settings")
+          .update({ enabled: true })
+          .eq("id", existingSettings[0].id);
+          
+        if (updateError) {
+          console.error("Error updating calendar setting:", updateError);
+        } else {
+          console.log("Primary calendar enabled successfully");
+        }
+      } else {
+        // Create new calendar setting for primary calendar
+        const { error: insertError } = await supabase
+          .from("calendar_settings")
+          .insert({
+            user_id: userId,
+            calendar_id: "primary",
+            enabled: true
+          });
+          
+        if (insertError) {
+          console.error("Error inserting calendar setting:", insertError);
+        } else {
+          console.log("Primary calendar added successfully");
+        }
+      }
+      
+      // Use primary calendar for this sync
+      calendarSettings.push({ calendar_id: "primary", enabled: true });
     }
     
-    const enabledCalendarIds = calendarSettings.map(cs => cs.calendar_id);
-    console.log(`Found ${enabledCalendarIds.length} enabled calendars`);
+    // Define time range for events (e.g., 30 days past to 60 days future)
+    const timeMin = new Date();
+    timeMin.setDate(timeMin.getDate() - 30);
     
-    // Process each enabled calendar
-    const allResults = [];
-    
-    for (const calendarId of enabledCalendarIds) {
-      console.log(`Processing calendar: ${calendarId}`);
+    const timeMax = new Date();
+    timeMax.setDate(timeMax.getDate() + 60);
+
+    let syncedCount = 0;
+    let errorCount = 0;
+    const results = [];
+
+    // Process each calendar
+    for (const calendar of calendarSettings) {
+      console.log(`Fetching events from calendar: ${calendar.calendar_id}`);
       
       try {
-        // Construct the Google Calendar API URL
-        let url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?maxResults=100`;
-        
-        // Add pagination token if provided
-        if (pageToken) {
-          url += `&pageToken=${pageToken}`;
-        }
-        
-        // Add sync token if provided (for incremental sync)
-        if (syncToken) {
-          url += `&syncToken=${syncToken}`;
-        } else {
-          // If no sync token, get events from the last 30 days and future events
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          url += `&timeMin=${thirtyDaysAgo.toISOString()}`;
-        }
-        
-        const response = await fetch(url, {
-          headers: {
-            "Authorization": `Bearer ${accessToken}`
+        // Fetch events from Google Calendar
+        const eventsResponse = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendar.calendar_id)}/events?` + 
+          new URLSearchParams({
+            timeMin: timeMin.toISOString(),
+            timeMax: timeMax.toISOString(),
+            singleEvents: "true",
+            orderBy: "startTime"
+          }).toString(),
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
           }
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error(`Error fetching events from calendar ${calendarId}:`, errorData);
-          
-          // If the sync token is invalid, clear it and try a full sync next time
-          if (errorData.error?.code === 410) {
-            allResults.push({
-              calendarId,
-              success: false,
-              error: "Sync token expired, will do full sync next time",
-              invalidSyncToken: true
-            });
-            continue;
-          }
-          
-          allResults.push({
-            calendarId,
+        );
+
+        if (!eventsResponse.ok) {
+          const errorData = await eventsResponse.json();
+          console.error(`Error fetching events from calendar ${calendar.calendar_id}:`, errorData);
+          results.push({
+            calendarId: calendar.calendar_id,
             success: false,
             error: errorData
           });
+          errorCount++;
           continue;
         }
-        
-        const data = await response.json();
-        const events = data.items || [];
-        console.log(`Fetched ${events.length} events from calendar ${calendarId}`);
+
+        const eventsData = await eventsResponse.json();
+        console.log(`Found ${eventsData.items?.length || 0} events in calendar ${calendar.calendar_id}`);
+
+        if (!eventsData.items || eventsData.items.length === 0) {
+          results.push({
+            calendarId: calendar.calendar_id,
+            success: true,
+            message: "No events found"
+          });
+          continue;
+        }
+
+        // Filter out events we want to sync (exclude all-day events that span multiple days)
+        const filteredEvents = eventsData.items.filter(event => {
+          // Skip events without a summary (title)
+          if (!event.summary) return false;
+          
+          // Skip cancelled events
+          if (event.status === 'cancelled') return false;
+          
+          // Skip all-day events that span multiple days
+          if (event.start.date && event.end.date) {
+            const startDate = new Date(event.start.date);
+            const endDate = new Date(event.end.date);
+            // End date is exclusive in Google Calendar, so subtract 1 day
+            endDate.setDate(endDate.getDate() - 1);
+            
+            // Skip if event spans multiple days
+            if (startDate.getTime() !== endDate.getTime()) return false;
+          }
+          
+          return true;
+        });
+
+        let calendarSyncCount = 0;
         
         // Process each event
-        const results = await Promise.all(events.map(async (event) => {
-          try {
-            // Skip events without proper dates or cancelled events
-            if ((!event.start || !event.end) || event.status === 'cancelled') {
-              return {
-                eventId: event.id,
-                success: false,
-                message: "Skipped event missing dates or cancelled"
-              };
-            }
+        for (const event of filteredEvents) {
+          // Check if this event is already synced
+          const { data: existingTask, error: existingError } = await supabase
+            .from("tasks")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("google_calendar_event_id", event.id)
+            .maybeSingle();
             
-            // Check if this event already exists as a task
-            const { data: existingTasks, error: existingTasksError } = await supabase
-              .from("tasks")
-              .select("*")
-              .eq("google_calendar_event_id", event.id)
-              .eq("user_id", userId);
-              
-            if (existingTasksError) {
-              console.error(`Error checking existing task for event ${event.id}:`, existingTasksError);
-              return {
-                eventId: event.id,
-                success: false,
-                error: existingTasksError
-              };
-            }
+          if (existingError) {
+            console.error(`Error checking existing task for event ${event.id}:`, existingError);
+            continue;
+          }
+          
+          // Determine due date, start time, and end time
+          let dueDate, startTime, endTime, isAllDay = false;
+          
+          if (event.start.date) {
+            // All-day event
+            dueDate = new Date(event.start.date);
+            isAllDay = true;
+          } else if (event.start.dateTime) {
+            // Timed event
+            dueDate = new Date(event.start.dateTime);
+            startTime = event.start.dateTime;
+            endTime = event.end.dateTime;
+          } else {
+            // Skip events with no start time/date
+            console.log(`Skipping event ${event.id} - no start time/date`);
+            continue;
+          }
+          
+          if (existingTask) {
+            // Check if the event has been updated since the task was last synced
+            const eventUpdated = new Date(event.updated);
+            const lastSynced = existingTask.last_synced_at ? new Date(existingTask.last_synced_at) : new Date(0);
             
-            // Determine if we're creating a new task or updating an existing one
-            if (existingTasks && existingTasks.length > 0) {
-              // Update the existing task
-              const task = existingTasks[0];
+            if (eventUpdated > lastSynced) {
+              console.log(`Updating task for event ${event.id}: ${event.summary}`);
               
-              // Only update if the event was updated after the task was last synced
-              const eventUpdated = new Date(event.updated);
-              const lastSynced = task.last_synced_at ? new Date(task.last_synced_at) : new Date(0);
-              
-              if (eventUpdated <= lastSynced && task.sync_source === "calendar") {
-                console.log(`Task ${task.id} already up to date with event ${event.id}`);
-                return {
-                  eventId: event.id,
-                  taskId: task.id,
-                  success: true,
-                  message: "Already up to date"
-                };
-              }
-              
-              console.log(`Updating task ${task.id} from event ${event.id}`);
-              
-              // Determine the due date
-              let dueDate = null;
-              let startTime = null;
-              let endTime = null;
-              let isAllDay = false;
-              
-              if (event.start.date) {
-                // All-day event
-                dueDate = new Date(event.start.date);
-                isAllDay = true;
-              } else if (event.start.dateTime) {
-                // Event with specific time
-                dueDate = new Date(event.start.dateTime);
-                startTime = event.start.dateTime;
-                endTime = event.end.dateTime;
-              }
-              
+              // Update existing task
               const { error: updateError } = await supabase
                 .from("tasks")
                 .update({
-                  title: event.summary || "Untitled Event",
+                  title: event.summary,
                   description: event.description || "",
-                  due_date: dueDate ? dueDate.toISOString() : null,
+                  due_date: dueDate.toISOString(),
                   start_time: startTime,
                   end_time: endTime,
                   is_all_day: isAllDay,
+                  google_calendar_id: calendar.calendar_id,
                   last_synced_at: new Date().toISOString(),
-                  sync_source: "calendar",
+                  sync_source: "calendar"
                 })
-                .eq("id", task.id);
+                .eq("id", existingTask.id);
                 
               if (updateError) {
-                console.error(`Error updating task ${task.id}:`, updateError);
-                return {
-                  eventId: event.id,
-                  taskId: task.id,
-                  success: false,
-                  error: updateError
-                };
+                console.error(`Error updating task for event ${event.id}:`, updateError);
+              } else {
+                calendarSyncCount++;
               }
-              
-              return {
-                eventId: event.id,
-                taskId: task.id,
-                success: true,
-                operation: "updated"
-              };
             } else {
-              // Create a new task
-              console.log(`Creating new task from event ${event.id}`);
-              
-              // Determine the due date
-              let dueDate = null;
-              let startTime = null;
-              let endTime = null;
-              let isAllDay = false;
-              
-              if (event.start.date) {
-                // All-day event
-                dueDate = new Date(event.start.date);
-                isAllDay = true;
-              } else if (event.start.dateTime) {
-                // Event with specific time
-                dueDate = new Date(event.start.dateTime);
-                startTime = event.start.dateTime;
-                endTime = event.end.dateTime;
-              }
-              
-              const { data: newTask, error: createError } = await supabase
-                .from("tasks")
-                .insert({
-                  user_id: userId,
-                  title: event.summary || "Untitled Event",
-                  description: event.description || "",
-                  due_date: dueDate ? dueDate.toISOString() : null,
-                  start_time: startTime,
-                  end_time: endTime,
-                  is_all_day: isAllDay,
-                  google_calendar_event_id: event.id,
-                  google_calendar_id: calendarId,
-                  last_synced_at: new Date().toISOString(),
-                  priority: "medium", // Default priority
-                  completed: false, // Default completion status
-                  sync_source: "calendar",
-                })
-                .select("id")
-                .single();
-                
-              if (createError) {
-                console.error(`Error creating task from event ${event.id}:`, createError);
-                return {
-                  eventId: event.id,
-                  success: false,
-                  error: createError
-                };
-              }
-              
-              return {
-                eventId: event.id,
-                taskId: newTask.id,
-                success: true,
-                operation: "created"
-              };
+              console.log(`Skipping event ${event.id} - no updates`);
             }
-          } catch (error) {
-            console.error(`Error processing event ${event.id}:`, error);
-            return {
-              eventId: event.id,
-              success: false,
-              error: error.message
-            };
+          } else {
+            console.log(`Creating new task for event ${event.id}: ${event.summary}`);
+            
+            // Create new task
+            const { error: insertError } = await supabase
+              .from("tasks")
+              .insert({
+                user_id: userId,
+                title: event.summary,
+                description: event.description || "",
+                priority: "medium", // Default priority
+                due_date: dueDate.toISOString(),
+                start_time: startTime,
+                end_time: endTime,
+                is_all_day: isAllDay,
+                completed: event.status === "cancelled",
+                google_calendar_event_id: event.id,
+                google_calendar_id: calendar.calendar_id,
+                last_synced_at: new Date().toISOString(),
+                sync_source: "calendar"
+              });
+              
+            if (insertError) {
+              console.error(`Error inserting task for event ${event.id}:`, insertError);
+            } else {
+              calendarSyncCount++;
+            }
           }
-        }));
-        
-        // Add calendar results to overall results
-        allResults.push({
-          calendarId,
-          success: true,
-          events: results,
-          nextPageToken: data.nextPageToken,
-          nextSyncToken: data.nextSyncToken
-        });
-        
-        // Store new sync token if provided
-        if (data.nextSyncToken) {
-          // TODO: Store sync token for this calendar in database for incremental sync
-          console.log(`New sync token for calendar ${calendarId}: ${data.nextSyncToken}`);
         }
-      } catch (error) {
-        console.error(`Error processing calendar ${calendarId}:`, error);
-        allResults.push({
-          calendarId,
-          success: false,
-          error: error.message
+        
+        results.push({
+          calendarId: calendar.calendar_id,
+          success: true,
+          syncedCount: calendarSyncCount,
+          totalEvents: filteredEvents.length
         });
+        
+        syncedCount += calendarSyncCount;
+      } catch (calendarError) {
+        console.error(`Error processing calendar ${calendar.calendar_id}:`, calendarError);
+        results.push({
+          calendarId: calendar.calendar_id,
+          success: false,
+          error: calendarError.message
+        });
+        errorCount++;
       }
     }
-    
-    // Count total events processed across all calendars
-    const successCount = allResults.reduce((count, result) => {
-      if (result.success && result.events) {
-        return count + result.events.filter(e => e.success).length;
-      }
-      return count;
-    }, 0);
     
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Synced ${successCount} events from Google Calendar`,
-        results: allResults
+        message: `Synced ${syncedCount} events from Google Calendar to tasks`,
+        results,
+        syncedCount,
+        errorCount
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

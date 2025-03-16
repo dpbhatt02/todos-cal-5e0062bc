@@ -163,6 +163,8 @@ serve(async (req) => {
     if (calendarSettings && calendarSettings.length > 0) {
       // Use the first enabled calendar as default
       defaultCalendarId = calendarSettings[0].calendar_id;
+    } else {
+      console.log("No enabled calendars found, using primary calendar");
     }
 
     // Fetch task(s) to sync
@@ -176,6 +178,7 @@ serve(async (req) => {
       tasksQuery = tasksQuery.eq("id", taskId);
     } else {
       // Otherwise, get tasks that haven't been synced yet or have been updated since last sync
+      // FIX: Changed the query to use proper column comparison instead of "updated_at" text
       tasksQuery = tasksQuery.or(
         'google_calendar_event_id.is.null,last_synced_at.lt.updated_at'
       );

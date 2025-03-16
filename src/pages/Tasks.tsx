@@ -5,7 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import { useTasksContext } from '@/contexts/TasksContext';
 import { ButtonCustom } from '@/components/ui/button-custom';
-import { Plus, RefreshCw, Calendar } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { TaskProps } from '@/components/tasks/types';
 import { TasksProvider } from '@/contexts/TasksContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -86,7 +86,7 @@ const TasksContent = ({
     // Include recurring data if present
     if (taskData.recurring && taskData.recurring !== 'none') {
       formattedData.recurring = {
-        frequency: taskData.recurring,
+        frequency: taskData.recurring as 'daily' | 'weekly' | 'monthly' | 'custom',
         customDays: taskData.selectedWeekdays || []
       };
 

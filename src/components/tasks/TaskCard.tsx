@@ -1,246 +1,148 @@
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { TaskProps } from './types';
-import TaskDetailsSheet from './TaskDetailsSheet';
-import { useIsMobile } from '@/hooks/use-mobile';
-import TaskCardContent from './TaskCardContent';
-import { useSwipeGesture } from '@/hooks/use-swipe-gesture';
-import TaskCardCheckbox from './TaskCardCheckbox';
-import TaskCardSwipeIndicator from './TaskCardSwipeIndicator';
-import TaskCardActions from './TaskCardActions';
-import { useTasksContext } from '@/contexts/TasksContext';
-import CreateTaskModal from './CreateTaskModal';
 
-interface TaskCardProps extends TaskProps {
-  onClick?: () => void;
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { TaskProps } from './types';
+import TaskCardCheckbox from './TaskCardCheckbox';
+import TaskCardContent from './TaskCardContent';
+import TaskCardActions from './TaskCardActions';
+import TaskCardSwipeIndicator from './TaskCardSwipeIndicator';
+import { useSwipeGesture } from '@/hooks/use-swipe-gesture';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+
+interface TaskCardProps {
+  task: TaskProps;
+  onEdit?: (task: TaskProps) => void;
+  onDelete?: (taskId: string) => void;
+  onReschedule?: (taskId: string, newDate: Date) => void;
+  onComplete?: (taskId: string, completed: boolean) => void;
 }
 
-const TaskCard = ({ 
-  id, 
-  title, 
-  description, 
-  priority, 
-  dueDate, 
-  completed,
-  startTime,
-  endTime,
-  tags = [],
-  recurring,
-  onClick
+const TaskCard = ({
+  task,
+  onEdit,
+  onDelete,
+  onReschedule,
+  onComplete,
 }: TaskCardProps) => {
-  const [isCompleted, setIsCompleted] = useState(completed);
-  const [isHovered, setIsHovered] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(
-    typeof dueDate === 'string' ? new Date(dueDate) : dueDate
-  );
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSwipingLeft, setIsSwipingLeft] = useState(false);
+  const [isSwipingRight, setIsSwipingRight] = useState(false);
+  const [swipePosition, setSwipePosition] = useState(0);
   const isMobile = useIsMobile();
-  const { updateTask, deleteTask } = useTasksContext();
 
-  // Create a task object for reuse
-  const task = {
-    id,
-    title,
-    description,
-    priority,
-    dueDate,
-    completed: isCompleted,
-    startTime,
-    endTime,
-    tags,
-    recurring
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(task);
+    }
   };
 
-  const handleCheckboxChange = async (checked: boolean | string) => {
-    // Convert checked to boolean (in case it comes as string)
-    const isChecked = checked === true || checked === 'true';
-    setIsCompleted(isChecked);
-    
-    // Update task completion status in the database
-    await updateTask(id, { completed: isChecked });
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(task.id);
+    }
   };
 
-  const handleEdit = (taskToEdit: TaskProps) => {
-    console.log("Editing task:", taskToEdit);
-    // Open the edit modal with the task data for editing
-    setIsEditModalOpen(true);
-    // Close the details modal if it's open
-    setIsDetailsModalOpen(false);
+  const handleReschedule = (newDate: Date) => {
+    if (onReschedule) {
+      onReschedule(task.id, newDate);
+    }
   };
 
-  const handleDelete = async (taskId: string) => {
-    await deleteTask(taskId);
+  const handleComplete = (completed: boolean) => {
+    if (onComplete) {
+      onComplete(task.id, completed);
+    } else {
+      // If no callback is provided, this is likely a mock card
+      console.log('Task completed:', task.id, completed);
+    }
   };
 
-  const handleReschedule = async (taskId: string, newDate: Date) => {
-    setSelectedDate(newDate);
-    await updateTask(taskId, { dueDate: newDate });
-  };
-
-  const handleSwipeLeft = () => {
-    // Toggle completion status on swipe left
-    handleCheckboxChange(!isCompleted);
-  };
-
-  const handleSwipeRight = () => {
-    console.log("Swipe right detected for task:", id);
-    // On swipe right, open details sheet
-    setIsDetailsModalOpen(true);
-  };
-
-  const { handlers, state, elementRef } = useSwipeGesture({
-    onSwipeLeft: handleSwipeLeft,
-    onSwipeRight: handleSwipeRight,
-    threshold: 40,
+  // Setup swipe gesture for mobile
+  const { bindSwipeGesture } = useSwipeGesture({
+    onSwipeStart: () => {},
+    onSwipeMove: (event, { deltaX }) => {
+      // Determine swipe direction
+      setIsSwipingLeft(deltaX < 0);
+      setIsSwipingRight(deltaX > 0);
+      setSwipePosition(deltaX);
+    },
+    onSwipeEnd: (event, { deltaX }) => {
+      // Handle complete swipe action
+      if (deltaX > 100) {
+        // Swiped right (complete)
+        handleComplete(!task.completed);
+      } else if (deltaX < -100) {
+        // Swiped left (delete)
+        handleDelete();
+      }
+      
+      // Reset swipe state
+      setIsSwipingLeft(false);
+      setIsSwipingRight(false);
+      setSwipePosition(0);
+    },
   });
 
-  const handleOpenDetailsModal = () => {
-    console.log("Opening details modal for task:", id);
-    setIsDetailsModalOpen(true);
-    // Call the onClick prop if provided
-    if (onClick) {
-      onClick();
-    }
+  // Transform style for card when swiping
+  const transformStyle = {
+    transform: `translateX(${swipePosition}px)`,
+    transition: swipePosition === 0 ? 'transform 0.3s ease' : 'none',
   };
 
-  const handleCloseDetailsModal = () => {
-    setIsDetailsModalOpen(false);
-  };
-
-  const handleCloseEditModal = () => {
-    setIsEditModalOpen(false);
-  };
-
-  const handleSubmitEdit = async (taskData: any) => {
-    console.log("Submitting edit for task:", id, taskData);
-    // Convert the data to the format expected by the updateTask function
-    const formattedData: Partial<TaskProps> = {
-      title: taskData.title,
-      description: taskData.description || '',
-      priority: taskData.priority,
-      dueDate: new Date(taskData.dueDate),
-      tags: taskData.tags || []
-    };
-
-    // Include recurring data if present
-    if (taskData.recurring && taskData.recurring !== 'none') {
-      formattedData.recurring = {
-        frequency: taskData.recurring,
-        customDays: taskData.selectedWeekdays || []
-      };
-
-      // Add end date or count if specified
-      if (taskData.recurrenceEndType === 'date' && taskData.recurrenceEndDate) {
-        formattedData.recurring.endDate = new Date(taskData.recurrenceEndDate);
-      } else if (taskData.recurrenceEndType === 'after' && taskData.recurrenceCount) {
-        formattedData.recurring.endAfter = taskData.recurrenceCount;
-      }
-    }
-
-    await updateTask(id, formattedData);
-    setIsEditModalOpen(false);
-  };
+  // Determine opacity for swipe indicators
+  const leftIndicatorOpacity = Math.min(Math.abs(Math.min(swipePosition, 0)) / 100, 1);
+  const rightIndicatorOpacity = Math.min(Math.max(swipePosition, 0) / 100, 1);
 
   return (
-    <>
-      <div 
-        ref={elementRef}
+    <div className="relative">
+      {/* Swipe indicators - only shown on mobile */}
+      {isMobile && (
+        <>
+          <TaskCardSwipeIndicator 
+            position="left"
+            opacity={leftIndicatorOpacity}
+            icon="delete"
+          />
+          <TaskCardSwipeIndicator 
+            position="right"
+            opacity={rightIndicatorOpacity}
+            icon="complete"
+          />
+        </>
+      )}
+      
+      {/* Task card */}
+      <Card
         className={cn(
-          "w-full border border-border/40 rounded-lg transition-all hover:shadow-md relative group cursor-pointer overflow-hidden",
-          isMobile ? "p-2" : "p-2.5",
-          isCompleted && "opacity-70 bg-muted/30"
+          'relative bg-card border overflow-hidden transition-all',
+          task.completed ? 'opacity-70' : 'opacity-100',
+          isSwipingLeft || isSwipingRight ? 'shadow-md' : ''
         )}
-        style={isMobile ? {
-          transform: `translateX(${state.swipeOffset}px)`,
-          transition: state.swiping ? 'none' : 'transform 0.3s ease'
-        } : undefined}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={handleOpenDetailsModal}
-        {...(isMobile ? handlers : {})}
+        style={isMobile ? transformStyle : undefined}
+        {...(isMobile ? bindSwipeGesture() : {})}
       >
-        <TaskCardSwipeIndicator 
-          swiping={state.swiping}
-          swipeOffset={state.swipeOffset}
-          isCompleted={isCompleted}
-          isMobile={isMobile}
-        />
-        
-        <div className="flex items-start gap-2">
-          <div className="mt-0.5">
-            <TaskCardCheckbox 
-              isCompleted={isCompleted} 
-              onChange={handleCheckboxChange}
-              isMobile={isMobile}
-            />
-          </div>
-          
+        <div className="p-4 flex gap-4">
+          <TaskCardCheckbox 
+            isCompleted={task.completed} 
+            priority={task.priority || 'medium'} 
+            onChange={(completed) => handleComplete(completed)}
+          />
+
           <TaskCardContent
-            title={title}
-            description={description}
-            priority={priority}
-            dueDate={dueDate}
-            startTime={startTime}
-            endTime={endTime}
-            tags={tags}
-            recurring={recurring}
-            isCompleted={isCompleted}
+            task={task}
+            isCompleted={task.completed}
             isMobile={isMobile}
           />
 
           <TaskCardActions
-            id={id}
             task={task}
-            isHovered={isHovered}
-            selectedDate={selectedDate}
-            isCompleted={isCompleted}
-            openModal={handleOpenDetailsModal}
-            onEdit={(e) => {
-              e.stopPropagation();
-              handleEdit(task);
-            }}
+            onEdit={handleEdit}
             onDelete={handleDelete}
-            onReschedule={(date) => date && handleReschedule(id, date)}
-            isMobile={isMobile}
+            onReschedule={handleReschedule}
           />
         </div>
-      </div>
-
-      <TaskDetailsSheet 
-        isOpen={isDetailsModalOpen}
-        onClose={handleCloseDetailsModal}
-        task={{
-          ...task,
-          onEdit: handleEdit,
-          onDelete: handleDelete,
-          onReschedule: (id, newDate) => handleReschedule(id, newDate)
-        }}
-      />
-
-      <CreateTaskModal
-        isOpen={isEditModalOpen}
-        onClose={handleCloseEditModal}
-        onSubmit={handleSubmitEdit}
-        editMode={true}
-        initialData={{
-          title,
-          description: description || '',
-          priority,
-          dueDate: typeof dueDate === 'string' ? dueDate : dueDate.toISOString().split('T')[0],
-          startTime: startTime || '',
-          endTime: endTime || '',
-          tags: tags || [],
-          recurring: recurring?.frequency || 'none',
-          selectedWeekdays: recurring?.customDays || [],
-          recurrenceEndType: recurring?.endDate ? 'date' : recurring?.endAfter ? 'after' : 'never',
-          recurrenceEndDate: recurring?.endDate ? 
-            (typeof recurring.endDate === 'string' ? recurring.endDate : recurring.endDate.toISOString().split('T')[0]) : 
-            '',
-          recurrenceCount: recurring?.endAfter || 5
-        }}
-      />
-    </>
+      </Card>
+    </div>
   );
 };
 
