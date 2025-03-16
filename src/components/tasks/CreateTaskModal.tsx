@@ -31,7 +31,7 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form";
-//===========
+//=========== not worked! :(
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -65,28 +65,41 @@ const defaultTaskData = {
   selectedWeekdays: [] as string[]
 };
 
-function formatDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+
 
 const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialData = {} }: CreateTaskModalProps) => {
-  const [taskData, setTaskData] = useState({
+  
+  //====updated by db to enable typing on input fileds
+  
+  // const [taskData, setTaskData] = useState({
+  //   ...defaultTaskData,
+  //   ...(editMode && initialData ? initialData : {})
+  // });
+
+  
+  const [taskData, setTaskData] = useState(() => ({
     ...defaultTaskData,
-    ...(editMode && initialData ? initialData : {})
-  });
+    ...(editMode ? initialData : {})
+  }));
+
 
   // Reset data when modal opens or closes or when initialData changes
+  // useEffect(() => {
+  //   if (isOpen) {
+  //     setTaskData({
+  //       ...defaultTaskData,
+  //       ...(editMode && initialData ? initialData : {})
+  //     });
+  //   }
+  // }, [isOpen, editMode, initialData]);
+
+
   useEffect(() => {
-    if (isOpen) {
-      setTaskData({
-        ...defaultTaskData,
-        ...(editMode && initialData ? initialData : {})
-      });
+    if (editMode) {
+      setTaskData((prev) => ({ ...prev, ...initialData }));
     }
-  }, [isOpen, editMode, initialData]);
+  }, [editMode, initialData]);
+  //=====
 
   const [textSelection, setTextSelection] = useState({
     start: 0,
@@ -102,6 +115,13 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
     { id: 'health', label: 'Health' },
     { id: 'learning', label: 'Learning' }
   ];
+
+  function formatDate(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
