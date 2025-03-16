@@ -94,8 +94,10 @@ serve(async (req) => {
           }
         );
 
+        // Get the response as text for better error logging
+        const responseText = await revokeResponse.text();
+        
         if (!revokeResponse.ok) {
-          const responseText = await revokeResponse.text();
           console.error("Error revoking token:", responseText);
           tokenRevocationError = responseText;
           // We continue with the disconnection even if token revocation fails
@@ -104,7 +106,7 @@ serve(async (req) => {
           tokenRevocationSuccess = true;
         }
       } catch (revokeError) {
-        console.error("Error during token revocation:", revokeError);
+        console.error("Exception during token revocation:", revokeError);
         tokenRevocationError = revokeError.message;
         // We continue with the disconnection even if token revocation fails
       }
@@ -114,7 +116,7 @@ serve(async (req) => {
 
     console.log("Updating integration record to disconnect");
     
-    // Update integration status in database - ALWAYS mark as disconnected regardless of token revocation
+    // Always mark as disconnected regardless of token revocation
     try {
       const { error: updateError } = await supabase
         .from("user_integrations")
@@ -122,6 +124,7 @@ serve(async (req) => {
           connected: false,
           access_token: null,
           refresh_token: null,
+          token_expires_at: null,
           updated_at: new Date().toISOString()
         })
         .eq("user_id", userId)
@@ -129,29 +132,16 @@ serve(async (req) => {
 
       if (updateError) {
         console.error("Error updating integration status:", updateError);
-        
-        // If the update failed, but we revoked the token, we want to let the user know
-        if (tokenRevocationSuccess) {
-          return new Response(
-            JSON.stringify({ 
-              partialSuccess: true, 
-              message: "Token was revoked but database could not be updated",
-              details: updateError.message 
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
         return new Response(
           JSON.stringify({ error: "Failed to update integration status", details: updateError.message }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     } catch (updateException) {
       console.error("Exception during integration update:", updateException);
       return new Response(
         JSON.stringify({ error: "Exception during update operation", details: updateException.message }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -165,21 +155,35 @@ serve(async (req) => {
       
       if (deleteError) {
         console.error("Error deleting calendar settings:", deleteError);
-        // Continue even if this fails
+        // Continue even if this fails, but don't report partial success
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "Calendar disconnected but settings cleanup failed"
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     } catch (deleteException) {
       console.error("Exception during calendar settings deletion:", deleteException);
       // Continue even if this fails
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Calendar disconnected but settings cleanup failed"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log("Successfully disconnected Google Calendar for user:", userId);
     
-    // Return success even if token revocation failed, because we've marked the integration as disconnected
+    // Always return a success if we've marked the integration as disconnected
     return new Response(
       JSON.stringify({ 
         success: true,
         tokenRevocationSuccess: tokenRevocationSuccess,
-        message: tokenRevocationError ? "Calendar disconnected but token revocation failed" : "Calendar disconnected successfully"
+        message: "Calendar disconnected successfully"
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -187,7 +191,7 @@ serve(async (req) => {
     console.error("Google Calendar Disconnect Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Unknown error occurred" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

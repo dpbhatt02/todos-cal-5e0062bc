@@ -15,7 +15,8 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { userId } = body;
 
     if (!userId) {
       return new Response(
@@ -105,6 +106,14 @@ serve(async (req) => {
                 updated_at: new Date().toISOString()
               })
               .eq("id", integration.id);
+            
+            return new Response(
+              JSON.stringify({ 
+                error: "Calendar disconnected due to invalid token",
+                details: tokenData
+              }),
+              { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
           }
           
           return new Response(
@@ -121,6 +130,7 @@ serve(async (req) => {
             token_expires_at: new Date(
               Date.now() + tokenData.expires_in * 1000
             ).toISOString(),
+            updated_at: new Date().toISOString()
           })
           .eq("id", integration.id);
 
@@ -128,9 +138,8 @@ serve(async (req) => {
           console.error("Error updating token:", updateError);
         } else {
           refreshSuccessful = true;
+          accessToken = tokenData.access_token;
         }
-
-        accessToken = tokenData.access_token;
       } catch (refreshError) {
         console.error("Error refreshing token:", refreshError);
         return new Response(
@@ -140,17 +149,70 @@ serve(async (req) => {
       }
     }
 
-    // For now, we're implementing a basic version that initiates the sync process
-    // In a real implementation, this would include more detailed logic to sync events and tasks
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Calendar sync initiated",
-        tokenRefreshed: refreshSuccessful
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // Now implement the actual calendar syncing logic
+    try {
+      // First, fetch the user's calendar list to get available calendars
+      const calendarListResponse = await fetch(
+        "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      
+      if (!calendarListResponse.ok) {
+        const errorData = await calendarListResponse.json();
+        console.error("Failed to fetch calendar list:", errorData);
+        
+        // If authentication failed, mark as disconnected
+        if (calendarListResponse.status === 401) {
+          await supabase
+            .from("user_integrations")
+            .update({
+              connected: false,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", integration.id);
+            
+          return new Response(
+            JSON.stringify({ 
+              error: "Calendar disconnected due to authentication failure",
+              details: errorData
+            }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch calendar list", details: errorData }),
+          { status: calendarListResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      const calendarData = await calendarListResponse.json();
+      console.log(`Successfully retrieved ${calendarData.items?.length || 0} calendars`);
+      
+      // For now, this is a basic implementation that just validates access and refreshes tokens
+      // A full implementation would sync events between Google Calendar and the app's tasks
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Calendar sync initiated",
+          tokenRefreshed: refreshSuccessful,
+          calendarsFound: calendarData.items?.length || 0
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+      
+    } catch (error) {
+      console.error("Error during calendar sync:", error);
+      return new Response(
+        JSON.stringify({ error: "Error during calendar sync", details: error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
   } catch (error) {
     console.error("Sync Google Calendars Error:", error);
     return new Response(

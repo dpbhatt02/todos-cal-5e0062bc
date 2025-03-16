@@ -88,6 +88,9 @@ const CalendarSettings = () => {
           setGoogleEmail(data.provider_email);
           if (data.connected) {
             fetchCalendars();
+          } else {
+            // Clear calendars if not connected
+            setCalendars([]);
           }
         }
       } catch (error) {
@@ -123,6 +126,7 @@ const CalendarSettings = () => {
             error.message?.includes('Invalid Credentials')) {
           console.log('Auth error detected, marking as disconnected');
           setIsConnected(false);
+          setCalendars([]);
           
           // Update the database to mark the integration as disconnected
           await supabase.functions.invoke('google-calendar-disconnect', {
@@ -211,22 +215,24 @@ const CalendarSettings = () => {
       if (error) {
         console.error('Error disconnecting from Google Calendar:', error);
         toast.dismiss(toastId);
-        toast.error(`Failed to disconnect: ${error.message || 'Unknown error'}`);
+        toast.error(`Failed to disconnect from Google Calendar`);
         setError('Failed to disconnect from Google Calendar');
         return;
       }
 
-      // Update local state
+      // Update local state immediately
       setIsConnected(false);
       setGoogleEmail(null);
       setCalendars([]);
       
       toast.dismiss(toastId);
       
-      if (data.partialSuccess) {
-        toast.warning('Partially disconnected from Google Calendar. Some cleanup steps failed.');
-      } else if (data.success) {
-        toast.success('Disconnected from Google Calendar');
+      if (data.success) {
+        if (data.message && data.message.includes("cleanup failed")) {
+          toast.warning('Calendar disconnected but some cleanup steps failed');
+        } else {
+          toast.success('Disconnected from Google Calendar');
+        }
       } else {
         toast.error('Unknown response from server');
         setError('Received unexpected response from server');
@@ -265,6 +271,7 @@ const CalendarSettings = () => {
         if (error.message?.includes('not connected') || 
             error.message?.includes('authentication')) {
           setIsConnected(false);
+          setCalendars([]);
         }
         
         return;
