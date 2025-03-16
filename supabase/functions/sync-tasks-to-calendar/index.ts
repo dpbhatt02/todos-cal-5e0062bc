@@ -16,7 +16,9 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const { userId, taskId } = body;
-
+    //=== db log
+      console.log('db log of sync tasks to calender taskID:'+ taskID);
+    //===
     if (!userId) {
       return new Response(
         JSON.stringify({ error: "User ID is required" }),
