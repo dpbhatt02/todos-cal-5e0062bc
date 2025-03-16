@@ -16,6 +16,7 @@ export interface SwipeGestureOptions {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   onSwipeEnd?: (offset: number, direction: 'left' | 'right' | 'none') => void;
+  preventScroll?: boolean; // Added preventScroll option
 }
 
 export const useSwipeGesture = (options: SwipeGestureOptions = {}) => {
@@ -23,7 +24,8 @@ export const useSwipeGesture = (options: SwipeGestureOptions = {}) => {
     threshold = 50,
     onSwipeLeft,
     onSwipeRight,
-    onSwipeEnd
+    onSwipeEnd,
+    preventScroll = false // Default to false
   } = options;
 
   const [state, setState] = useState<SwipeState>({
@@ -51,7 +53,12 @@ export const useSwipeGesture = (options: SwipeGestureOptions = {}) => {
       swipeOffset: 0,
       direction: 'none'
     }));
-  }, []);
+    
+    // Prevent scroll if configured to do so
+    if (preventScroll) {
+      e.preventDefault();
+    }
+  }, [preventScroll]);
 
   // Handle touch move
   const handleTouchMove = useCallback((e: TouchEvent) => {
@@ -72,6 +79,11 @@ export const useSwipeGesture = (options: SwipeGestureOptions = {}) => {
       return;
     }
 
+    // Prevent scroll if configured to do so
+    if (preventScroll) {
+      e.preventDefault();
+    }
+
     // Determine direction
     const direction = deltaX > 0 ? 'right' : deltaX < 0 ? 'left' : 'none';
 
@@ -82,7 +94,7 @@ export const useSwipeGesture = (options: SwipeGestureOptions = {}) => {
       swipeOffset: deltaX,
       direction
     }));
-  }, [state.isSwiping, state.startX, state.startY]);
+  }, [state.isSwiping, state.startX, state.startY, preventScroll]);
 
   // Handle touch end
   const handleTouchEnd = useCallback(() => {

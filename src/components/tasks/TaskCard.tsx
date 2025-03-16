@@ -63,7 +63,7 @@ const TaskCard = ({
     onSwipeLeft: () => handleDelete(),
     onSwipeRight: () => handleComplete(!task.completed),
     threshold: 50,
-    preventScroll: true
+    preventScroll: true  // Now this is a valid option
   });
 
   // Transform style for card when swiping
