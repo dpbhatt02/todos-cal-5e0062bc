@@ -19,6 +19,12 @@ interface TasksContextType {
   updateTask: (id: string, updates: Partial<TaskProps>) => Promise<TaskProps | null>;
   deleteTask: (id: string) => Promise<boolean>;
   loading: boolean;
+  syncing: boolean;
+  syncTaskToCalendar: (taskId: string) => Promise<boolean>;
+  syncAllTasksToCalendar: () => Promise<boolean>;
+  syncCalendarToTasks: () => Promise<boolean>;
+  synchronizeWithCalendar: () => Promise<boolean>;
+  isCalendarConnected: boolean;
 }
 
 const TasksContext = createContext<TasksContextType | undefined>(undefined);
@@ -46,7 +52,13 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
     createTask,
     updateTask,
     deleteTask,
-    loading
+    loading,
+    syncing,
+    syncTaskToCalendar,
+    syncAllTasksToCalendar,
+    syncCalendarToTasks,
+    synchronizeWithCalendar,
+    isCalendarConnected
   } = useTasksHook();
   
   const [isOverdueOpen, setIsOverdueOpen] = useState(true);
@@ -113,7 +125,13 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
       createTask,
       updateTask,
       deleteTask,
-      loading
+      loading,
+      syncing,
+      syncTaskToCalendar,
+      syncAllTasksToCalendar,
+      syncCalendarToTasks,
+      synchronizeWithCalendar,
+      isCalendarConnected
     }}>
       {children}
     </TasksContext.Provider>

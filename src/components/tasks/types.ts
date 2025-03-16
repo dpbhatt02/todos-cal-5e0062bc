@@ -2,33 +2,40 @@
 export interface TaskProps {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   priority: 'low' | 'medium' | 'high';
-  dueDate: Date | string;
+  dueDate: string | Date;
   completed: boolean;
+  tags: string[];
+  recurring?: {
+    frequency: string;
+    customDays?: string[];
+    endDate?: Date;
+    endAfter?: number;
+  };
+  // Google Calendar integration fields
+  googleCalendarEventId?: string;
+  googleCalendarId?: string;
   startTime?: string;
   endTime?: string;
-  tags?: string[];
-  recurring?: {
-    frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
-    endDate?: Date | string;
-    endAfter?: number;
-    customDays?: string[];
-  };
-  onEdit?: (task: TaskProps) => void;
-  onDelete?: (id: string) => void;
-  onReschedule?: (id: string, newDate: Date) => void;
+  isAllDay?: boolean;
+  syncSource?: 'app' | 'calendar';
+  lastSyncedAt?: string;
 }
 
-export const priorityClasses: Record<string, string> = {
-  low: 'bg-priority-low',
-  medium: 'bg-priority-medium',
-  high: 'bg-priority-high'
-};
+export interface TaskDate {
+  date: Date;
+  tasks: TaskProps[];
+}
 
-export const tagColors: Record<string, string> = {
-  work: 'bg-blue-500',
-  personal: 'bg-purple-500',
-  health: 'bg-green-500',
-  learning: 'bg-amber-500'
-};
+export interface TaskDateGroup {
+  name: string;
+  description?: string;
+  dates: TaskDate[];
+}
+
+export interface DateGroup {
+  title: string;
+  dates: Date[];
+  tasks: TaskProps[];
+}

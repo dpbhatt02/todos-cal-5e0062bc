@@ -11,5 +11,13 @@ export const mapDbTaskToTask = (dbTask: any): TaskProps => {
     dueDate: dbTask.due_date,
     completed: dbTask.completed,
     tags: [],
+    // Add Google Calendar fields
+    googleCalendarEventId: dbTask.google_calendar_event_id,
+    googleCalendarId: dbTask.google_calendar_id,
+    startTime: dbTask.start_time,
+    endTime: dbTask.end_time,
+    isAllDay: dbTask.is_all_day,
+    syncSource: dbTask.sync_source,
+    lastSyncedAt: dbTask.last_synced_at,
   };
 };

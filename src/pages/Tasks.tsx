@@ -5,11 +5,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import { useTasksContext } from '@/contexts/TasksContext';
 import { ButtonCustom } from '@/components/ui/button-custom';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw, Calendar } from 'lucide-react';
 import { TaskProps } from '@/components/tasks/types';
 import { TasksProvider } from '@/contexts/TasksContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Tasks = () => {
   const isMobile = useIsMobile();
@@ -64,7 +65,12 @@ const TasksContent = ({
   isCreateModalOpen: boolean; 
   setIsCreateModalOpen: (isOpen: boolean) => void;
 }) => {
-  const { createTask } = useTasksContext();
+  const { 
+    createTask, 
+    syncing, 
+    synchronizeWithCalendar, 
+    isCalendarConnected 
+  } = useTasksContext();
 
   const handleCreateTask = async (taskData: any) => {
     // Convert the data to the format expected by the createTask function
@@ -100,14 +106,36 @@ const TasksContent = ({
     <div className={`container ${isMobile ? 'px-2 sm:px-4' : 'py-6'}`}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Tasks</h1>
-        <ButtonCustom
-          variant="primary"
-          size="sm"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          New Task
-        </ButtonCustom>
+        <div className="flex gap-2">
+          {isCalendarConnected && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ButtonCustom
+                    variant="outline"
+                    size="sm"
+                    icon={<RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />}
+                    onClick={synchronizeWithCalendar}
+                    disabled={syncing}
+                  >
+                    {isMobile ? "" : "Sync Calendar"}
+                  </ButtonCustom>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Sync with Google Calendar</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <ButtonCustom
+            variant="primary"
+            size="sm"
+            icon={<Plus className="h-4 w-4" />}
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            New Task
+          </ButtonCustom>
+        </div>
       </div>
       <TaskList />
       <CreateTaskModal

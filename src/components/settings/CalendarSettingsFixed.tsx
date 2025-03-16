@@ -203,23 +203,45 @@ export const CalendarSettings = () => {
     
     setIsSyncing(true);
     try {
-      // Trigger calendar sync
-      const { error } = await supabase.functions.invoke('sync-google-calendars', {
+      // First, make sure we have fresh calendars
+      const calendarResponse = await supabase.functions.invoke('sync-google-calendars', {
         body: { userId: user.id }
       });
-
-      if (error) {
-        console.error('Error syncing calendars:', error);
+      
+      if (calendarResponse.error) {
+        console.error('Error syncing calendars:', calendarResponse.error);
         toast.error('Failed to sync calendars');
         return;
       }
-
+      
+      // Next, sync events to tasks
+      const tasksResponse = await supabase.functions.invoke('sync-calendar-to-tasks', {
+        body: { userId: user.id }
+      });
+      
+      if (tasksResponse.error) {
+        console.error('Error syncing events to tasks:', tasksResponse.error);
+        toast.error('Failed to sync events');
+        return;
+      }
+      
+      // Finally, sync tasks to events
+      const eventsResponse = await supabase.functions.invoke('sync-tasks-to-calendar', {
+        body: { userId: user.id }
+      });
+      
+      if (eventsResponse.error) {
+        console.error('Error syncing tasks to calendar:', eventsResponse.error);
+        toast.error('Failed to sync tasks');
+        return;
+      }
+      
       // Refetch calendars
       await fetchCalendars();
-      toast.success('Calendars synced successfully');
+      toast.success('Calendars and tasks synced successfully');
     } catch (error) {
-      console.error('Error syncing calendars:', error);
-      toast.error('Failed to sync calendars');
+      console.error('Error syncing:', error);
+      toast.error('Failed to sync');
     } finally {
       setIsSyncing(false);
     }
@@ -325,7 +347,7 @@ export const CalendarSettings = () => {
                     ) : (
                       <RefreshCw className="h-4 w-4 mr-2" />
                     )}
-                    Resync
+                    Sync Now
                   </Button>
                   <Button 
                     variant="outline" 
@@ -339,7 +361,9 @@ export const CalendarSettings = () => {
                 </div>
               </div>
               
-              <p className="text-sm text-muted-foreground">Resync if calendars aren't up-to-date.</p>
+              <p className="text-sm text-muted-foreground">
+                Sync now to update tasks and events between Google Calendar and TodosCal.
+              </p>
               
               <Separator />
               
