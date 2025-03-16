@@ -12,9 +12,9 @@ interface TaskCardActionsProps {
   selectedDate: Date;
   isCompleted: boolean;
   openModal: () => void;
-  onEdit?: (e: React.MouseEvent) => void;
-  onDelete?: (id: string) => void; // Changed type signature to match TaskActions
-  onReschedule: (date: Date | undefined) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onReschedule: (date: Date) => void;
   isMobile: boolean;
 }
 
@@ -35,24 +35,14 @@ const TaskCardActions = ({
     e.stopPropagation(); // Prevent opening the modal
     e.preventDefault(); // Prevent other events
     console.log("Edit button clicked for task:", id);
-    
-    if (onEdit) {
-      onEdit(e);
-    } else {
-      console.log("No onEdit callback provided for task:", id);
-    }
+    onEdit();
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the modal
     e.preventDefault(); // Prevent other events
     console.log("Delete button clicked for task:", id);
-    
-    if (onDelete) {
-      onDelete(id);
-    } else {
-      console.log("No onDelete callback provided for task:", id);
-    }
+    onDelete();
   };
 
   return (

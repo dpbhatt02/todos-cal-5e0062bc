@@ -28,6 +28,7 @@ const TaskCard = ({
   const [isSwipingLeft, setIsSwipingLeft] = useState(false);
   const [isSwipingRight, setIsSwipingRight] = useState(false);
   const [swipePosition, setSwipePosition] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const isMobile = useIsMobile();
 
   const handleEdit = () => {
@@ -58,29 +59,11 @@ const TaskCard = ({
   };
 
   // Setup swipe gesture for mobile
-  const { bindSwipeGesture } = useSwipeGesture({
-    onSwipeStart: () => {},
-    onSwipeMove: (event, { deltaX }) => {
-      // Determine swipe direction
-      setIsSwipingLeft(deltaX < 0);
-      setIsSwipingRight(deltaX > 0);
-      setSwipePosition(deltaX);
-    },
-    onSwipeEnd: (event, { deltaX }) => {
-      // Handle complete swipe action
-      if (deltaX > 100) {
-        // Swiped right (complete)
-        handleComplete(!task.completed);
-      } else if (deltaX < -100) {
-        // Swiped left (delete)
-        handleDelete();
-      }
-      
-      // Reset swipe state
-      setIsSwipingLeft(false);
-      setIsSwipingRight(false);
-      setSwipePosition(0);
-    },
+  const { handlers, state } = useSwipeGesture({
+    onSwipeLeft: () => handleDelete(),
+    onSwipeRight: () => handleComplete(!task.completed),
+    threshold: 50,
+    preventScroll: true
   });
 
   // Transform style for card when swiping
@@ -94,19 +77,25 @@ const TaskCard = ({
   const rightIndicatorOpacity = Math.min(Math.max(swipePosition, 0) / 100, 1);
 
   return (
-    <div className="relative">
+    <div 
+      className="relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Swipe indicators - only shown on mobile */}
       {isMobile && (
         <>
           <TaskCardSwipeIndicator 
-            position="left"
-            opacity={leftIndicatorOpacity}
-            icon="delete"
+            swiping={isSwipingLeft}
+            swipeOffset={swipePosition}
+            isCompleted={task.completed}
+            isMobile={isMobile}
           />
           <TaskCardSwipeIndicator 
-            position="right"
-            opacity={rightIndicatorOpacity}
-            icon="complete"
+            swiping={isSwipingRight}
+            swipeOffset={swipePosition}
+            isCompleted={task.completed}
+            isMobile={isMobile}
           />
         </>
       )}
@@ -119,13 +108,13 @@ const TaskCard = ({
           isSwipingLeft || isSwipingRight ? 'shadow-md' : ''
         )}
         style={isMobile ? transformStyle : undefined}
-        {...(isMobile ? bindSwipeGesture() : {})}
+        {...(isMobile ? handlers : {})}
       >
         <div className="p-4 flex gap-4">
           <TaskCardCheckbox 
             isCompleted={task.completed} 
-            priority={task.priority || 'medium'} 
-            onChange={(completed) => handleComplete(completed)}
+            onChange={(completed) => handleComplete(completed as boolean)}
+            isMobile={isMobile}
           />
 
           <TaskCardContent
@@ -135,10 +124,16 @@ const TaskCard = ({
           />
 
           <TaskCardActions
+            id={task.id}
             task={task}
+            isHovered={isHovered}
+            selectedDate={new Date(task.dueDate)}
+            isCompleted={task.completed}
+            openModal={() => handleEdit()}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onReschedule={handleReschedule}
+            isMobile={isMobile}
           />
         </div>
       </Card>

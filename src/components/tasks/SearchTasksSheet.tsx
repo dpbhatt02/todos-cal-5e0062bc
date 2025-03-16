@@ -116,8 +116,7 @@ const SearchTasksSheet: React.FC<SearchTasksSheetProps> = ({
                 {filteredTasks.map(task => (
                   <TaskCard 
                     key={task.id} 
-                    {...task} 
-                    // Remove onClick prop as it's not in TaskProps
+                    task={task}
                   />
                 ))}
               </div>

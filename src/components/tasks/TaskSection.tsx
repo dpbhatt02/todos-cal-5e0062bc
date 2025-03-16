@@ -55,7 +55,7 @@ const TaskSection = ({
               onDragEnd={(e) => sortOption === 'custom' && handleDragEnd(e)}
               className={sortOption === 'custom' ? 'cursor-move' : ''}
             >
-              <TaskCard {...task} />
+              <TaskCard task={task} />
             </div>
           ))
         ) : (

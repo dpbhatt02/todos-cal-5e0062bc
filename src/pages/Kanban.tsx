@@ -115,7 +115,7 @@ const Kanban = () => {
             <div className="p-4 space-y-2 min-h-[200px]">
               {columnTasks[column.id as keyof typeof columnTasks]?.length > 0 ? (
                 columnTasks[column.id as keyof typeof columnTasks].map(task => (
-                  <TaskCard key={task.id} {...task} />
+                  <TaskCard key={task.id} task={task} />
                 ))
               ) : (
                 <div className="text-center py-6">

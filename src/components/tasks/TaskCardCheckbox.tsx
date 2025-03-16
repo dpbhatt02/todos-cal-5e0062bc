@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 interface TaskCardCheckboxProps {
   isCompleted: boolean;
-  onChange: (checked: boolean | string) => void;
+  onChange: (checked: boolean) => void;
   isMobile: boolean;
 }
 

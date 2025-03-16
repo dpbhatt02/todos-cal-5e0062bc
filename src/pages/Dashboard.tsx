@@ -164,7 +164,7 @@ const Dashboard = () => {
             <div className="p-4 space-y-2">
               {todayTasks.length > 0 ? (
                 todayTasks.map(task => (
-                  <TaskCard key={task.id} {...task} />
+                  <TaskCard key={task.id} task={task} />
                 ))
               ) : (
                 <div className="text-center py-8">
@@ -198,7 +198,7 @@ const Dashboard = () => {
             <div className="p-4 space-y-2">
               {highPriorityTasks.length > 0 ? (
                 highPriorityTasks.map(task => (
-                  <TaskCard key={task.id} {...task} />
+                  <TaskCard key={task.id} task={task} />
                 ))
               ) : (
                 <div className="text-center py-8">
