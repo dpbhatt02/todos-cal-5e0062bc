@@ -152,8 +152,8 @@ export function useTasks() {
         }
       );
       //===tmp by db
-      console.log('Fetched Task:', task);
-      console.log('Updated At:', task.updated_at, typeof task.updated_at);
+      console.log('Fetched Task:', tasks);
+      //console.log('Updated At:', tasks.updated_at, typeof tasks.updated_at);
       //====
       if (error) {
         console.error('Error syncing task to calendar:', error);
