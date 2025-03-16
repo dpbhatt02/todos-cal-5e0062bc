@@ -44,7 +44,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user's Google Calendar integration
-    const { data: integration, error: integrationError } = await supabase
+    let { data: integration, error: integrationError } = await supabase
       .from("user_integrations")
       .select("*")
       .eq("user_id", userId)
@@ -63,10 +63,8 @@ serve(async (req) => {
         );
       }
       
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch integration details", details: integrationError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Log the error but continue with disconnection attempt
+      console.error("Will proceed with disconnection despite fetch error:", integrationError.message);
     }
 
     // If integration doesn't exist, consider it already disconnected
@@ -80,6 +78,7 @@ serve(async (req) => {
 
     // If the integration exists and has an access token, try to revoke it
     let tokenRevocationSuccess = false;
+    let tokenRevocationError = null;
     
     if (integration.access_token) {
       try {
@@ -98,6 +97,7 @@ serve(async (req) => {
         if (!revokeResponse.ok) {
           const responseText = await revokeResponse.text();
           console.error("Error revoking token:", responseText);
+          tokenRevocationError = responseText;
           // We continue with the disconnection even if token revocation fails
         } else {
           console.log("Successfully revoked access token");
@@ -105,6 +105,7 @@ serve(async (req) => {
         }
       } catch (revokeError) {
         console.error("Error during token revocation:", revokeError);
+        tokenRevocationError = revokeError.message;
         // We continue with the disconnection even if token revocation fails
       }
     } else {
@@ -113,7 +114,7 @@ serve(async (req) => {
 
     console.log("Updating integration record to disconnect");
     
-    // Update integration status in database
+    // Update integration status in database - ALWAYS mark as disconnected regardless of token revocation
     try {
       const { error: updateError } = await supabase
         .from("user_integrations")
@@ -137,20 +138,20 @@ serve(async (req) => {
               message: "Token was revoked but database could not be updated",
               details: updateError.message 
             }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
         
         return new Response(
           JSON.stringify({ error: "Failed to update integration status", details: updateError.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     } catch (updateException) {
       console.error("Exception during integration update:", updateException);
       return new Response(
         JSON.stringify({ error: "Exception during update operation", details: updateException.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -172,15 +173,21 @@ serve(async (req) => {
     }
 
     console.log("Successfully disconnected Google Calendar for user:", userId);
+    
+    // Return success even if token revocation failed, because we've marked the integration as disconnected
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ 
+        success: true,
+        tokenRevocationSuccess: tokenRevocationSuccess,
+        message: tokenRevocationError ? "Calendar disconnected but token revocation failed" : "Calendar disconnected successfully"
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Google Calendar Disconnect Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Unknown error occurred" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

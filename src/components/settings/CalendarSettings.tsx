@@ -116,11 +116,18 @@ const CalendarSettings = () => {
       if (error) {
         console.error('Error fetching calendars:', error);
         setError('Failed to fetch calendars');
-        toast.error('Failed to fetch calendars');
         
         // If there was an auth error, the integration might be disconnected
-        if (error.message?.includes('not connected') || error.message?.includes('authentication')) {
+        if (error.message?.includes('not connected') || 
+            error.message?.includes('authentication') || 
+            error.message?.includes('Invalid Credentials')) {
+          console.log('Auth error detected, marking as disconnected');
           setIsConnected(false);
+          
+          // Update the database to mark the integration as disconnected
+          await supabase.functions.invoke('google-calendar-disconnect', {
+            body: { userId: user.id }
+          });
         }
         
         return;
@@ -135,7 +142,6 @@ const CalendarSettings = () => {
     } catch (error) {
       console.error('Error fetching calendars:', error);
       setError('Unexpected error fetching calendars');
-      toast.error('Failed to fetch calendars');
     } finally {
       setIsLoading(false);
     }
@@ -210,18 +216,18 @@ const CalendarSettings = () => {
         return;
       }
 
+      // Update local state
+      setIsConnected(false);
+      setGoogleEmail(null);
+      setCalendars([]);
+      
+      toast.dismiss(toastId);
+      
       if (data.partialSuccess) {
-        toast.dismiss(toastId);
         toast.warning('Partially disconnected from Google Calendar. Some cleanup steps failed.');
       } else if (data.success) {
-        // Update local state
-        setIsConnected(false);
-        setGoogleEmail(null);
-        setCalendars([]);
-        toast.dismiss(toastId);
         toast.success('Disconnected from Google Calendar');
       } else {
-        toast.dismiss(toastId);
         toast.error('Unknown response from server');
         setError('Received unexpected response from server');
       }
@@ -241,12 +247,37 @@ const CalendarSettings = () => {
     setIsSyncing(true);
     setError(null);
     
+    const toastId = toast.loading('Syncing calendars...');
+    
     try {
+      // Call the sync function
+      const { data, error } = await supabase.functions.invoke('sync-google-calendars', {
+        body: { userId: user.id }
+      });
+      
+      if (error) {
+        console.error('Error syncing calendars:', error);
+        toast.dismiss(toastId);
+        toast.error('Failed to sync calendars');
+        setError('Failed to sync calendars');
+        
+        // If there was an auth error, the integration might be disconnected
+        if (error.message?.includes('not connected') || 
+            error.message?.includes('authentication')) {
+          setIsConnected(false);
+        }
+        
+        return;
+      }
+      
       // Refetch calendars
       await fetchCalendars();
+      
+      toast.dismiss(toastId);
       toast.success('Calendars synced successfully');
     } catch (error) {
       console.error('Error syncing calendars:', error);
+      toast.dismiss(toastId);
       toast.error('Failed to sync calendars');
       setError('Failed to sync calendars');
     } finally {
