@@ -51,6 +51,10 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
     return priorityClasses[priority] || priorityClasses.default;
   };
 
+  // Ensure task.tags is always an array
+  const tags = Array.isArray(task.tags) ? task.tags : [];
+  console.log('Task tags:', tags); // Debug log to see what's in the tags array
+
   return (
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2 mb-1">
@@ -111,12 +115,10 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
           </div>
         )}
         
-        {/* Always show tags, but on mobile limit to just a few */}
-        {task.tags && task.tags.length > 0 && (
-          <div className={`flex items-center gap-1 ${!isMobile ? 'ml-auto' : ''}`}>
-            <TaskTags tags={task.tags} />
-          </div>
-        )}
+        {/* Always show tags, regardless of mobile or not */}
+        <div className={`flex items-center gap-1 ${!isMobile ? 'ml-auto' : ''}`}>
+          <TaskTags tags={tags} />
+        </div>
       </div>
     </div>
   );

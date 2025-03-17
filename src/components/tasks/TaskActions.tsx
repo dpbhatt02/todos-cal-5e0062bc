@@ -25,8 +25,10 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
   const handleRescheduleToday = (e: React.MouseEvent) => {
     e.stopPropagation();
     const today = new Date();
+    console.log("Rescheduling to today:", today);
     onReschedule(today);
-    // Update the UI immediately by closing the popover
+    
+    // Close the popover
     const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
     if (popoverTrigger) {
       popoverTrigger.click(); // Close the popover
@@ -36,8 +38,10 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
   const handleRescheduleTomorrow = (e: React.MouseEvent) => {
     e.stopPropagation();
     const tomorrow = addDays(new Date(), 1);
+    console.log("Rescheduling to tomorrow:", tomorrow);
     onReschedule(tomorrow);
-    // Update the UI immediately by closing the popover
+    
+    // Close the popover
     const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
     if (popoverTrigger) {
       popoverTrigger.click(); // Close the popover
@@ -45,8 +49,10 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
   };
   
   const handleCalendarSelect = (date: Date | undefined) => {
+    console.log("Calendar date selected:", date);
     onReschedule(date);
-    // Update the UI immediately by closing the popover
+    
+    // Close the popover
     const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
     if (popoverTrigger) {
       popoverTrigger.click(); // Close the popover
@@ -59,11 +65,7 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
         className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
         aria-label="Edit task"
         type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onEdit(e);
-        }}
+        onClick={onEdit}
       >
         <Pencil className="h-4 w-4" />
       </button>
@@ -115,11 +117,7 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
         className="text-destructive hover:text-destructive/80 transition-colors p-1 rounded-md hover:bg-muted"
         aria-label="Delete task"
         type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onDelete(e);
-        }}
+        onClick={onDelete}
       >
         <Trash2 className="h-4 w-4" />
       </button>

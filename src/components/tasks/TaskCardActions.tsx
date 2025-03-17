@@ -37,7 +37,10 @@ const TaskCardActions = ({
     e.stopPropagation(); // Prevent opening the modal
     e.preventDefault(); // Prevent other events
     console.log("Edit button clicked for task:", id);
-    onEdit();
+    // Directly call the onEdit handler which should open the edit modal
+    if (onEdit) {
+      onEdit();
+    }
   };
 
   const handleDelete = async (e: React.MouseEvent) => {

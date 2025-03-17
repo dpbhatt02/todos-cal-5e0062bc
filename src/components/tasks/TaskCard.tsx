@@ -34,6 +34,7 @@ const TaskCard = ({
   const handleEdit = () => {
     console.log("Edit handler called for task:", task.id);
     if (onEdit) {
+      // Pass the entire task object to the edit handler
       onEdit(task);
     }
   };
@@ -128,7 +129,7 @@ const TaskCard = ({
             isHovered={isHovered}
             selectedDate={new Date(task.dueDate)}
             isCompleted={task.completed}
-            openModal={() => handleEdit()}
+            openModal={handleEdit}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onReschedule={handleReschedule}
