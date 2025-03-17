@@ -36,6 +36,42 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_sync_settings: {
+        Row: {
+          auto_sync_enabled: boolean
+          created_at: string | null
+          days_future: number
+          days_past: number
+          id: string
+          last_synced_at: string | null
+          sync_frequency_minutes: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_sync_enabled?: boolean
+          created_at?: string | null
+          days_future?: number
+          days_past?: number
+          id?: string
+          last_synced_at?: string | null
+          sync_frequency_minutes?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_sync_enabled?: boolean
+          created_at?: string | null
+          days_future?: number
+          days_past?: number
+          id?: string
+          last_synced_at?: string | null
+          sync_frequency_minutes?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -292,6 +328,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_default_sync_settings: {
+        Args: {
+          user_id_param: string
+          auto_sync_enabled_param: boolean
+          sync_frequency_minutes_param: number
+          days_past_param: number
+          days_future_param: number
+        }
+        Returns: string
+      }
+      get_auto_sync_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          auto_sync_enabled: boolean
+          created_at: string | null
+          days_future: number
+          days_past: number
+          id: string
+          last_synced_at: string | null
+          sync_frequency_minutes: number
+          updated_at: string | null
+          user_id: string
+        }[]
+      }
+      get_calendar_sync_settings: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["calendar_sync_settings_type"]
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -299,12 +365,39 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_last_synced: {
+        Args: {
+          user_id_param: string
+          last_synced_at_param: string
+        }
+        Returns: undefined
+      }
+      upsert_calendar_sync_settings: {
+        Args: {
+          user_id_param: string
+          auto_sync_enabled_param: boolean
+          sync_frequency_minutes_param: number
+          days_past_param: number
+          days_future_param: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user"
     }
     CompositeTypes: {
-      [_ in never]: never
+      calendar_sync_settings_type: {
+        id: string | null
+        user_id: string | null
+        auto_sync_enabled: boolean | null
+        sync_frequency_minutes: number | null
+        days_past: number | null
+        days_future: number | null
+        last_synced_at: string | null
+        created_at: string | null
+        updated_at: string | null
+      }
     }
   }
 }
