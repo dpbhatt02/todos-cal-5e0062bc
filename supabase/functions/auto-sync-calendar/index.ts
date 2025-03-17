@@ -27,11 +27,8 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get all users with auto-sync enabled
-    const { data: settings, error: settingsError } = await supabase
-      .from("calendar_sync_settings")
-      .select("user_id, last_synced_at")
-      .eq("auto_sync_enabled", true);
+    // Get all users with auto-sync enabled using a raw query to avoid type issues
+    const { data: settings, error: settingsError } = await supabase.rpc('get_auto_sync_users');
 
     if (settingsError) {
       console.error("Error fetching auto-sync settings:", settingsError);
@@ -68,10 +65,10 @@ serve(async (req) => {
         });
 
         // Update last synced timestamp
-        const { error: updateError } = await supabase
-          .from("calendar_sync_settings")
-          .update({ last_synced_at: new Date().toISOString() })
-          .eq("user_id", userId);
+        const { error: updateError } = await supabase.rpc('update_last_synced', { 
+          user_id_param: userId,
+          last_synced_at_param: new Date().toISOString()
+        });
 
         if (updateError) {
           console.error(`Error updating last_synced_at for user ${userId}:`, updateError);

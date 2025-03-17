@@ -13,6 +13,14 @@ import { useNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
 
+interface CalendarSyncSettings {
+  auto_sync_enabled: boolean;
+  sync_frequency_minutes: number;
+  days_past: number;
+  days_future: number;
+  last_synced_at?: string;
+}
+
 const Tasks = () => {
   const isMobile = useIsMobile();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -82,11 +90,12 @@ const TasksContent = ({
     
     const checkAutoSyncSettings = async () => {
       try {
+        // Use RPC function to get the settings
         const { data, error } = await supabase
-          .from('calendar_sync_settings')
-          .select('auto_sync_enabled, sync_frequency_minutes')
-          .eq('user_id', user.id)
-          .maybeSingle();
+          .rpc('get_calendar_sync_settings', { user_id_param: user.id }) as unknown as { 
+            data: CalendarSyncSettings | null, 
+            error: any 
+          };
           
         if (error) {
           console.error('Error fetching auto-sync settings:', error);
