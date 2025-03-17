@@ -34,7 +34,7 @@ const TaskCard = ({
   const handleEdit = () => {
     console.log("Edit handler called for task:", task.id);
     if (onEdit) {
-      // Pass the entire task object to the edit handler
+      // Explicitly pass the entire task object to trigger edit modal
       onEdit(task);
     }
   };
@@ -109,8 +109,9 @@ const TaskCard = ({
         )}
         style={isMobile ? transformStyle : undefined}
         {...(isMobile ? handlers : {})}
+        onClick={handleEdit} // Make the entire card clickable to edit
       >
-        <div className="p-4 flex gap-4">
+        <div className="p-4 flex gap-4" onClick={(e) => e.stopPropagation()}>
           <TaskCardCheckbox 
             isCompleted={task.completed} 
             onChange={(completed) => handleComplete(completed as boolean)}

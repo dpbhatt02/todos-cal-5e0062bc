@@ -17,15 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-//==============added by db on 16mar1:11pm to check form fields working?
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form";
-//=========== not worked! :(
+
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -67,38 +59,16 @@ function formatDate(date: Date) {
 }
 
 const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialData = {} }: CreateTaskModalProps) => {
-  
-  //====updated by db to enable typing on input fileds
-  
-  // const [taskData, setTaskData] = useState({
-  //   ...defaultTaskData,
-  //   ...(editMode && initialData ? initialData : {})
-  // });
-
-  
   const [taskData, setTaskData] = useState(() => ({
     ...defaultTaskData,
     ...(editMode ? initialData : {})
   }));
-
-
-  // Reset data when modal opens or closes or when initialData changes
-  // useEffect(() => {
-  //   if (isOpen) {
-  //     setTaskData({
-  //       ...defaultTaskData,
-  //       ...(editMode && initialData ? initialData : {})
-  //     });
-  //   }
-  // }, [isOpen, editMode, initialData]);
-
 
   useEffect(() => {
     if (editMode) {
       setTaskData((prev) => ({ ...prev, ...initialData }));
     }
   }, [editMode, initialData]);
-  //=====
 
   const [textSelection, setTextSelection] = useState({
     start: 0,
@@ -442,7 +412,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                     <SelectValue placeholder="No repetition" />
                   </div>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[105]">
                   <SelectItem value="none">No repetition</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>

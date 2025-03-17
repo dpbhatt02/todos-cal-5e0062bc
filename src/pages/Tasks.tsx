@@ -83,6 +83,7 @@ const TasksContent = ({
   } = useTasksContext();
   const { user } = useAuth();
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [lastOperation, setLastOperation] = useState<string | null>(null);
   
   // Check for auto-sync settings and set up periodic sync if enabled
   useEffect(() => {
@@ -141,6 +142,24 @@ const TasksContent = ({
     };
   }, [user, isCalendarConnected, synchronizeWithCalendar]);
 
+  // Sync on page load/refresh
+  useEffect(() => {
+    if (user && isCalendarConnected) {
+      // Sync on component mount (page load/refresh)
+      synchronizeWithCalendar();
+    }
+  }, [user, isCalendarConnected, synchronizeWithCalendar]);
+
+  // Track when operations occur and trigger sync
+  useEffect(() => {
+    if (lastOperation && user && isCalendarConnected) {
+      // Trigger sync after any operation
+      synchronizeWithCalendar();
+      // Reset the last operation
+      setLastOperation(null);
+    }
+  }, [lastOperation, user, isCalendarConnected, synchronizeWithCalendar]);
+
   const handleCreateTask = async (taskData: any) => {
     // Convert the data to the format expected by the createTask function
     const formattedData: Partial<TaskProps> = {
@@ -185,10 +204,9 @@ const TasksContent = ({
     const newTask = await createTask(formattedData as Omit<TaskProps, 'id'>);
     setIsCreateModalOpen(false);
     
-    // Only sync to calendar if auto-sync is enabled
-    if (newTask && autoSyncEnabled && isCalendarConnected) {
-      console.log('Auto-sync is enabled, syncing new task to calendar');
-      synchronizeWithCalendar();
+    // Set last operation to trigger sync
+    if (newTask) {
+      setLastOperation('create');
     }
   };
 
@@ -205,7 +223,7 @@ const TasksContent = ({
                     variant="outline"
                     size="sm"
                     icon={<RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />}
-                    onClick={synchronizeWithCalendar}
+                    onClick={() => synchronizeWithCalendar()}
                     disabled={syncing}
                   >
                     {isMobile ? "" : "Sync Calendar"}
@@ -227,7 +245,10 @@ const TasksContent = ({
           </ButtonCustom>
         </div>
       </div>
-      <TaskList />
+      <TaskList 
+        onTaskEdited={() => setLastOperation('edit')}
+        onTaskDeleted={() => setLastOperation('delete')}
+      />
       <CreateTaskModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

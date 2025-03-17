@@ -15,7 +15,7 @@ interface TagsListProps {
   isSidebarOpen: boolean;
 }
 
-// This component is currently hidden as per user request
+// This component is completely hidden as per user request
 const TagsList = ({ isSidebarOpen }: TagsListProps) => {
   // Return null to hide the component
   return null;
