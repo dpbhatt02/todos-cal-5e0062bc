@@ -179,11 +179,11 @@ export function useTasks() {
   // Function to sync all tasks to Google Calendar
   const syncAllTasksToCalendar = async () => {
     if (!user || !isCalendarConnected) return false;
-    console.log('syncAllTasksToCalendar is running with userId'); //db log
+    
     try {
       setSyncing(true);
       toast.loading('Syncing tasks to Google Calendar...');
-      
+      console.log('syncAllTasksToCalendar is running with userId'); //db log
       const { data, error } = await supabase.functions.invoke(
         'sync-tasks-to-calendar',
         {

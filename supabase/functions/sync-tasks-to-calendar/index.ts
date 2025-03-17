@@ -17,7 +17,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { userId, taskId } = body;
     //=== db log
-      console.log('db log of sync tasks to calender taskID:'+ taskId);
+      console.log('db log of sync tasks to calender userId:'+ userId);
     //===
     if (!userId) {
       return new Response(
@@ -180,7 +180,7 @@ serve(async (req) => {
       tasksQuery = tasksQuery.eq("id", taskId);
     } else {
       // Use proper PostgreSQL filter syntax
-      tasksQuery = tasksQuery.or('google_calendar_event_id.is.null,last_synced_at.is.null,last_synced_at.lt.updated_at');
+      tasksQuery = tasksQuery.or('google_calendar_event_id.is.null,last_synced_at.is.null');// db try,last_synced_at.lt.updated_at');
     }
     
     console.log("Running tasks query with filters");
