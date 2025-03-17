@@ -3,7 +3,6 @@ import React from 'react';
 import { Calendar, Clock, Flag } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import TaskTags from './TaskTags';
 import { TaskProps, priorityClasses } from './types';
 
 export interface TaskCardContentProps {
@@ -50,10 +49,6 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
     if (!priority) return "";
     return priorityClasses[priority] || priorityClasses.default;
   };
-
-  // Ensure task.tags is always an array
-  const tags = Array.isArray(task.tags) ? task.tags : [];
-  console.log('Task tags:', tags); // Debug log to see what's in the tags array
 
   return (
     <div className="flex-1 min-w-0">
@@ -114,11 +109,6 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
             </span>
           </div>
         )}
-        
-        {/* Always show tags, regardless of mobile or not */}
-        <div className={`flex items-center gap-1 ${!isMobile ? 'ml-auto' : ''}`}>
-          <TaskTags tags={tags} />
-        </div>
       </div>
     </div>
   );

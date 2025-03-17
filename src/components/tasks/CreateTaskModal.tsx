@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Bold, Italic, Link, List, Underline, Repeat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -18,11 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 //==============added by db on 16mar1:11pm to check form fields working?
 import {
   Form,
@@ -572,25 +566,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
             
             <Separator />
             
-            <div className="space-y-2">
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2">
-                {availableTags.map(tag => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => handleTagToggle(tag.id)}
-                    className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
-                      taskData.tags.includes(tag.id)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/70 hover:bg-muted'
-                    }`}
-                  >
-                    {tag.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Tags section hidden as per user request */}
           </div>
           
           <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/30">

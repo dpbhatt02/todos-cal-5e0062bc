@@ -62,8 +62,26 @@ serve(async (req) => {
           };
         }
         
+        // Check if we should sync based on the last sync time and sync interval
         const userId = setting.user_id;
-        console.log(`Processing auto-sync for user: ${userId}`);
+        const lastSynced = new Date(setting.last_synced_at || 0);
+        const now = new Date();
+        const syncIntervalMinutes = setting.sync_interval || 30; // Default to 30 minutes if not set
+        const syncIntervalMs = syncIntervalMinutes * 60 * 1000;
+        const timeSinceLastSync = now.getTime() - lastSynced.getTime();
+        
+        // Only sync if enough time has passed since the last sync
+        if (timeSinceLastSync < syncIntervalMs) {
+          console.log(`Skipping sync for user ${userId} - last sync was ${Math.floor(timeSinceLastSync / 60000)}m ago, interval is ${syncIntervalMinutes}m`);
+          return {
+            userId,
+            success: true,
+            skipped: true,
+            message: `Sync not due yet (last sync: ${Math.floor(timeSinceLastSync / 60000)}m ago, interval: ${syncIntervalMinutes}m)`
+          };
+        }
+        
+        console.log(`Processing auto-sync for user: ${userId} (last sync was ${Math.floor(timeSinceLastSync / 60000)}m ago)`);
 
         // First sync from calendar to tasks
         const calendarToTasksResponse = await supabase.functions.invoke("sync-calendar-to-tasks", {
@@ -105,12 +123,13 @@ serve(async (req) => {
       }
     }));
 
-    const successCount = results.filter(r => r.success).length;
+    const successCount = results.filter(r => r.success && !r.skipped).length;
+    const skippedCount = results.filter(r => r.skipped).length;
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Auto-synced ${successCount} of ${settings.length} users`,
+        message: `Auto-synced ${successCount} of ${settings.length} users (${skippedCount} skipped)`,
         results
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

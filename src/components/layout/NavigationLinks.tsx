@@ -1,7 +1,6 @@
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
   ListTodo
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -24,7 +23,7 @@ const NavigationLinks = ({ isSidebarOpen }: NavigationLinksProps) => {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const mainNavItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+    // Dashboard hidden as per user request
     { icon: ListTodo, label: 'Task List', path: '/tasks' },
   ];
 
