@@ -351,6 +351,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.log("Incoming payload:", req.body); // db log
     console.error("Sync Tasks to Calendar Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Unknown error occurred" }),
