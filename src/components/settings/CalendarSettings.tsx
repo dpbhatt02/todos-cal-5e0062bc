@@ -46,6 +46,20 @@ interface UserIntegration {
   updated_at: string;
 }
 
+interface SyncSettings {
+  auto_sync_enabled: boolean;
+  sync_frequency_minutes: number;
+  days_past: number;
+  days_future: number;
+}
+
+const DEFAULT_SYNC_SETTINGS = {
+  auto_sync_enabled: false,
+  sync_frequency_minutes: 30,
+  days_past: 7,
+  days_future: 30
+};
+
 const CalendarSettings = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,6 +69,8 @@ const CalendarSettings = () => {
   const [calendars, setCalendars] = useState<CalendarItem[]>([]);
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [syncSettings, setSyncSettings] = useState<SyncSettings>(DEFAULT_SYNC_SETTINGS);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const { user } = useAuth();
 
   // Check if user has connected Google Calendar
@@ -88,6 +104,7 @@ const CalendarSettings = () => {
           setGoogleEmail(data.provider_email);
           if (data.connected) {
             fetchCalendars();
+            fetchSyncSettings();
           } else {
             // Clear calendars if not connected
             setCalendars([]);
@@ -103,6 +120,83 @@ const CalendarSettings = () => {
 
     checkGoogleConnection();
   }, [user]);
+
+  const fetchSyncSettings = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('calendar_sync_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error fetching sync settings:', error);
+        return;
+      }
+      
+      if (data) {
+        setSyncSettings({
+          auto_sync_enabled: data.auto_sync_enabled,
+          sync_frequency_minutes: data.sync_frequency_minutes,
+          days_past: data.days_past,
+          days_future: data.days_future
+        });
+      } else {
+        // Create default settings if none exist
+        const { error: insertError } = await supabase
+          .from('calendar_sync_settings')
+          .insert({
+            user_id: user.id,
+            ...DEFAULT_SYNC_SETTINGS
+          });
+          
+        if (insertError) {
+          console.error('Error creating default sync settings:', insertError);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching sync settings:', error);
+    }
+  };
+
+  const saveSyncSettings = async () => {
+    if (!user) return;
+    
+    setIsSavingSettings(true);
+    const toastId = toast.loading('Saving sync settings...');
+    
+    try {
+      const { error } = await supabase
+        .from('calendar_sync_settings')
+        .upsert({
+          user_id: user.id,
+          ...syncSettings
+        });
+        
+      toast.dismiss(toastId);
+        
+      if (error) {
+        console.error('Error saving sync settings:', error);
+        toast.error('Failed to save sync settings');
+        return;
+      }
+      
+      toast.success('Sync settings saved successfully');
+      
+      // If auto-sync was enabled, trigger an initial sync
+      if (syncSettings.auto_sync_enabled) {
+        handleSync();
+      }
+    } catch (error) {
+      toast.dismiss(toastId);
+      console.error('Error saving sync settings:', error);
+      toast.error('Failed to save sync settings');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const fetchCalendars = async () => {
     if (!user) return;
@@ -267,9 +361,11 @@ const CalendarSettings = () => {
         body: { userId: user.id }
       });
       
+      // Always dismiss the toast
+      toast.dismiss(toastId);
+      
       if (error) {
         console.error('Error syncing calendars:', error);
-        toast.dismiss(toastId);
         toast.error('Failed to sync calendars');
         setError('Failed to sync calendars');
         
@@ -286,7 +382,6 @@ const CalendarSettings = () => {
       // Refetch calendars
       await fetchCalendars();
       
-      toast.dismiss(toastId);
       toast.success('Calendars synced successfully');
     } catch (error) {
       console.error('Error syncing calendars:', error);
@@ -328,6 +423,34 @@ const CalendarSettings = () => {
       // Revert local state on error
       setCalendars(calendars);
     }
+  };
+
+  const handleAutoSyncToggle = (enabled: boolean) => {
+    setSyncSettings({
+      ...syncSettings,
+      auto_sync_enabled: enabled
+    });
+  };
+  
+  const updateSyncFrequency = (minutes: number) => {
+    setSyncSettings({
+      ...syncSettings,
+      sync_frequency_minutes: minutes
+    });
+  };
+  
+  const updateDaysPast = (days: number) => {
+    setSyncSettings({
+      ...syncSettings,
+      days_past: days
+    });
+  };
+  
+  const updateDaysFuture = (days: number) => {
+    setSyncSettings({
+      ...syncSettings,
+      days_future: days
+    });
   };
   
   return (
@@ -489,18 +612,75 @@ const CalendarSettings = () => {
               
               <div className="space-y-4">
                 <h3 className="font-medium">Sync Settings</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h4 className="font-medium">Auto-sync with Google Calendar</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically sync tasks and events on a schedule
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={syncSettings.auto_sync_enabled} 
+                    onCheckedChange={handleAutoSyncToggle}
+                  />
+                </div>
+                
+                {syncSettings.auto_sync_enabled && (
+                  <div className="space-y-2">
+                    <Label htmlFor="sync-frequency">Sync frequency (minutes)</Label>
+                    <Input 
+                      id="sync-frequency" 
+                      type="number" 
+                      min="5"
+                      max="1440"
+                      value={syncSettings.sync_frequency_minutes} 
+                      onChange={(e) => updateSyncFrequency(parseInt(e.target.value) || 30)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      How often should we sync with Google Calendar (minimum 5 minutes)
+                    </p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div className="space-y-2">
                     <Label htmlFor="days-past">Days in the past</Label>
-                    <Input id="days-past" type="number" defaultValue="7" />
+                    <Input 
+                      id="days-past" 
+                      type="number"
+                      min="1"
+                      max="90"
+                      value={syncSettings.days_past}
+                      onChange={(e) => updateDaysPast(parseInt(e.target.value) || 7)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="days-future">Days in the future</Label>
-                    <Input id="days-future" type="number" defaultValue="30" />
+                    <Input 
+                      id="days-future" 
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={syncSettings.days_future}
+                      onChange={(e) => updateDaysFuture(parseInt(e.target.value) || 30)}
+                    />
                   </div>
                 </div>
                 <div className="pt-2">
-                  <Button>Save Sync Settings</Button>
+                  <Button 
+                    onClick={saveSyncSettings}
+                    disabled={isSavingSettings}
+                  >
+                    {isSavingSettings ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Sync Settings'
+                    )}
+                  </Button>
                 </div>
               </div>
             </div>

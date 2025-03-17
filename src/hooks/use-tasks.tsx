@@ -138,9 +138,11 @@ export function useTasks() {
   // Function to sync task to Google Calendar
   const syncTaskToCalendar = async (taskId: string) => {
     if (!user || !isCalendarConnected) return false;
-      console.log('syncTaskToCalendar is running with a taskId'); //db log
+    console.log('syncTaskToCalendar is running with a taskId'); //db log
+    
     try {
       setSyncing(true);
+      const toastId = toast.loading('Syncing task to Google Calendar...');
       
       const { data, error } = await supabase.functions.invoke(
         'sync-tasks-to-calendar',
@@ -151,6 +153,9 @@ export function useTasks() {
           }
         }
       );
+      
+      // Always dismiss the loading toast
+      toast.dismiss(toastId);
       
       if (error) {
         console.error('Error syncing task to calendar:', error);
@@ -182,25 +187,25 @@ export function useTasks() {
     
     try {
       setSyncing(true);
-      toast.loading('Syncing tasks to Google Calendar...');
+      const toastId = toast.loading('Syncing tasks to Google Calendar...');
+      
       console.log('syncAllTasksToCalendar is running with userId'); //db log
       const { data, error } = await supabase.functions.invoke(
         'sync-tasks-to-calendar',
         {
           body: {
             userId: user.id
-            //taskId: task.id //db tmp, giving error of task is not defined.
           }
         }
       );
      
+      // Always dismiss the loading toast
+      toast.dismiss(toastId);
+      
       if (error) {
-         //===db
-         console.error('db data log:', data);
-         //===
-        console.error('Error syncing tasks to calendar:', error);
-        toast.error('Failed to sync tasks to calendar');
-        return false;
+         console.error('Error syncing tasks to calendar:', error);
+         toast.error('Failed to sync tasks to calendar');
+         return false;
       }
       
       console.log('Tasks sync result:', data);
@@ -227,7 +232,7 @@ export function useTasks() {
     
     try {
       setSyncing(true);
-      toast.loading('Syncing events from Google Calendar...');
+      const toastId = toast.loading('Syncing events from Google Calendar...');
       
       const { data, error } = await supabase.functions.invoke(
         'sync-calendar-to-tasks',
@@ -237,6 +242,9 @@ export function useTasks() {
           }
         }
       );
+      
+      // Always dismiss the loading toast
+      toast.dismiss(toastId);
       
       if (error) {
         console.error('Error syncing calendar to tasks:', error);
@@ -271,13 +279,16 @@ export function useTasks() {
     
     try {
       setSyncing(true);
-      toast.loading('Synchronizing with Google Calendar...');
+      const toastId = toast.loading('Synchronizing with Google Calendar...');
       
       // First sync calendar events to tasks
       const calendarToTasksResult = await syncCalendarToTasks();
       
       // Then sync tasks to calendar
       const tasksToCalendarResult = await syncAllTasksToCalendar();
+      
+      // Always dismiss the main loading toast
+      toast.dismiss(toastId);
       
       if (calendarToTasksResult && tasksToCalendarResult) {
         toast.success('Synchronization with Google Calendar completed');

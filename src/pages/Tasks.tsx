@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
@@ -11,6 +11,7 @@ import { TasksProvider } from '@/contexts/TasksContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from '@/integrations/supabase/client';
 
 const Tasks = () => {
   const isMobile = useIsMobile();
@@ -71,6 +72,62 @@ const TasksContent = ({
     synchronizeWithCalendar, 
     isCalendarConnected 
   } = useTasksContext();
+  const { user } = useAuth();
+  
+  // Check for auto-sync settings and set up periodic sync if enabled
+  useEffect(() => {
+    if (!user || !isCalendarConnected) return;
+    
+    let syncInterval: number | null = null;
+    
+    const checkAutoSyncSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('calendar_sync_settings')
+          .select('auto_sync_enabled, sync_frequency_minutes')
+          .eq('user_id', user.id)
+          .maybeSingle();
+          
+        if (error) {
+          console.error('Error fetching auto-sync settings:', error);
+          return;
+        }
+        
+        if (data && data.auto_sync_enabled) {
+          // Clear any existing interval
+          if (syncInterval) {
+            clearInterval(syncInterval);
+          }
+          
+          // Set up new interval based on settings
+          const minutes = data.sync_frequency_minutes || 30;
+          const milliseconds = minutes * 60 * 1000;
+          
+          console.log(`Setting up auto-sync every ${minutes} minutes`);
+          
+          // Perform an initial sync
+          await synchronizeWithCalendar();
+          
+          // Set up the interval for future syncs
+          syncInterval = window.setInterval(() => {
+            console.log('Auto-sync triggered');
+            synchronizeWithCalendar();
+          }, milliseconds);
+        }
+      } catch (err) {
+        console.error('Error setting up auto-sync:', err);
+      }
+    };
+    
+    checkAutoSyncSettings();
+    
+    // Clean up the interval when the component unmounts
+    return () => {
+      if (syncInterval) {
+        clearInterval(syncInterval);
+      }
+    };
+  }, [user, isCalendarConnected, synchronizeWithCalendar]);
 
   const handleCreateTask = async (taskData: any) => {
     // Convert the data to the format expected by the createTask function
