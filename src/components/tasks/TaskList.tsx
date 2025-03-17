@@ -10,7 +10,12 @@ import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
 import { useAuth } from '@/contexts/AuthContext';
 
-const TaskList = () => {
+interface TaskListProps {
+  onTaskEdited?: () => void;
+  onTaskDeleted?: () => void;
+}
+
+const TaskList = ({ onTaskEdited, onTaskDeleted }: TaskListProps) => {
   const [viewOption, setViewOption] = useState('active');
   const [sortOption, setSortOption] = useState('date');
   const { user } = useAuth();
