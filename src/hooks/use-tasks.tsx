@@ -188,7 +188,7 @@ export function useTasks() {
         'sync-tasks-to-calendar',
         {
           body: {
-            userId: user.id,
+            userId: user.id
             //taskId: task.id //db tmp, giving error of task is not defined.
           }
         }
