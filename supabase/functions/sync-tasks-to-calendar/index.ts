@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -169,7 +170,7 @@ serve(async (req) => {
       console.log("No enabled calendars found, using primary calendar");
     }
 
-    // Fetch task(s) to sync - FIXED QUERY SYNTAX
+    // Fetch task(s) to sync - MODIFIED QUERY SYNTAX
     let tasksQuery = supabase
       .from("tasks")
       .select("id, title, due_date, updated_at, google_calendar_event_id, last_synced_at, description, priority, start_time, end_time, is_all_day")
@@ -179,11 +180,11 @@ serve(async (req) => {
     if (taskId) {
       tasksQuery = tasksQuery.eq("id", taskId);
     } else {
-      // Use proper PostgreSQL filter syntax
-      tasksQuery = tasksQuery.or('google_calendar_event_id.is.null,last_synced_at.is.null');// db try,last_synced_at.lt.updated_at');
+      // Simplified query - only look for tasks without Google Calendar event ID or last_synced_at
+      tasksQuery = tasksQuery.or('google_calendar_event_id.is.null,last_synced_at.is.null');
     }
     
-    console.log("Running tasks query with filters");
+    console.log("Running tasks query with simplified filters");
     const { data: tasks, error: tasksError } = await tasksQuery;
     
     if (tasksError) {
