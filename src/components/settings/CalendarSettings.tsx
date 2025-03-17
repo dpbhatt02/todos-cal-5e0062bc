@@ -137,12 +137,11 @@ const CalendarSettings = () => {
     if (!user) return;
     
     try {
-      // Use raw query to avoid TypeScript errors since the table isn't in the types
-      const { data, error } = await supabase
-        .rpc('get_calendar_sync_settings', { user_id_param: user.id }) as unknown as { 
-          data: CalendarSyncSettings | null, 
-          error: any 
-        };
+      // Use the raw query method to avoid TypeScript errors
+      const { data, error } = await supabase.rpc(
+        'get_calendar_sync_settings', 
+        { user_id_param: user.id }
+      );
         
       if (error) {
         console.error('Error fetching sync settings:', error);
@@ -158,14 +157,16 @@ const CalendarSettings = () => {
         });
       } else {
         // Create default settings if none exist
-        const { error: insertError } = await supabase
-          .rpc('create_default_sync_settings', { 
+        const { error: insertError } = await supabase.rpc(
+          'create_default_sync_settings', 
+          { 
             user_id_param: user.id,
             auto_sync_enabled_param: DEFAULT_SYNC_SETTINGS.auto_sync_enabled,
             sync_frequency_minutes_param: DEFAULT_SYNC_SETTINGS.sync_frequency_minutes,
             days_past_param: DEFAULT_SYNC_SETTINGS.days_past,
             days_future_param: DEFAULT_SYNC_SETTINGS.days_future
-          });
+          }
+        );
           
         if (insertError) {
           console.error('Error creating default sync settings:', insertError);
@@ -184,14 +185,16 @@ const CalendarSettings = () => {
     
     try {
       // Use RPC function to upsert settings
-      const { error } = await supabase
-        .rpc('upsert_calendar_sync_settings', {
+      const { error } = await supabase.rpc(
+        'upsert_calendar_sync_settings',
+        {
           user_id_param: user.id,
           auto_sync_enabled_param: syncSettings.auto_sync_enabled,
           sync_frequency_minutes_param: syncSettings.sync_frequency_minutes,
           days_past_param: syncSettings.days_past,
           days_future_param: syncSettings.days_future
-        });
+        }
+      );
         
       toast.dismiss(toastId);
         

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -90,12 +89,11 @@ const TasksContent = ({
     
     const checkAutoSyncSettings = async () => {
       try {
-        // Use RPC function to get the settings
-        const { data, error } = await supabase
-          .rpc('get_calendar_sync_settings', { user_id_param: user.id }) as unknown as { 
-            data: CalendarSyncSettings | null, 
-            error: any 
-          };
+        // Use RPC function to get the settings without type assertions
+        const { data, error } = await supabase.rpc(
+          'get_calendar_sync_settings', 
+          { user_id_param: user.id }
+        );
           
         if (error) {
           console.error('Error fetching auto-sync settings:', error);
