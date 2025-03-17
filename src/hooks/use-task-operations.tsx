@@ -10,12 +10,18 @@ export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
 
   // Helper function to properly format time for Postgres timestamp
-  const formatTimeForDB = (dateString: string, timeString: string): string => {
+  const formatTimeForDB = (dateInput: string | Date, timeString: string): string => {
     try {
-      // Extract date part
-      const datePart = dateString instanceof Date 
-        ? format(dateString, 'yyyy-MM-dd')
-        : dateString.split('T')[0];
+      // Extract date part based on type
+      let datePart: string;
+      
+      if (dateInput instanceof Date) {
+        // If it's a Date object, format it
+        datePart = format(dateInput, 'yyyy-MM-dd');
+      } else {
+        // If it's a string, extract the date part
+        datePart = dateInput.split('T')[0];
+      }
       
       // Combine date and time with timezone info
       return `${datePart}T${timeString}:00.000Z`;
