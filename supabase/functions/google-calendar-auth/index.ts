@@ -45,6 +45,8 @@ serve(async (req) => {
     const clientId = Deno.env.get("GOOGLE_CLIENT_ID") || "";
     const scopes = [
       "https://www.googleapis.com/auth/calendar",
+      "https://www.googleapis.com/auth/calendar.events",  // Added explicit events scope
+      "https://www.googleapis.com/auth/calendar.settings.readonly",
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile"
     ];
@@ -60,6 +62,7 @@ serve(async (req) => {
     authUrl.searchParams.append("state", userId);      // Pass the userId through the state parameter
 
     console.log("Generated auth URL with redirect to:", callbackUrl);
+    console.log("Requested scopes:", scopes.join(" "));
 
     return new Response(
       JSON.stringify({ authUrl: authUrl.toString() }),
