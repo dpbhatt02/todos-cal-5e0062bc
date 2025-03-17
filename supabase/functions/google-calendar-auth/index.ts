@@ -44,7 +44,7 @@ serve(async (req) => {
     // Set up OAuth parameters
     const clientId = Deno.env.get("GOOGLE_CLIENT_ID") || "";
     const scopes = [
-      "https://www.googleapis.com/auth/calendar.readonly",
+      "https://www.googleapis.com/auth/calendar",
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile"
     ];
