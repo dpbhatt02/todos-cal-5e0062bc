@@ -61,7 +61,17 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
     isCalendarConnected
   } = useTasksHook();
   
-  const [isOverdueOpen, setIsOverdueOpen] = useState(true);
+  // Get the initial overdue open state from localStorage or default to true
+  const savedOverdueOpen = localStorage.getItem('isOverdueOpen');
+  const [isOverdueOpen, setIsOverdueOpen] = useState(
+    savedOverdueOpen !== null ? savedOverdueOpen === 'true' : true
+  );
+  
+  // Save isOverdueOpen state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('isOverdueOpen', isOverdueOpen.toString());
+  }, [isOverdueOpen]);
+  
   const [customOrder, setCustomOrder] = useState<string[]>([]);
   
   // Use initialTasks if provided, otherwise use dbTasks

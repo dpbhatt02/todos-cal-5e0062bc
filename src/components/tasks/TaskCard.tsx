@@ -32,18 +32,21 @@ const TaskCard = ({
   const isMobile = useIsMobile();
 
   const handleEdit = () => {
+    console.log("Edit handler called for task:", task.id);
     if (onEdit) {
       onEdit(task);
     }
   };
 
   const handleDelete = () => {
+    console.log("Delete handler called for task:", task.id);
     if (onDelete) {
       onDelete(task.id);
     }
   };
 
   const handleReschedule = (newDate: Date) => {
+    console.log("Reschedule handler called for task:", task.id, "new date:", newDate);
     if (onReschedule) {
       onReschedule(task.id, newDate);
     }
@@ -63,7 +66,7 @@ const TaskCard = ({
     onSwipeLeft: () => handleDelete(),
     onSwipeRight: () => handleComplete(!task.completed),
     threshold: 50,
-    preventScroll: true  // Now this is a valid option
+    preventScroll: true
   });
 
   // Transform style for card when swiping
@@ -71,10 +74,6 @@ const TaskCard = ({
     transform: `translateX(${swipePosition}px)`,
     transition: swipePosition === 0 ? 'transform 0.3s ease' : 'none',
   };
-
-  // Determine opacity for swipe indicators
-  const leftIndicatorOpacity = Math.min(Math.abs(Math.min(swipePosition, 0)) / 100, 1);
-  const rightIndicatorOpacity = Math.min(Math.max(swipePosition, 0) / 100, 1);
 
   return (
     <div 

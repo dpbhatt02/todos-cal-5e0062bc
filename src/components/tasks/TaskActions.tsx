@@ -51,7 +51,10 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
               variant="ghost"
               size="sm"
               className="justify-start"
-              onClick={() => onReschedule(new Date())}
+              onClick={() => {
+                console.log("Rescheduling to today");
+                onReschedule(new Date());
+              }}
             >
               Today
             </Button>
@@ -59,7 +62,10 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
               variant="ghost"
               size="sm"
               className="justify-start"
-              onClick={() => onReschedule(addDays(new Date(), 1))}
+              onClick={() => {
+                console.log("Rescheduling to tomorrow");
+                onReschedule(addDays(new Date(), 1));
+              }}
             >
               Tomorrow
             </Button>
@@ -67,7 +73,10 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
               <CalendarComponent
                 mode="single"
                 selected={selectedDate}
-                onSelect={onReschedule}
+                onSelect={(date) => {
+                  console.log("Calendar date selected:", date);
+                  onReschedule(date);
+                }}
                 initialFocus
                 className="pointer-events-auto"
               />

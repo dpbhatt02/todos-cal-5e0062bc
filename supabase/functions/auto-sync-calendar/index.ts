@@ -51,6 +51,17 @@ serve(async (req) => {
     // Process each user
     const results = await Promise.all(settings.map(async (setting) => {
       try {
+        // Double-check that auto-sync is enabled for this user
+        if (!setting.auto_sync_enabled) {
+          console.log(`Auto-sync disabled for user ${setting.user_id}, skipping`);
+          return {
+            userId: setting.user_id,
+            success: false,
+            skipped: true,
+            message: "Auto-sync disabled"
+          };
+        }
+        
         const userId = setting.user_id;
         console.log(`Processing auto-sync for user: ${userId}`);
 

@@ -17,29 +17,37 @@ export const useTaskOperations = (user: any) => {
 
     try {
       setOperationLoading(true);
+      console.log('Creating task with data:', taskData); // Debug log
+      
       // Convert date to ISO string if it's a Date object
       const dueDate = taskData.dueDate instanceof Date 
         ? taskData.dueDate.toISOString() 
         : taskData.dueDate;
 
+      // Prepare the task data for database
+      const taskDbData = {
+        user_id: user.id,
+        title: taskData.title,
+        description: taskData.description,
+        priority: taskData.priority,
+        due_date: dueDate,
+        completed: taskData.completed || false,
+        sync_source: 'app', // Added for Google Calendar integration
+        start_time: taskData.startTime || null,
+        end_time: taskData.endTime || null,
+        is_all_day: taskData.isAllDay !== undefined ? taskData.isAllDay : true,
+      };
+
+      console.log('Task DB data being inserted:', taskDbData); // Debug log
+      
       const { data, error } = await supabase
         .from('tasks')
-        .insert({
-          user_id: user.id,
-          title: taskData.title,
-          description: taskData.description,
-          priority: taskData.priority,
-          due_date: dueDate,
-          completed: taskData.completed || false,
-          sync_source: 'app', // Added for Google Calendar integration
-          start_time: taskData.startTime,
-          end_time: taskData.endTime,
-          is_all_day: taskData.isAllDay || true,
-        })
+        .insert(taskDbData)
         .select()
         .single();
 
       if (error) {
+        console.error('Error creating task in database:', error);
         throw new Error(error.message);
       }
 
@@ -83,6 +91,7 @@ export const useTaskOperations = (user: any) => {
 
     try {
       setOperationLoading(true);
+      console.log('Updating task:', id, 'with updates:', updates); // Debug log
       
       // Check if we're dealing with mock data (IDs from mock data are numeric strings)
       if (/^\d+$/.test(id)) {
@@ -127,6 +136,8 @@ export const useTaskOperations = (user: any) => {
       dbUpdates.sync_source = 'app';
       dbUpdates.updated_at = new Date().toISOString();
 
+      console.log('DB updates being sent:', dbUpdates); // Debug log
+      
       const { data, error } = await supabase
         .from('tasks')
         .update(dbUpdates)
@@ -135,6 +146,7 @@ export const useTaskOperations = (user: any) => {
         .single();
 
       if (error) {
+        console.error('Error updating task in database:', error);
         throw new Error(error.message);
       }
 
@@ -151,7 +163,10 @@ export const useTaskOperations = (user: any) => {
         }
       }
 
-      return mapDbTaskToTask(data);
+      const mappedTask = mapDbTaskToTask(data);
+      console.log('Task updated successfully:', mappedTask); // Debug log
+      toast.success('Task updated successfully');
+      return mappedTask;
     } catch (err) {
       console.error('Error updating task:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to update task');
@@ -170,6 +185,7 @@ export const useTaskOperations = (user: any) => {
 
     try {
       setOperationLoading(true);
+      console.log('Deleting task:', id); // Debug log
       
       // Check if we're dealing with mock data (IDs from mock data are numeric strings)
       if (/^\d+$/.test(id)) {
@@ -224,6 +240,7 @@ export const useTaskOperations = (user: any) => {
         .eq('id', id);
 
       if (error) {
+        console.error('Error deleting task from database:', error);
         throw new Error(error.message);
       }
 

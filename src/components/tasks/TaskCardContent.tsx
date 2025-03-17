@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, Flag } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import TaskTags from './TaskTags';
-import { TaskProps } from './types';
+import { TaskProps, priorityClasses } from './types';
 
 export interface TaskCardContentProps {
   task: TaskProps;
@@ -35,16 +35,38 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
     }
   };
 
+  // Format time for display
+  const formatTime = (time: string) => {
+    return new Date(time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  };
+
+  // Priority display
+  const getPriorityClass = (priority: string | undefined) => {
+    if (!priority) return "";
+    return priorityClasses[priority] || priorityClasses.default;
+  };
+
   return (
     <div className="flex-1 min-w-0">
-      <h3 
-        className={cn(
-          'font-medium text-lg mb-1 truncate', 
-          isCompleted && 'line-through text-muted-foreground'
+      <div className="flex items-center gap-2 mb-1">
+        {task.priority && (
+          <div 
+            className={cn(
+              "w-2 h-2 rounded-full",
+              getPriorityClass(task.priority)
+            )}
+            title={`Priority: ${task.priority}`}
+          />
         )}
-      >
-        {task.title}
-      </h3>
+        <h3 
+          className={cn(
+            'font-medium text-lg truncate', 
+            isCompleted && 'line-through text-muted-foreground'
+          )}
+        >
+          {task.title}
+        </h3>
+      </div>
       
       {task.description && (
         <p 
@@ -65,10 +87,14 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
           </div>
         )}
         
+        {/* Display time duration if available */}
         {task.startTime && (
           <div className="flex items-center text-muted-foreground">
             <Clock className="h-3 w-3 mr-1" />
-            <span>{new Date(task.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            <span>
+              {formatTime(task.startTime)}
+              {task.endTime && ` - ${formatTime(task.endTime)}`}
+            </span>
           </div>
         )}
         

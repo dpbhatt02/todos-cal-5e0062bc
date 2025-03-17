@@ -45,6 +45,13 @@ const TaskCardActions = ({
     onDelete();
   };
 
+  const handleReschedule = (date: Date | undefined) => {
+    if (date) {
+      console.log("Rescheduling task", id, "to date:", date);
+      onReschedule(date);
+    }
+  };
+
   return (
     <div className="flex items-center space-x-1">
       {/* Always show actions on mobile, but only on hover for desktop */}
@@ -55,7 +62,7 @@ const TaskCardActions = ({
             selectedDate={selectedDate}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            onReschedule={onReschedule}
+            onReschedule={handleReschedule}
           />
         </div>
       )}

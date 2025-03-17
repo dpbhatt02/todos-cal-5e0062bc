@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -100,6 +101,8 @@ const TasksContent = ({
           return;
         }
         
+        console.log('Auto-sync settings:', data);
+        
         if (data && data.auto_sync_enabled) {
           // Clear any existing interval
           if (syncInterval) {
@@ -144,8 +147,21 @@ const TasksContent = ({
       priority: taskData.priority,
       dueDate: new Date(taskData.dueDate),
       completed: false,
-      tags: taskData.tags || []
+      tags: taskData.tags || [],
     };
+
+    // Add time information if present
+    if (taskData.startTime) {
+      formattedData.startTime = taskData.startTime;
+    }
+    
+    if (taskData.endTime) {
+      formattedData.endTime = taskData.endTime;
+    }
+    
+    if (taskData.isAllDay !== undefined) {
+      formattedData.isAllDay = taskData.isAllDay;
+    }
 
     // Include recurring data if present
     if (taskData.recurring && taskData.recurring !== 'none') {
@@ -162,6 +178,8 @@ const TasksContent = ({
       }
     }
 
+    console.log('Formatted task data:', formattedData);
+    
     await createTask(formattedData as Omit<TaskProps, 'id'>);
     setIsCreateModalOpen(false);
   };
