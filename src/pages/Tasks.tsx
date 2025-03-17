@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
 
+// Define a simple interface for sync settings
 interface CalendarSyncSettings {
   auto_sync_enabled: boolean;
   sync_frequency_minutes: number;
@@ -89,7 +90,6 @@ const TasksContent = ({
     
     const checkAutoSyncSettings = async () => {
       try {
-        // Use RPC function to get the settings without type assertions
         const { data, error } = await supabase.rpc(
           'get_calendar_sync_settings', 
           { user_id_param: user.id }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -137,7 +136,6 @@ const CalendarSettings = () => {
     if (!user) return;
     
     try {
-      // Use the raw query method to avoid TypeScript errors
       const { data, error } = await supabase.rpc(
         'get_calendar_sync_settings', 
         { user_id_param: user.id }
@@ -150,14 +148,14 @@ const CalendarSettings = () => {
       
       if (data) {
         setSyncSettings({
-          auto_sync_enabled: data.auto_sync_enabled,
-          sync_frequency_minutes: data.sync_frequency_minutes,
-          days_past: data.days_past,
-          days_future: data.days_future
+          auto_sync_enabled: data.auto_sync_enabled || DEFAULT_SYNC_SETTINGS.auto_sync_enabled,
+          sync_frequency_minutes: data.sync_frequency_minutes || DEFAULT_SYNC_SETTINGS.sync_frequency_minutes,
+          days_past: data.days_past || DEFAULT_SYNC_SETTINGS.days_past,
+          days_future: data.days_future || DEFAULT_SYNC_SETTINGS.days_future
         });
       } else {
         // Create default settings if none exist
-        const { error: insertError } = await supabase.rpc(
+        await supabase.rpc(
           'create_default_sync_settings', 
           { 
             user_id_param: user.id,
@@ -167,10 +165,6 @@ const CalendarSettings = () => {
             days_future_param: DEFAULT_SYNC_SETTINGS.days_future
           }
         );
-          
-        if (insertError) {
-          console.error('Error creating default sync settings:', insertError);
-        }
       }
     } catch (error) {
       console.error('Error fetching sync settings:', error);

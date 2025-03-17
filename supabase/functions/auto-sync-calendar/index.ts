@@ -27,7 +27,7 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get all users with auto-sync enabled using a raw query to avoid type issues
+    // Get all users with auto-sync enabled using the RPC function
     const { data: settings, error: settingsError } = await supabase.rpc('get_auto_sync_users');
 
     if (settingsError) {
@@ -64,7 +64,7 @@ serve(async (req) => {
           body: { userId }
         });
 
-        // Update last synced timestamp
+        // Update last synced timestamp using the RPC function
         const { error: updateError } = await supabase.rpc('update_last_synced', { 
           user_id_param: userId,
           last_synced_at_param: new Date().toISOString()
