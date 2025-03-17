@@ -82,6 +82,7 @@ const TasksContent = ({
     isCalendarConnected 
   } = useTasksContext();
   const { user } = useAuth();
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   
   // Check for auto-sync settings and set up periodic sync if enabled
   useEffect(() => {
@@ -102,6 +103,7 @@ const TasksContent = ({
         }
         
         console.log('Auto-sync settings:', data);
+        setAutoSyncEnabled(data?.auto_sync_enabled || false);
         
         if (data && data.auto_sync_enabled) {
           // Clear any existing interval
@@ -180,8 +182,14 @@ const TasksContent = ({
 
     console.log('Formatted task data:', formattedData);
     
-    await createTask(formattedData as Omit<TaskProps, 'id'>);
+    const newTask = await createTask(formattedData as Omit<TaskProps, 'id'>);
     setIsCreateModalOpen(false);
+    
+    // Only sync to calendar if auto-sync is enabled
+    if (newTask && autoSyncEnabled && isCalendarConnected) {
+      console.log('Auto-sync is enabled, syncing new task to calendar');
+      synchronizeWithCalendar();
+    }
   };
 
   return (

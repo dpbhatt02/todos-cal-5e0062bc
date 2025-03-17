@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { TaskProps } from './types';
 import TaskActions from './TaskActions';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTasksContext } from '@/contexts/TasksContext';
 
 interface TaskCardActionsProps {
   id: string;
@@ -30,6 +31,7 @@ const TaskCardActions = ({
   onReschedule,
   isMobile
 }: TaskCardActionsProps) => {
+  const { updateTask, deleteTask } = useTasksContext();
   
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the modal
@@ -38,16 +40,23 @@ const TaskCardActions = ({
     onEdit();
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the modal
     e.preventDefault(); // Prevent other events
     console.log("Delete button clicked for task:", id);
-    onDelete();
+    
+    // Actually delete the task from the database
+    const success = await deleteTask(id);
+    if (success) {
+      onDelete(); // Notify parent component after deletion
+    }
   };
 
   const handleReschedule = (date: Date | undefined) => {
     if (date) {
       console.log("Rescheduling task", id, "to date:", date);
+      // Actually update the task in the database
+      updateTask(id, { dueDate: date });
       onReschedule(date);
     }
   };

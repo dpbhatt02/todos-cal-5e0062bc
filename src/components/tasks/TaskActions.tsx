@@ -9,6 +9,7 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { addDays } from 'date-fns';
+import { useTasksContext } from '@/contexts/TasksContext';
 
 interface TaskActionsProps {
   id: string;
@@ -19,6 +20,39 @@ interface TaskActionsProps {
 }
 
 const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskActionsProps) => {
+  const { updateTask } = useTasksContext();
+  
+  const handleRescheduleToday = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const today = new Date();
+    onReschedule(today);
+    // Update the UI immediately by closing the popover
+    const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
+    if (popoverTrigger) {
+      popoverTrigger.click(); // Close the popover
+    }
+  };
+  
+  const handleRescheduleTomorrow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const tomorrow = addDays(new Date(), 1);
+    onReschedule(tomorrow);
+    // Update the UI immediately by closing the popover
+    const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
+    if (popoverTrigger) {
+      popoverTrigger.click(); // Close the popover
+    }
+  };
+  
+  const handleCalendarSelect = (date: Date | undefined) => {
+    onReschedule(date);
+    // Update the UI immediately by closing the popover
+    const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
+    if (popoverTrigger) {
+      popoverTrigger.click(); // Close the popover
+    }
+  };
+
   return (
     <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
       <button 
@@ -40,6 +74,7 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
             className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
             aria-label="Reschedule task"
             type="button"
+            data-trigger-for={id}
             onClick={(e) => e.stopPropagation()}
           >
             <Calendar className="h-4 w-4" />
@@ -51,10 +86,7 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
               variant="ghost"
               size="sm"
               className="justify-start"
-              onClick={() => {
-                console.log("Rescheduling to today");
-                onReschedule(new Date());
-              }}
+              onClick={handleRescheduleToday}
             >
               Today
             </Button>
@@ -62,10 +94,7 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
               variant="ghost"
               size="sm"
               className="justify-start"
-              onClick={() => {
-                console.log("Rescheduling to tomorrow");
-                onReschedule(addDays(new Date(), 1));
-              }}
+              onClick={handleRescheduleTomorrow}
             >
               Tomorrow
             </Button>
@@ -73,10 +102,7 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
               <CalendarComponent
                 mode="single"
                 selected={selectedDate}
-                onSelect={(date) => {
-                  console.log("Calendar date selected:", date);
-                  onReschedule(date);
-                }}
+                onSelect={handleCalendarSelect}
                 initialFocus
                 className="pointer-events-auto"
               />

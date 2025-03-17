@@ -4,9 +4,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
 import { toast } from 'sonner';
 import { mapDbTaskToTask } from './use-task-mapper';
+import { format, parseISO } from 'date-fns';
 
 export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
+
+  // Helper function to properly format time for Postgres timestamp
+  const formatTimeForDB = (dateString: string, timeString: string): string => {
+    try {
+      // Extract date part
+      const datePart = dateString instanceof Date 
+        ? format(dateString, 'yyyy-MM-dd')
+        : dateString.split('T')[0];
+      
+      // Combine date and time with timezone info
+      return `${datePart}T${timeString}:00.000Z`;
+    } catch (err) {
+      console.error('Error formatting time:', err);
+      return timeString;
+    }
+  };
 
   // Create a new task
   const createTask = async (taskData: Omit<TaskProps, 'id'>) => {
@@ -24,6 +41,20 @@ export const useTaskOperations = (user: any) => {
         ? taskData.dueDate.toISOString() 
         : taskData.dueDate;
 
+      // Format start and end times properly
+      let startTime = null;
+      let endTime = null;
+      
+      if (taskData.startTime) {
+        startTime = formatTimeForDB(dueDate, taskData.startTime);
+        console.log('Formatted start time:', startTime);
+      }
+      
+      if (taskData.endTime) {
+        endTime = formatTimeForDB(dueDate, taskData.endTime);
+        console.log('Formatted end time:', endTime);
+      }
+
       // Prepare the task data for database
       const taskDbData = {
         user_id: user.id,
@@ -33,8 +64,8 @@ export const useTaskOperations = (user: any) => {
         due_date: dueDate,
         completed: taskData.completed || false,
         sync_source: 'app', // Added for Google Calendar integration
-        start_time: taskData.startTime || null,
-        end_time: taskData.endTime || null,
+        start_time: startTime,
+        end_time: endTime,
         is_all_day: taskData.isAllDay !== undefined ? taskData.isAllDay : true,
       };
 
@@ -60,12 +91,8 @@ export const useTaskOperations = (user: any) => {
           .eq('provider', 'google_calendar')
           .maybeSingle();
           
-        if (integration?.connected) {
-          // Fire and forget - don't wait for the result
-          supabase.functions.invoke('sync-tasks-to-calendar', {
-            body: { userId: user.id, taskId: data.id }
-          });
-        }
+        // Note: We've moved the actual sync functionality to the Tasks.tsx component
+        // to respect the auto-sync setting
       } catch (syncError) {
         console.error('Error checking calendar integration:', syncError);
         // Continue without syncing
@@ -127,9 +154,18 @@ export const useTaskOperations = (user: any) => {
           : updates.dueDate;
       }
       
+      // Format start and end times properly
+      if (updates.startTime !== undefined) {
+        const dueDate = updates.dueDate || dbUpdates.due_date;
+        dbUpdates.start_time = updates.startTime ? formatTimeForDB(dueDate, updates.startTime) : null;
+      }
+      
+      if (updates.endTime !== undefined) {
+        const dueDate = updates.dueDate || dbUpdates.due_date;
+        dbUpdates.end_time = updates.endTime ? formatTimeForDB(dueDate, updates.endTime) : null;
+      }
+      
       if (updates.completed !== undefined) dbUpdates.completed = updates.completed;
-      if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
-      if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
       if (updates.isAllDay !== undefined) dbUpdates.is_all_day = updates.isAllDay;
       
       // Mark that this update came from the app

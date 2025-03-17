@@ -37,7 +37,12 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
 
   // Format time for display
   const formatTime = (time: string) => {
-    return new Date(time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    try {
+      return new Date(time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    } catch (err) {
+      console.error('Error formatting time:', err, time);
+      return time;
+    }
   };
 
   // Priority display
@@ -106,8 +111,9 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
           </div>
         )}
         
-        {!isMobile && task.tags && task.tags.length > 0 && (
-          <div className="flex items-center gap-1 ml-auto">
+        {/* Always show tags, but on mobile limit to just a few */}
+        {task.tags && task.tags.length > 0 && (
+          <div className={`flex items-center gap-1 ${!isMobile ? 'ml-auto' : ''}`}>
             <TaskTags tags={task.tags} />
           </div>
         )}
