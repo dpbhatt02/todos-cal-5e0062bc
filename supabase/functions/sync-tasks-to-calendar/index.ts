@@ -75,7 +75,6 @@ serve(async (req) => {
     if (tokenExpires && now >= tokenExpires && integration.refresh_token) {
       console.log("Token expired, refreshing...");
       
-      
       try {
         const tokenUrl = "https://oauth2.googleapis.com/token";
         const tokenParams = new URLSearchParams({
@@ -235,18 +234,7 @@ serve(async (req) => {
           };
         }
         
-        // Parse the due date respecting its timezone
-        const taskDate = new Date(task.due_date);
-        console.log(`Processing task: ${task.title}, Due date: ${task.due_date}, Date obj: ${taskDate}, Is All Day: ${task.is_all_day}`);
-        
-        // Extract timezone from due_date if available
-        let taskTimezone = userTimezone;
-        const tzMatch = task.due_date.match(/([+-]\d{2}:?\d{2})$/);
-        if (tzMatch) {
-          // Convert offset to IANA timezone format (best effort approximation)
-          const offset = tzMatch[1];
-          console.log(`Task has timezone offset: ${offset}`);
-        }
+        console.log(`Processing task: ${task.title}, Due date: ${task.due_date}, Is All Day: ${task.is_all_day}`);
         
         // Prepare event data for Google Calendar
         const eventData: any = {
@@ -255,85 +243,65 @@ serve(async (req) => {
         };
         
         // Handle all-day events vs time-specific events
-        if (task.is_all_day || (!task.start_time && !task.end_time)) {
-          // All-day event - use the date part only
-          const dateOnly = task.due_date.split('T')[0];
+        if (task.is_all_day) {
+          // For all-day events, use the date part only
+          const dueDate = new Date(task.due_date);
+          const dateOnly = dueDate.toISOString().split('T')[0];
           
           eventData.start = {
-            date: dateOnly,
-            timeZone: taskTimezone
+            date: dateOnly
           };
           eventData.end = {
-            date: dateOnly,
-            timeZone: taskTimezone
+            date: dateOnly
           };
           
           console.log(`Setting up all-day event for ${dateOnly}`);
         } else {
-          // Time-specific event - preserve the user's timezone
+          // For time-specific events
           if (task.start_time) {
-            // Extract start time with timezone
-            eventData.start = {
-              dateTime: task.start_time,
-              timeZone: taskTimezone
-            };
-            
-            console.log(`Setting event start time: ${task.start_time} (${taskTimezone})`);
-          } else {
-            // Fallback to due_date if no start_time
-            eventData.start = {
-              dateTime: task.due_date,
-              timeZone: taskTimezone
-            };
-            
-            console.log(`Fallback to due_date for start time: ${task.due_date}`);
-          }
-          
-          if (task.end_time) {
-            // Extract end time with timezone
-            eventData.end = {
-              dateTime: task.end_time,
-              timeZone: taskTimezone
-            };
-            
-            console.log(`Setting event end time: ${task.end_time} (${taskTimezone})`);
-          } else if (task.start_time) {
-            // If start_time but no end_time, add 30 minutes
-            // Parse the start time including its timezone
+            // Use start_time directly
             const startDate = new Date(task.start_time);
             
-            // Add 30 minutes
-            const endDate = new Date(startDate.getTime() + 30 * 60000);
-            
-            // Format with the same timezone as start_time
-            // Get timezone from start_time
-            const startTzMatch = task.start_time.match(/([+-]\d{2}:?\d{2})$/);
-            const tzString = startTzMatch ? startTzMatch[1] : 'Z';
-            
-            // Format the end date preserving timezone
-            const endIso = endDate.toISOString().replace(/\.\d{3}Z$/, tzString);
-            
-            eventData.end = {
-              dateTime: endIso,
-              timeZone: taskTimezone
+            eventData.start = {
+              dateTime: startDate.toISOString()
             };
             
-            console.log(`Generated end time (start + 30min): ${endIso} (${taskTimezone})`);
+            console.log(`Setting event start time: ${startDate.toISOString()}`);
+            
+            if (task.end_time) {
+              // Use end_time directly if available
+              const endDate = new Date(task.end_time);
+              
+              eventData.end = {
+                dateTime: endDate.toISOString()
+              };
+              
+              console.log(`Setting event end time: ${endDate.toISOString()}`);
+            } else {
+              // If no end_time, add 30 minutes to start time
+              const endDate = new Date(startDate.getTime() + 30 * 60000);
+              
+              eventData.end = {
+                dateTime: endDate.toISOString()
+              };
+              
+              console.log(`Generated end time (start + 30min): ${endDate.toISOString()}`);
+            }
           } else {
-            // Fallback to due_date if no times available
+            // Fallback to due_date with a 30-minute duration
             const dueDate = new Date(task.due_date);
-            const endTime = new Date(dueDate.getTime() + 30 * 60000);
             
-            // Format with timezone
-            const tzOffset = tzMatch ? tzMatch[1] : 'Z';
-            const endIso = endTime.toISOString().replace(/\.\d{3}Z$/, tzOffset);
-            
-            eventData.end = {
-              dateTime: endIso,
-              timeZone: taskTimezone
+            eventData.start = {
+              dateTime: dueDate.toISOString()
             };
             
-            console.log(`Fallback to due_date + 30min for end time: ${endIso}`);
+            const endDate = new Date(dueDate.getTime() + 30 * 60000);
+            
+            eventData.end = {
+              dateTime: endDate.toISOString()
+            };
+            
+            console.log(`Using due_date as event time: ${dueDate.toISOString()} to ${endDate.toISOString()}`);
           }
         }
         

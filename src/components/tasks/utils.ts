@@ -19,45 +19,29 @@ export const formatFullDate = (date: Date | string) => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
   // Get date parts in user's timezone
-  const userTimezone = getLocalTimezone();
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: userTimezone,
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  });
-  
-  const parts = formatter.formatToParts(dateObj);
-  const day = parts.find(part => part.type === 'day')?.value || '';
-  const month = parts.find(part => part.type === 'month')?.value || '';
-  const year = parts.find(part => part.type === 'year')?.value || '';
+  const day = dateObj.getDate();
+  const month = dateObj.toLocaleString('en-US', { month: 'short' });
+  const year = dateObj.getFullYear();
   
   // Get day of week in user's timezone
-  const dayFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: userTimezone,
-    weekday: 'long'
-  });
-  const dayName = dayFormatter.format(dateObj);
+  const dayName = dateObj.toLocaleString('en-US', { weekday: 'long' });
   
-  // Check if it's today or tomorrow in user's timezone
-  const todayFormatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: userTimezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-  
+  // Check if it's today or tomorrow
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   
-  const dateStr = todayFormatter.format(dateObj);
-  const todayStr = todayFormatter.format(today);
-  const tomorrowStr = todayFormatter.format(tomorrow);
+  const isToday = dateObj.getDate() === today.getDate() && 
+                  dateObj.getMonth() === today.getMonth() && 
+                  dateObj.getFullYear() === today.getFullYear();
   
-  if (dateStr === todayStr) {
+  const isTomorrow = dateObj.getDate() === tomorrow.getDate() && 
+                     dateObj.getMonth() === tomorrow.getMonth() && 
+                     dateObj.getFullYear() === tomorrow.getFullYear();
+  
+  if (isToday) {
     return `${day} ${month}, ${year} · Today`;
-  } else if (dateStr === tomorrowStr) {
+  } else if (isTomorrow) {
     return `${day} ${month}, ${year} · Tomorrow`;
   } else {
     return `${day} ${month}, ${year} · ${dayName}`;
@@ -81,21 +65,30 @@ export const getRecurringLabel = (frequency?: 'daily' | 'weekly' | 'monthly' | '
   }
 };
 
-// Format time consistently with user's timezone
+// Format time consistently with standard browser APIs
 export const formatTime = (timeString: string): string => {
   if (!timeString) return '';
   
   try {
     // If it contains a 'T', it's likely an ISO string
     if (timeString.includes('T')) {
-      return formatTimeInTimezone(timeString);
+      const date = new Date(timeString);
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }).replace(/\s/g, '');
     }
     
     // Otherwise it's just a time string, construct a full date to format
     const [hours, minutes] = timeString.split(':').map(Number);
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);
-    return formatTimeInTimezone(date);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).replace(/\s/g, '');
   } catch (err) {
     console.error('Error formatting time:', err);
     return timeString;
@@ -105,26 +98,17 @@ export const formatTime = (timeString: string): string => {
 // Get the current timezone information for display
 export const getCurrentTimezone = (): { name: string, offset: string } => {
   try {
-    const timezone = getLocalTimezone();
-    
-    // Get current date in the timezone
     const date = new Date();
     
     // Get timezone name
-    const timeZoneName = new Intl.DateTimeFormat('en-US', { 
-      timeZone: timezone, 
-      timeZoneName: 'long'
-    }).formatToParts(date)
-      .find(part => part.type === 'timeZoneName')?.value || timezone;
+    const timeZoneName = Intl.DateTimeFormat().resolvedOptions().timeZone;
     
-    // Get timezone offset
-    const formatter = new Intl.DateTimeFormat('en-GB', { 
-      timeZone: timezone, 
-      timeZoneName: 'short' 
-    });
-    const parts = formatter.formatToParts(date);
-    const timeZonePart = parts.find(part => part.type === 'timeZoneName');
-    const offsetString = timeZonePart?.value || '';
+    // Get timezone offset as string
+    const offsetMinutes = date.getTimezoneOffset();
+    const hours = Math.abs(Math.floor(offsetMinutes / 60));
+    const minutes = Math.abs(offsetMinutes % 60);
+    const sign = offsetMinutes <= 0 ? '+' : '-'; // Note: getTimezoneOffset returns inverted sign
+    const offsetString = `GMT${sign}${hours}:${minutes.toString().padStart(2, '0')}`;
     
     return {
       name: timeZoneName,
@@ -139,7 +123,7 @@ export const getCurrentTimezone = (): { name: string, offset: string } => {
   }
 };
 
-// Convert a form date and time to an ISO string with timezone
+// Convert a form date and time to an ISO string
 export const formDateTimeToISO = (dateStr: string, timeStr: string | null): string | null => {
   if (!dateStr) return null;
   
