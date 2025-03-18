@@ -200,6 +200,8 @@ const TasksContent = ({
       // end time to start time + 30 minutes
       if (taskData.endTime) {
         formattedData.endTime = taskData.endTime;
+        console.log('start time:'+ submissionData.startTime);
+        console.log('end time:'+ submissionData.endTime);
       }
     }
     

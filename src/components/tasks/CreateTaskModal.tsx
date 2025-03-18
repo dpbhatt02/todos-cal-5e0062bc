@@ -143,7 +143,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
       submissionData.isAllDay = false;
       console.log('Submitting task data in a Not AllDay condition.');
       console.log('start time:'+ submissionData.startTime);
-      console.log('start time:'+ submissionData.endTime);
+      console.log('end time:'+ submissionData.endTime);
       // Ensure startTime is a string in HH:MM format
       if (submissionData.startTime instanceof Date) {
         submissionData.startTime = format(submissionData.startTime, 'HH:mm');
