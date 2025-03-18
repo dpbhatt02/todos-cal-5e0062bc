@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -197,19 +196,9 @@ const TasksContent = ({
     if (taskData.startTime) {
       formattedData.startTime = taskData.startTime;
       
-      // If only start time is provided, set end time to 30 minutes later by default
-      if (!taskData.endTime) {
-        // Create a date object combining the due date and start time
-        const [startHours, startMinutes] = taskData.startTime.split(':').map(Number);
-        const startDateTime = new Date(taskData.dueDate);
-        startDateTime.setHours(startHours, startMinutes, 0, 0);
-        
-        // Add 30 minutes
-        const endDateTime = addMinutes(startDateTime, 30);
-        
-        // Format end time as HH:MM
-        formattedData.endTime = format(endDateTime, 'HH:mm');
-      } else {
+      // If only start time is provided, the backend will automatically set 
+      // end time to start time + 30 minutes
+      if (taskData.endTime) {
         formattedData.endTime = taskData.endTime;
       }
     }

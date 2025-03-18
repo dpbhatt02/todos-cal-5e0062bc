@@ -56,6 +56,8 @@ const History = () => {
           return;
         }
 
+        console.log('Task history data:', data);
+
         // Map the data to our TaskHistory type
         const mappedData: TaskHistory[] = (data || []).map(item => ({
           id: item.id,

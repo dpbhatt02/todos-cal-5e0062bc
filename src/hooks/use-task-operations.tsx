@@ -10,6 +10,7 @@ export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
 
   // Helper function to properly format time for Postgres timestamp
+  // This is a critical fix for the time issue
   const formatTimeForDB = (dateInput: string | Date, timeString: string): string => {
     try {
       // Extract date part based on type
@@ -23,8 +24,9 @@ export const useTaskOperations = (user: any) => {
         datePart = dateInput.split('T')[0];
       }
       
-      // Combine date and time
-      return `${datePart}T${timeString}`;
+      // Now we have the date part, combine with time without timezone conversion
+      // This preserves the user's selected time exactly as input
+      return `${datePart}T${timeString}:00`;
     } catch (err) {
       console.error('Error formatting time:', err);
       return timeString;
@@ -47,7 +49,7 @@ export const useTaskOperations = (user: any) => {
         ? taskData.dueDate.toISOString() 
         : taskData.dueDate;
 
-      // Format start and end times properly
+      // Format start and end times properly without timezone conversion
       let startTime = null;
       let endTime = null;
       
@@ -101,21 +103,8 @@ export const useTaskOperations = (user: any) => {
         throw new Error(error.message);
       }
 
-      // If Google Calendar is connected, try to sync the new task
-      try {
-        const { data: integration } = await supabase
-          .from('user_integrations')
-          .select('connected')
-          .eq('user_id', user.id)
-          .eq('provider', 'google_calendar')
-          .maybeSingle();
-          
-        // Note: We've moved the actual sync functionality to the Tasks.tsx component
-        // to respect the auto-sync setting
-      } catch (syncError) {
-        console.error('Error checking calendar integration:', syncError);
-        // Continue without syncing
-      }
+      // After creating the task, add an entry to task history table
+      await recordTaskHistory(data.id, data.title, 'created', 'Task created');
 
       toast.success('Task created successfully');
       return mapDbTaskToTask(data);
@@ -138,6 +127,13 @@ export const useTaskOperations = (user: any) => {
     try {
       setOperationLoading(true);
       console.log('Updating task:', id, 'with updates:', updates); // Debug log
+      
+      // Get the task before updating to record in history
+      const { data: existingTask } = await supabase
+        .from('tasks')
+        .select('title')
+        .eq('id', id)
+        .single();
       
       // Check if we're dealing with mock data (IDs from mock data are numeric strings)
       if (/^\d+$/.test(id)) {
@@ -173,7 +169,7 @@ export const useTaskOperations = (user: any) => {
           : updates.dueDate;
       }
       
-      // Format start and end times properly
+      // Format start and end times properly without timezone conversion
       if (updates.startTime !== undefined) {
         const dueDate = updates.dueDate || dbUpdates.due_date;
         dbUpdates.start_time = updates.startTime ? formatTimeForDB(dueDate, updates.startTime) : null;
@@ -205,18 +201,14 @@ export const useTaskOperations = (user: any) => {
         throw new Error(error.message);
       }
 
-      // If the task has a Google Calendar event ID, try to sync the update
-      if (data.google_calendar_event_id) {
-        try {
-          // Fire and forget - don't wait for the result
-          supabase.functions.invoke('sync-tasks-to-calendar', {
-            body: { userId: user.id, taskId: data.id }
-          });
-        } catch (syncError) {
-          console.error('Error syncing task update to calendar:', syncError);
-          // Continue without syncing
-        }
+      // Generate appropriate details for task history entry
+      let details = 'Task updated';
+      if (updates.completed !== undefined) {
+        details = updates.completed ? 'Task marked as completed' : 'Task marked as incomplete';
       }
+
+      // Record the update in task history table
+      await recordTaskHistory(id, existingTask.title, updates.completed ? 'completed' : 'updated', details);
 
       const mappedTask = mapDbTaskToTask(data);
       console.log('Task updated successfully:', mappedTask); // Debug log
@@ -242,6 +234,13 @@ export const useTaskOperations = (user: any) => {
       setOperationLoading(true);
       console.log('Deleting task:', id); // Debug log
       
+      // Get the task title before deleting to record in history
+      const { data: task } = await supabase
+        .from('tasks')
+        .select('title, google_calendar_event_id, google_calendar_id')
+        .eq('id', id)
+        .maybeSingle();
+        
       // Check if we're dealing with mock data (IDs from mock data are numeric strings)
       if (/^\d+$/.test(id)) {
         console.log('Deleting mock task:', id);
@@ -254,13 +253,6 @@ export const useTaskOperations = (user: any) => {
         return true;
       }
       
-      // Check if this task has a Google Calendar event that needs to be deleted
-      const { data: task } = await supabase
-        .from('tasks')
-        .select('google_calendar_event_id, google_calendar_id')
-        .eq('id', id)
-        .single();
-        
       // If this task has an associated Google Calendar event, try to delete it
       if (task?.google_calendar_event_id && task?.google_calendar_id) {
         try {
@@ -299,6 +291,11 @@ export const useTaskOperations = (user: any) => {
         throw new Error(error.message);
       }
 
+      // Record the deletion in task history
+      if (task) {
+        await recordTaskHistory(id, task.title, 'deleted', 'Task deleted');
+      }
+
       toast.success('Task deleted successfully');
       return true;
     } catch (err) {
@@ -307,6 +304,34 @@ export const useTaskOperations = (user: any) => {
       return false;
     } finally {
       setOperationLoading(false);
+    }
+  };
+
+  // Helper function to record task history
+  const recordTaskHistory = async (taskId: string, taskTitle: string, action: 'created' | 'updated' | 'completed' | 'deleted' | 'synced', details?: string) => {
+    try {
+      if (!user) return;
+      
+      const historyData = {
+        user_id: user.id,
+        task_id: taskId,
+        task_title: taskTitle,
+        action: action,
+        details: details || '',
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('Recording task history:', historyData);
+      
+      const { error } = await supabase
+        .from('task_history')
+        .insert(historyData);
+        
+      if (error) {
+        console.error('Error recording task history:', error);
+      }
+    } catch (err) {
+      console.error('Failed to record task history:', err);
     }
   };
 

@@ -16,9 +16,9 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const { userId, taskId } = body;
-    //=== db log
-      console.log('db log of sync tasks to calender userId:'+ userId);
-    //===
+    
+    console.log('db log of sync tasks to calender userId:'+ userId);
+    
     if (!userId) {
       return new Response(
         JSON.stringify({ error: "User ID is required" }),
@@ -74,6 +74,7 @@ serve(async (req) => {
 
     if (tokenExpires && now >= tokenExpires && integration.refresh_token) {
       console.log("Token expired, refreshing...");
+      
       
       try {
         const tokenUrl = "https://oauth2.googleapis.com/token";
@@ -169,7 +170,7 @@ serve(async (req) => {
       console.log("No enabled calendars found, using primary calendar");
     }
 
-    // Fetch task(s) to sync - MODIFIED QUERY SYNTAX
+    // Fetch task(s) to sync
     let tasksQuery = supabase
       .from("tasks")
       .select("id, title, due_date, updated_at, google_calendar_event_id, last_synced_at, description, priority, start_time, end_time, is_all_day")
@@ -196,7 +197,7 @@ serve(async (req) => {
     
     console.log("Fetched Tasks:", tasks);
     if (tasks) {
-      tasks.forEach(task => console.log(`Task ID: ${task.id}, Title: ${task.title}, Updated At: ${task.updated_at}, Last Synced: ${task.last_synced_at}`));
+      tasks.forEach(task => console.log(`Task ID: ${task.id}, Title: ${task.title}, Updated At: ${task.updated_at}, Last Synced: ${task.last_synced_at}, Start Time: ${task.start_time}, End Time: ${task.end_time}`));
     }
     
     if (!tasks || tasks.length === 0) {
@@ -225,32 +226,62 @@ serve(async (req) => {
         const taskDate = new Date(task.due_date);
         
         // Prepare event data
-        const eventData = {
+        const eventData: any = {
           summary: task.title,
           description: task.description || `Priority: ${task.priority || 'medium'}`,
-          start: {
-            date: taskDate.toISOString().split('T')[0],
-            timeZone: 'UTC'
-          },
-          end: {
-            date: taskDate.toISOString().split('T')[0],
-            timeZone: 'UTC'
-          }
         };
         
-        // If the task has start/end times, use dateTime instead of date
-        if (task.start_time) {
+        // Handle all-day events vs time-specific events
+        if (task.is_all_day || (!task.start_time && !task.end_time)) {
+          // All-day event
           eventData.start = {
-            dateTime: task.start_time,
+            date: taskDate.toISOString().split('T')[0],
             timeZone: 'UTC'
           };
-        }
-        
-        if (task.end_time) {
           eventData.end = {
-            dateTime: task.end_time,
+            date: taskDate.toISOString().split('T')[0],
             timeZone: 'UTC'
           };
+        } else {
+          // Time-specific event
+          // Add proper time handling for start and end times
+          if (task.start_time) {
+            // Format: 2023-05-15T09:00:00 -> needs to be ISO format
+            const startDateTime = task.start_time;
+            eventData.start = {
+              dateTime: startDateTime,
+              timeZone: 'UTC'
+            };
+          } else {
+            // Fallback to all-day if only due_date is available
+            eventData.start = {
+              date: taskDate.toISOString().split('T')[0],
+              timeZone: 'UTC'
+            };
+          }
+          
+          if (task.end_time) {
+            // Format: 2023-05-15T10:00:00 -> needs to be ISO format
+            const endDateTime = task.end_time;
+            eventData.end = {
+              dateTime: endDateTime,
+              timeZone: 'UTC'
+            };
+          } else if (task.start_time) {
+            // If we have start time but no end time, use start time + 30 minutes
+            const startDate = new Date(task.start_time);
+            const endDate = new Date(startDate.getTime() + 30 * 60000); // Add 30 minutes
+            eventData.end = {
+              dateTime: endDate.toISOString(),
+              timeZone: 'UTC'
+            };
+          } else {
+            // Fallback
+            eventData.end = {
+              date: taskDate.toISOString().split('T')[0],
+              timeZone: 'UTC'
+            };
+          }
         }
         
         let response;
@@ -323,6 +354,23 @@ serve(async (req) => {
             warning: "Event created but failed to update task record",
             eventId: eventData2.id
           };
+        }
+        
+        // Record the sync in task history
+        try {
+          await supabase
+            .from("task_history")
+            .insert({
+              user_id: userId,
+              task_id: task.id,
+              task_title: task.title,
+              action: "synced",
+              details: "Task synced to Google Calendar",
+              timestamp: nowISOString
+            });
+        } catch (historyError) {
+          console.error(`Error recording task history for ${task.id}:`, historyError);
+          // Continue even if history recording fails
         }
         
         return {

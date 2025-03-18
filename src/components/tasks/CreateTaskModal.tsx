@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { format } from 'date-fns';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -116,8 +117,30 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(taskData);
-    // Don't reset form here as component will unmount on submit
+    
+    // Create a copy of the data that will be submitted
+    const submissionData = { ...taskData };
+    
+    // Ensure time formats are correctly handled - they should be in HH:MM format, not Date objects
+    if (submissionData.startTime) {
+      // Ensure startTime is a string in HH:MM format
+      if (submissionData.startTime instanceof Date) {
+        submissionData.startTime = format(submissionData.startTime, 'HH:mm');
+      }
+    }
+    
+    if (submissionData.endTime) {
+      // Ensure endTime is a string in HH:MM format
+      if (submissionData.endTime instanceof Date) {
+        submissionData.endTime = format(submissionData.endTime, 'HH:mm');
+      }
+    }
+    
+    // If start time is provided but end time is not, we'll let the backend
+    // automatically set end time to start time + 30 minutes
+    
+    console.log('Submitting task data:', submissionData);
+    onSubmit(submissionData);
     onClose();
   };
 
