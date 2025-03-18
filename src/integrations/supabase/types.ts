@@ -164,6 +164,39 @@ export type Database = {
         }
         Relationships: []
       }
+      task_history: {
+        Row: {
+          action: string
+          created_at: string
+          details: string | null
+          id: string
+          task_id: string
+          task_title: string
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          task_id: string
+          task_title: string
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          task_id?: string
+          task_title?: string
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       task_tags: {
         Row: {
           created_at: string
