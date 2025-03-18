@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
@@ -75,25 +76,28 @@ export const useTaskOperations = (user: any) => {
       let startTime = null;
       let endTime = null;
       
-      if (taskData.startTime && typeof taskData.dueDate === 'string') {
-        console.log('Start time:', taskData.startTime);
-        startTime = formatTimeForDB(taskData.dueDate, taskData.startTime);
-        console.log('Formatted start time:', startTime);
-        
-        // If end time is not provided, add 30 minutes to start time
-        if (!taskData.endTime && startTime) {
-          // Parse the start time
-          const startDateTime = new Date(startTime);
+      if (taskData.isAllDay !== undefined && taskData.isAllDay === false) {
+        // Only process time if it's not an all-day task
+        if (taskData.startTime && typeof taskData.dueDate === 'string') {
+          console.log('Start time:', taskData.startTime);
+          startTime = formatTimeForDB(taskData.dueDate, taskData.startTime);
+          console.log('Formatted start time:', startTime);
           
-          // Add 30 minutes
-          const endDateTime = addMinutes(startDateTime, 30);
-          const endTimeIso = endDateTime.toISOString();
-          
-          endTime = endTimeIso;
-          console.log('Generated end time:', endTime);
-        } else if (taskData.endTime) {
-          endTime = formatTimeForDB(taskData.dueDate, taskData.endTime);
-          console.log('Formatted end time:', endTime);
+          // If end time is not provided, add 30 minutes to start time
+          if (!taskData.endTime && startTime) {
+            // Parse the start time
+            const startDateTime = new Date(startTime);
+            
+            // Add 30 minutes
+            const endDateTime = addMinutes(startDateTime, 30);
+            const endTimeIso = endDateTime.toISOString();
+            
+            endTime = endTimeIso;
+            console.log('Generated end time:', endTime);
+          } else if (taskData.endTime) {
+            endTime = formatTimeForDB(taskData.dueDate, taskData.endTime);
+            console.log('Formatted end time:', endTime);
+          }
         }
       }
 
@@ -108,7 +112,7 @@ export const useTaskOperations = (user: any) => {
         sync_source: 'app', // Added for Google Calendar integration
         start_time: startTime,
         end_time: endTime,
-        is_all_day: taskData.isAllDay !== undefined ? taskData.isAllDay : true,
+        is_all_day: taskData.isAllDay !== undefined ? taskData.isAllDay : !startTime, // Set is_all_day based on whether there's a start time
       };
 
       console.log('Task DB data being inserted:', taskDbData); // Debug log
@@ -202,25 +206,44 @@ export const useTaskOperations = (user: any) => {
       // Format start and end times properly with timezone information
       const dueDate = updates.dueDate || existingTask.due_date || null;
       
-      if (updates.startTime !== undefined && dueDate) {
+      // Special handling for time fields
+      if (updates.isAllDay !== undefined) {
+        if (updates.isAllDay === false) {
+          // If explicitly set to not all-day, ensure we have time values
+          if (updates.startTime !== undefined && dueDate) {
+            const dueDateStr = typeof dueDate === 'string' ? dueDate.split('T')[0] : format(dueDate, 'yyyy-MM-dd');
+            dbUpdates.start_time = updates.startTime ? formatTimeForDB(dueDateStr, updates.startTime) : null;
+            console.log('Formatted start time for update:', dbUpdates.start_time);
+          }
+          
+          if (updates.endTime !== undefined && dueDate) {
+            const dueDateStr = typeof dueDate === 'string' ? dueDate.split('T')[0] : format(dueDate, 'yyyy-MM-dd');
+            dbUpdates.end_time = updates.endTime ? formatTimeForDB(dueDateStr, updates.endTime) : null;
+            console.log('Formatted end time for update:', dbUpdates.end_time);
+          } else if (dbUpdates.start_time && !dbUpdates.end_time) {
+            // Auto-generate end time (start + 30 min) if not provided
+            const startDateTime = new Date(dbUpdates.start_time);
+            const endDateTime = addMinutes(startDateTime, 30);
+            dbUpdates.end_time = endDateTime.toISOString();
+            console.log('Auto-generated end time:', dbUpdates.end_time);
+          }
+        }
+      } else if (updates.startTime !== undefined && dueDate) {
+        // If startTime is explicitly set/changed, set is_all_day to false
         const dueDateStr = typeof dueDate === 'string' ? dueDate.split('T')[0] : format(dueDate, 'yyyy-MM-dd');
         dbUpdates.start_time = updates.startTime ? formatTimeForDB(dueDateStr, updates.startTime) : null;
+        dbUpdates.is_all_day = updates.startTime ? false : true;
         console.log('Formatted start time for update:', dbUpdates.start_time);
         
-        // Update is_all_day when setting a time
-        if (updates.startTime && dbUpdates.is_all_day === undefined) {
-          dbUpdates.is_all_day = false;
-        }
-      }
-      
-      if (updates.endTime !== undefined && dueDate) {
-        const dueDateStr = typeof dueDate === 'string' ? dueDate.split('T')[0] : format(dueDate, 'yyyy-MM-dd');
-        dbUpdates.end_time = updates.endTime ? formatTimeForDB(dueDateStr, updates.endTime) : null;
-        console.log('Formatted end time for update:', dbUpdates.end_time);
-        
-        // Update is_all_day when setting a time
-        if (updates.endTime && dbUpdates.is_all_day === undefined) {
-          dbUpdates.is_all_day = false;
+        if (updates.endTime !== undefined) {
+          dbUpdates.end_time = updates.endTime ? formatTimeForDB(dueDateStr, updates.endTime) : null;
+          console.log('Formatted end time for update:', dbUpdates.end_time);
+        } else if (dbUpdates.start_time && !dbUpdates.is_all_day) {
+          // Auto-generate end time (start + 30 min) if not provided
+          const startDateTime = new Date(dbUpdates.start_time);
+          const endDateTime = addMinutes(startDateTime, 30);
+          dbUpdates.end_time = endDateTime.toISOString();
+          console.log('Auto-generated end time:', dbUpdates.end_time);
         }
       }
       

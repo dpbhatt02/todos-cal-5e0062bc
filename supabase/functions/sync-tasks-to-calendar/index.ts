@@ -210,7 +210,7 @@ serve(async (req) => {
     
     console.log("Fetched Tasks:", tasks);
     if (tasks) {
-      tasks.forEach(task => console.log(`Task ID: ${task.id}, Title: ${task.title}, Updated At: ${task.updated_at}, Last Synced: ${task.last_synced_at}, Start Time: ${task.start_time}, End Time: ${task.end_time}`));
+      tasks.forEach(task => console.log(`Task ID: ${task.id}, Title: ${task.title}, Updated At: ${task.updated_at}, Last Synced: ${task.last_synced_at}, Start Time: ${task.start_time}, End Time: ${task.end_time}, All Day: ${task.is_all_day}`));
     }
     
     if (!tasks || tasks.length === 0) {
@@ -238,7 +238,7 @@ serve(async (req) => {
         
         // Parse the due date respecting its timezone
         const taskDate = new Date(task.due_date);
-        console.log(`Processing task: ${task.title}, Due date: ${task.due_date}, Date obj: ${taskDate}`);
+        console.log(`Processing task: ${task.title}, Due date: ${task.due_date}, Date obj: ${taskDate}, Is All Day: ${task.is_all_day}`);
         
         // Extract timezone from due_date if available
         let taskTimezone = userTimezone;
@@ -286,6 +286,8 @@ serve(async (req) => {
               dateTime: task.due_date,
               timeZone: taskTimezone
             };
+            
+            console.log(`Fallback to due_date for start time: ${task.due_date}`);
           }
           
           if (task.end_time) {
@@ -331,6 +333,8 @@ serve(async (req) => {
               dateTime: endIso,
               timeZone: taskTimezone
             };
+            
+            console.log(`Fallback to due_date + 30min for end time: ${endIso}`);
           }
         }
         
