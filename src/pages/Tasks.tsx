@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
@@ -84,6 +84,8 @@ const TasksContent = ({
   const { user } = useAuth();
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [lastOperation, setLastOperation] = useState<string | null>(null);
+  const syncTimeoutRef = useRef<number | null>(null);
+  const initialSyncRef = useRef(false);
   
   // Check for auto-sync settings and set up periodic sync if enabled
   useEffect(() => {
@@ -118,12 +120,15 @@ const TasksContent = ({
           
           console.log(`Setting up auto-sync every ${minutes} minutes`);
           
-          // Perform an initial sync
-          await synchronizeWithCalendar();
+          // Only perform an initial sync if it hasn't been done
+          if (!initialSyncRef.current) {
+            await synchronizeWithCalendar();
+            initialSyncRef.current = true;
+          }
           
           // Set up the interval for future syncs
           syncInterval = window.setInterval(() => {
-            console.log('Auto-sync triggered');
+            console.log('Auto-sync triggered by interval');
             synchronizeWithCalendar();
           }, milliseconds);
         }
@@ -142,22 +147,39 @@ const TasksContent = ({
     };
   }, [user, isCalendarConnected, synchronizeWithCalendar]);
 
-  // Sync on page load/refresh
+  // Sync on page load/refresh only once
   useEffect(() => {
-    if (user && isCalendarConnected) {
-      // Sync on component mount (page load/refresh)
+    if (user && isCalendarConnected && !initialSyncRef.current) {
+      // Sync on component mount (page load/refresh) only if not already done
       synchronizeWithCalendar();
+      initialSyncRef.current = true;
     }
   }, [user, isCalendarConnected, synchronizeWithCalendar]);
 
-  // Track when operations occur and trigger sync
+  // Debounced sync after operations occur
   useEffect(() => {
     if (lastOperation && user && isCalendarConnected) {
-      // Trigger sync after any operation
-      synchronizeWithCalendar();
-      // Reset the last operation
-      setLastOperation(null);
+      // Clear any existing timeout
+      if (syncTimeoutRef.current) {
+        window.clearTimeout(syncTimeoutRef.current);
+      }
+      
+      // Set a new timeout to trigger sync after a short delay
+      // This debounces multiple rapid changes
+      syncTimeoutRef.current = window.setTimeout(() => {
+        console.log('Debounced sync triggered by operation:', lastOperation);
+        synchronizeWithCalendar();
+        setLastOperation(null);
+        syncTimeoutRef.current = null;
+      }, 3000); // 3 second debounce
     }
+    
+    // Clean up on unmount
+    return () => {
+      if (syncTimeoutRef.current) {
+        window.clearTimeout(syncTimeoutRef.current);
+      }
+    };
   }, [lastOperation, user, isCalendarConnected, synchronizeWithCalendar]);
 
   const handleCreateTask = async (taskData: any) => {
@@ -168,7 +190,6 @@ const TasksContent = ({
       priority: taskData.priority,
       dueDate: new Date(taskData.dueDate),
       completed: false,
-      tags: taskData.tags || [],
     };
 
     // Add time information if present
@@ -223,7 +244,10 @@ const TasksContent = ({
                     variant="outline"
                     size="sm"
                     icon={<RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />}
-                    onClick={() => synchronizeWithCalendar()}
+                    onClick={() => {
+                      console.log('Manual sync button clicked');
+                      synchronizeWithCalendar();
+                    }}
                     disabled={syncing}
                   >
                     {isMobile ? "" : "Sync Calendar"}
