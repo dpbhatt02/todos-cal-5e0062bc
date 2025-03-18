@@ -1,8 +1,7 @@
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  ListTodo,
-  History
+  ListTodo
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ButtonCustom } from '@/components/ui/button-custom';
@@ -26,7 +25,6 @@ const NavigationLinks = ({ isSidebarOpen }: NavigationLinksProps) => {
   const mainNavItems = [
     // Dashboard hidden as per user request
     { icon: ListTodo, label: 'Task List', path: '/tasks' },
-    { icon: History, label: 'History', path: '/history' },
   ];
 
   return (

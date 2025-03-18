@@ -1,4 +1,3 @@
-// Import the necessary modules
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -15,200 +14,348 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, taskIds } = await req.json();
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Log activity to task history
-    if (userId && taskIds?.length > 0) {
-      try {
-        // Get task details for the history
-        const { data: tasksData } = await supabase
-          .from("tasks")
-          .select("id, title")
-          .in("id", taskIds);
-          
-        if (tasksData && tasksData.length > 0) {
-          // Create history entries for each synced task
-          const historyEntries = tasksData.map(task => ({
-            user_id: userId,
-            task_id: task.id,
-            task_title: task.title,
-            action: "synced",
-            details: "Synced to Google Calendar"
-          }));
-          
-          await supabase.from("task_history").insert(historyEntries);
-        }
-      } catch (historyError) {
-        console.error("Error recording sync history:", historyError);
-      }
-    }
-
-    // Fetch user's calendar sync settings
-    const { data: syncSettings, error: syncSettingsError } = await supabase
-      .from("calendar_sync_settings")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-
-    if (syncSettingsError) {
-      console.error("Error fetching calendar sync settings:", syncSettingsError);
+    const body = await req.json().catch(() => ({}));
+    const { userId, taskId } = body;
+    //=== db log
+      console.log('db log of sync tasks to calender userId:'+ userId);
+    //===
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: "Failed to fetch calendar sync settings" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "User ID is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Fetch user's Google Calendar integration
+    console.log(`Syncing task ${taskId || 'all'} to Google Calendar for user: ${userId}`);
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase URL or service role key");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get user's Google Calendar integration
     const { data: integration, error: integrationError } = await supabase
       .from("user_integrations")
       .select("*")
       .eq("user_id", userId)
       .eq("provider", "google_calendar")
-      .single();
+      .eq("connected", true)
+      .maybeSingle();
 
     if (integrationError) {
-      console.error("Error fetching Google Calendar integration:", integrationError);
+      console.error("Error fetching integration:", integrationError);
       return new Response(
         JSON.stringify({ error: "Failed to fetch Google Calendar integration" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!integration?.access_token) {
-      console.error("No access token found for Google Calendar integration");
+    if (!integration || integration.access_token === "DISCONNECTED") {
+      console.log("Google Calendar integration not found or disconnected");
       return new Response(
-        JSON.stringify({ error: "No access token found for Google Calendar integration" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Google Calendar integration not connected" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const accessToken = integration.access_token;
+    // Check if token is expired and refresh if needed
+    const now = new Date();
+    const tokenExpires = integration.token_expires_at ? new Date(integration.token_expires_at) : null;
+    let accessToken = integration.access_token;
 
-    // Fetch tasks from Supabase
-    const { data: tasks, error: tasksError } = await supabase
-      .from("tasks")
-      .select("*")
-      .in("id", taskIds);
+    if (tokenExpires && now >= tokenExpires && integration.refresh_token) {
+      console.log("Token expired, refreshing...");
+      
+      try {
+        const tokenUrl = "https://oauth2.googleapis.com/token";
+        const tokenParams = new URLSearchParams({
+          client_id: Deno.env.get("GOOGLE_CLIENT_ID") || "",
+          client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET") || "",
+          refresh_token: integration.refresh_token,
+          grant_type: "refresh_token",
+        });
 
-    if (tasksError) {
-      console.error("Error fetching tasks from Supabase:", tasksError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch tasks from Supabase" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Sync tasks to Google Calendar
-    for (const task of tasks) {
-      if (!task.google_calendar_event_id) {
-        // Create event in Google Calendar
-        const event = {
-          summary: task.title,
-          description: task.description || "",
-          start: {
-            dateTime: task.start_time || task.due_date,
-            timeZone: "UTC", // Enforce UTC timezone
-          },
-          end: {
-            dateTime: task.end_time || task.due_date,
-            timeZone: "UTC", // Enforce UTC timezone
-          },
-        };
-
-        const calendarId = task.google_calendar_id || "primary";
-        const createEventUrl = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`;
-
-        const createEventResponse = await fetch(createEventUrl, {
+        const tokenResponse = await fetch(tokenUrl, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: JSON.stringify(event),
+          body: tokenParams.toString(),
         });
 
-        const createEventData = await createEventResponse.json();
+        const tokenData = await tokenResponse.json();
 
-        if (!createEventResponse.ok) {
-          console.error("Failed to create event in Google Calendar:", createEventData);
-          continue; // Skip to the next task
+        if (!tokenResponse.ok) {
+          console.error("Token refresh error:", tokenData);
+          
+          // Mark integration as disconnected if refresh token is invalid
+          if (tokenData.error === "invalid_grant") {
+            console.log("Refresh token is invalid, marking integration as disconnected");
+            await supabase
+              .from("user_integrations")
+              .update({
+                connected: false,
+                access_token: "DISCONNECTED",
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", integration.id);
+            
+            return new Response(
+              JSON.stringify({ 
+                error: "Calendar disconnected due to invalid token",
+                details: tokenData
+              }),
+              { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify({ error: "Failed to refresh token", details: tokenData }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
 
-        // Update task with Google Calendar event ID
+        // Update token in database
         const { error: updateError } = await supabase
-          .from("tasks")
-          .update({ google_calendar_event_id: createEventData.id })
-          .eq("id", task.id);
+          .from("user_integrations")
+          .update({
+            access_token: tokenData.access_token,
+            token_expires_at: new Date(
+              Date.now() + tokenData.expires_in * 1000
+            ).toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", integration.id);
 
         if (updateError) {
-          console.error("Failed to update task with Google Calendar event ID:", updateError);
+          console.error("Error updating token:", updateError);
+        } else {
+          accessToken = tokenData.access_token;
         }
-      } else {
-        // Update event in Google Calendar
-        const event = {
-          summary: task.title,
-          description: task.description || "",
-          start: {
-            dateTime: task.start_time || task.due_date,
-            timeZone: "UTC", // Enforce UTC timezone
-          },
-          end: {
-            dateTime: task.end_time || task.due_date,
-            timeZone: "UTC", // Enforce UTC timezone
-          },
-        };
-
-        const calendarId = task.google_calendar_id || "primary";
-        const updateEventUrl = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${task.google_calendar_event_id}`;
-
-        const updateEventResponse = await fetch(updateEventUrl, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(event),
-        });
-
-        const updateEventData = await updateEventResponse.json();
-
-        if (!updateEventResponse.ok) {
-          console.error("Failed to update event in Google Calendar:", updateEventData);
-          continue; // Skip to the next task
-        }
+      } catch (refreshError) {
+        console.error("Error refreshing token:", refreshError);
+        return new Response(
+          JSON.stringify({ error: "Error refreshing token", details: refreshError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Fetch calendar settings to get default calendar
+    const { data: calendarSettings, error: calendarSettingsError } = await supabase
+      .from("calendar_settings")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("enabled", true);
+      
+    if (calendarSettingsError) {
+      console.error("Error fetching calendar settings:", calendarSettingsError);
+    }
+    
+    let defaultCalendarId = "primary";
+    if (calendarSettings && calendarSettings.length > 0) {
+      // Use the first enabled calendar as default
+      defaultCalendarId = calendarSettings[0].calendar_id;
+    } else {
+      console.log("No enabled calendars found, using primary calendar");
+    }
+
+    // Fetch task(s) to sync - MODIFIED QUERY SYNTAX
+    let tasksQuery = supabase
+      .from("tasks")
+      .select("id, title, due_date, updated_at, google_calendar_event_id, last_synced_at, description, priority, start_time, end_time, is_all_day")
+      .eq("user_id", userId);
+    
+    // If taskId is provided, only sync that specific task
+    if (taskId) {
+      tasksQuery = tasksQuery.eq("id", taskId);
+    } else {
+      // Simplified query - only look for tasks without Google Calendar event ID or last_synced_at
+      tasksQuery = tasksQuery.or('google_calendar_event_id.is.null,last_synced_at.is.null');
+    }
+    
+    console.log("Running tasks query with simplified filters");
+    const { data: tasks, error: tasksError } = await tasksQuery;
+    
+    if (tasksError) {
+      console.error("Error fetching tasks:", tasksError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch tasks", details: tasksError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log("Fetched Tasks:", tasks);
+    if (tasks) {
+      tasks.forEach(task => console.log(`Task ID: ${task.id}, Title: ${task.title}, Updated At: ${task.updated_at}, Last Synced: ${task.last_synced_at}`));
+    }
+    
+    if (!tasks || tasks.length === 0) {
+      console.log("No tasks to sync");
+      return new Response(
+        JSON.stringify({ success: true, message: "No tasks to sync" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log(`Found ${tasks.length} tasks to sync`);
+    
+    // Process each task
+    const results = await Promise.all(tasks.map(async (task) => {
+      try {
+        // Skip tasks without due dates
+        if (!task.due_date) {
+          console.log(`Skipping task ${task.id} (${task.title}) - no due date`);
+          return {
+            taskId: task.id,
+            success: false,
+            message: "Task has no due date"
+          };
+        }
+        
+        const taskDate = new Date(task.due_date);
+        
+        // Prepare event data
+        const eventData = {
+          summary: task.title,
+          description: task.description || `Priority: ${task.priority || 'medium'}`,
+          start: {
+            date: taskDate.toISOString().split('T')[0],
+            timeZone: 'UTC'
+          },
+          end: {
+            date: taskDate.toISOString().split('T')[0],
+            timeZone: 'UTC'
+          }
+        };
+        
+        // If the task has start/end times, use dateTime instead of date
+        if (task.start_time) {
+          eventData.start = {
+            dateTime: task.start_time,
+            timeZone: 'UTC'
+          };
+        }
+        
+        if (task.end_time) {
+          eventData.end = {
+            dateTime: task.end_time,
+            timeZone: 'UTC'
+          };
+        }
+        
+        let response;
+        
+        // If task already has a Google Calendar event ID, update it
+        if (task.google_calendar_event_id) {
+          console.log(`Updating event for task ${task.id}: ${task.title}`);
+          
+          const calendarId = task.google_calendar_id || defaultCalendarId;
+          
+          response = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${task.google_calendar_event_id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(eventData)
+            }
+          );
+        } else {
+          // Otherwise create a new event
+          console.log(`Creating new event for task ${task.id}: ${task.title}`);
+          
+          response = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${defaultCalendarId}/events`,
+            {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(eventData)
+            }
+          );
+        }
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error(`Error syncing task ${task.id}:`, errorData);
+          return {
+            taskId: task.id,
+            success: false,
+            error: errorData
+          };
+        }
+        
+        const eventData2 = await response.json();
+        
+        // Create an ISO timestamp for the last_synced_at value
+        const nowISOString = new Date().toISOString();
+        
+        // Update task with Google Calendar event ID and last synced time
+        const { error: updateError } = await supabase
+          .from("tasks")
+          .update({
+            google_calendar_event_id: eventData2.id,
+            google_calendar_id: eventData2.calendarId || defaultCalendarId,
+            last_synced_at: nowISOString,
+            sync_source: "app"
+          })
+          .eq("id", task.id);
+          
+        if (updateError) {
+          console.error(`Error updating task ${task.id} after sync:`, updateError);
+          return {
+            taskId: task.id,
+            success: true,
+            warning: "Event created but failed to update task record",
+            eventId: eventData2.id
+          };
+        }
+        
+        return {
+          taskId: task.id,
+          success: true,
+          eventId: eventData2.id
+        };
+      } catch (error) {
+        console.error(`Error processing task ${task.id}:`, error);
+        return {
+          taskId: task.id,
+          success: false,
+          error: error.message
+        };
       }
+    }));
+    
+    const successCount = results.filter(r => r.success).length;
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Synced ${successCount} of ${tasks.length} tasks to Google Calendar`,
+        results
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in sync-tasks-to-calendar:", error);
+    console.log("Incoming payload:", req.body); // db log
+    console.error("Sync Tasks to Calendar Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "An unexpected error occurred" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: error.message || "Unknown error occurred" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
