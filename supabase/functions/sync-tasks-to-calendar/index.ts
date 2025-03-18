@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -223,7 +224,9 @@ serve(async (req) => {
           };
         }
         
+        // The due_date already has timezone info, so use it directly
         const taskDate = new Date(task.due_date);
+        console.log(`Processing task: ${task.title}, Due date: ${task.due_date}, Date obj: ${taskDate}`);
         
         // Prepare event data
         const eventData: any = {
@@ -235,54 +238,63 @@ serve(async (req) => {
         if (task.is_all_day || (!task.start_time && !task.end_time)) {
           // All-day event
           eventData.start = {
-            date: taskDate.toISOString().split('T')[0],
-            timeZone: 'UTC'
+            date: task.due_date.split('T')[0],
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
           };
           eventData.end = {
-            date: taskDate.toISOString().split('T')[0],
-            timeZone: 'UTC'
+            date: task.due_date.split('T')[0],
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
           };
         } else {
-          // Time-specific event
-          // Add proper time handling for start and end times
+          // Time-specific event - use the stored timezone information
           if (task.start_time) {
-            // Format: 2023-05-15T09:00:00 -> needs to be ISO format
-            const startDateTime = task.start_time;
+            // The start_time already has timezone info, so use it directly
             eventData.start = {
-              dateTime: startDateTime,
-              timeZone: 'UTC'
+              dateTime: task.start_time,
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
           } else {
             // Fallback to all-day if only due_date is available
             eventData.start = {
-              date: taskDate.toISOString().split('T')[0],
-              timeZone: 'UTC'
+              date: task.due_date.split('T')[0],
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
           }
           
           if (task.end_time) {
-            // Format: 2023-05-15T10:00:00 -> needs to be ISO format
-            const endDateTime = task.end_time;
+            // The end_time already has timezone info, so use it directly
             eventData.end = {
-              dateTime: endDateTime,
-              timeZone: 'UTC'
+              dateTime: task.end_time,
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
           } else if (task.start_time) {
             // If we have start time but no end time, use start time + 30 minutes
+            // Since start_time already has timezone, parse it and add 30 minutes
             const startDate = new Date(task.start_time);
             const endDate = new Date(startDate.getTime() + 30 * 60000); // Add 30 minutes
+            
+            // Format with the same timezone as start_time
+            const tzMatch = task.start_time.match(/([+-]\d{2}:\d{2})$/);
+            const tzString = tzMatch ? tzMatch[1] : 'Z';
+            
+            // Format the end date with the same timezone
+            const endIsoWithoutTz = endDate.toISOString().replace(/Z$/, '');
+            const endIsoWithTz = `${endIsoWithoutTz}${tzString}`;
+            
             eventData.end = {
-              dateTime: endDate.toISOString(),
-              timeZone: 'UTC'
+              dateTime: endIsoWithTz,
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
           } else {
             // Fallback
             eventData.end = {
-              date: taskDate.toISOString().split('T')[0],
-              timeZone: 'UTC'
+              date: task.due_date.split('T')[0],
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
           }
         }
+        
+        console.log("Event data prepared:", eventData);
         
         let response;
         
