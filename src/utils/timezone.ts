@@ -153,70 +153,83 @@ export const dateAndTimeToISOWithTimezone = (
   timezone?: string
 ): string | null => {
   if (!dateString) return null;
-  if (!timeString) {
-    // If no time provided, set to 00:00:00 in the user's timezone
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return null;
-    
-    // Set to midnight in the user's timezone
-    const tz = timezone || getLocalTimezone();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit',
-      timeZone: tz
-    });
-    
-    const parts = formatter.formatToParts(date);
-    const dateParts = {
-      year: parts.find(part => part.type === 'year')?.value || '',
-      month: parts.find(part => part.type === 'month')?.value || '',
-      day: parts.find(part => part.type === 'day')?.value || '',
-    };
-    
-    // Get timezone offset string
-    const tzOffset = getTimezoneOffsetString(tz);
-    
-    // Create the ISO string with timezone
-    return `${dateParts.year}-${dateParts.month}-${dateParts.day}T00:00:00${tzOffset}`;
-  }
   
   try {
+    // Get user's timezone
+    const tz = timezone || getLocalTimezone();
+    console.log('Using timezone for conversion:', tz);
+    
+    if (!timeString) {
+      // If no time provided, set to 00:00:00 in the user's timezone
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return null;
+      
+      // Set to midnight in the user's timezone
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        timeZone: tz
+      });
+      
+      const parts = formatter.formatToParts(date);
+      const dateParts = {
+        year: parts.find(part => part.type === 'year')?.value || '',
+        month: parts.find(part => part.type === 'month')?.value || '',
+        day: parts.find(part => part.type === 'day')?.value || '',
+      };
+      
+      // Get timezone offset string
+      const tzOffset = getTimezoneOffsetString(tz);
+      
+      // Create the ISO string with timezone
+      return `${dateParts.year}-${dateParts.month}-${dateParts.day}T00:00:00${tzOffset}`;
+    }
+    
     // Combine date and time
     const [hours, minutes] = timeString.split(':').map(Number);
     
-    const tz = timezone || getLocalTimezone();
+    // Create a date object from the input date string
+    const dateParts = dateString.split('-').map(Number);
+    // JavaScript months are 0-indexed
+    const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], hours, minutes);
     
-    // Create a date in the user's timezone
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return null;
+    if (isNaN(dateObj.getTime())) {
+      console.error('Invalid date created from inputs:', dateString, timeString);
+      return null;
+    }
     
-    // Format with timezone
+    // Format with timezone information
     const formatter = new Intl.DateTimeFormat('en-CA', {
       year: 'numeric', 
       month: '2-digit', 
       day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
       timeZone: tz
     });
     
-    const parts = formatter.formatToParts(date);
-    const dateParts = {
-      year: parts.find(part => part.type === 'year')?.value || '',
-      month: parts.find(part => part.type === 'month')?.value || '',
-      day: parts.find(part => part.type === 'day')?.value || '',
+    const formattedParts = formatter.formatToParts(dateObj);
+    const finalDateParts = {
+      year: formattedParts.find(part => part.type === 'year')?.value || '',
+      month: formattedParts.find(part => part.type === 'month')?.value || '',
+      day: formattedParts.find(part => part.type === 'day')?.value || '',
+      hour: formattedParts.find(part => part.type === 'hour')?.value || '',
+      minute: formattedParts.find(part => part.type === 'minute')?.value || '',
     };
     
     // Get timezone offset string
     const tzOffset = getTimezoneOffsetString(tz);
     
-    // Format hours and minutes with leading zeros
-    const formattedHours = hours.toString().padStart(2, '0');
-    const formattedMinutes = minutes.toString().padStart(2, '0');
-    
     // Create the ISO string with timezone
-    return `${dateParts.year}-${dateParts.month}-${dateParts.day}T${formattedHours}:${formattedMinutes}:00${tzOffset}`;
+    const isoString = `${finalDateParts.year}-${finalDateParts.month}-${finalDateParts.day}T${finalDateParts.hour}:${finalDateParts.minute}:00${tzOffset}`;
+    console.log(`Converted date ${dateString} and time ${timeString} to ISO: ${isoString}`);
+    
+    return isoString;
   } catch (error) {
-    console.error('Error converting date and time to ISO:', error);
+    console.error('Error converting date and time to ISO:', error, dateString, timeString);
     return null;
   }
 };

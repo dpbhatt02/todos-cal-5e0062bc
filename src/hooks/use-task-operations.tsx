@@ -33,7 +33,7 @@ export const useTaskOperations = (user: any) => {
       console.log('Using timezone for time formatting:', userTimezone);
       
       // Convert date and time to ISO string with timezone
-      return dateAndTimeToISOWithTimezone(dateInput, timeString);
+      return dateAndTimeToISOWithTimezone(dateInput, timeString, userTimezone);
     } catch (err) {
       console.error('Error formatting time for DB:', err);
       return null;
@@ -50,7 +50,7 @@ export const useTaskOperations = (user: any) => {
       console.log('Using timezone for date formatting:', userTimezone);
       
       // Convert to ISO string with timezone (use midnight as the time)
-      return dateAndTimeToISOWithTimezone(typeof date === 'string' ? date : format(date, 'yyyy-MM-dd'), null);
+      return dateAndTimeToISOWithTimezone(typeof date === 'string' ? date : format(date, 'yyyy-MM-dd'), null, userTimezone);
     } catch (err) {
       console.error('Error formatting date for DB:', err);
       return null;
@@ -75,6 +75,7 @@ export const useTaskOperations = (user: any) => {
       // Format start and end times properly with timezone information
       let startTime = null;
       let endTime = null;
+      let isAllDay = taskData.isAllDay !== undefined ? taskData.isAllDay : true;
       
       if (taskData.isAllDay !== undefined && taskData.isAllDay === false) {
         // Only process time if it's not an all-day task
@@ -82,6 +83,7 @@ export const useTaskOperations = (user: any) => {
           console.log('Start time:', taskData.startTime);
           startTime = formatTimeForDB(taskData.dueDate, taskData.startTime);
           console.log('Formatted start time:', startTime);
+          isAllDay = false;
           
           // If end time is not provided, add 30 minutes to start time
           if (!taskData.endTime && startTime) {
@@ -99,6 +101,26 @@ export const useTaskOperations = (user: any) => {
             console.log('Formatted end time:', endTime);
           }
         }
+      } else if (!isAllDay && taskData.startTime && typeof taskData.dueDate === 'string') {
+        // Additional check for non-all-day tasks with start time
+        startTime = formatTimeForDB(taskData.dueDate, taskData.startTime);
+        console.log('Formatted start time for non-explicit all-day task:', startTime);
+        
+        if (taskData.endTime) {
+          endTime = formatTimeForDB(taskData.dueDate, taskData.endTime);
+        } else if (startTime) {
+          // Generate end time (start + 30 min)
+          const startDateTime = new Date(startTime);
+          const endDateTime = addMinutes(startDateTime, 30);
+          endTime = endDateTime.toISOString();
+        }
+      }
+
+      // Double-check if we should set isAllDay based on presence of times
+      if (startTime === null && endTime === null) {
+        isAllDay = true;
+      } else if (startTime !== null) {
+        isAllDay = false;
       }
 
       // Prepare the task data for database
@@ -112,7 +134,7 @@ export const useTaskOperations = (user: any) => {
         sync_source: 'app', // Added for Google Calendar integration
         start_time: startTime,
         end_time: endTime,
-        is_all_day: taskData.isAllDay !== undefined ? taskData.isAllDay : !startTime, // Set is_all_day based on whether there's a start time
+        is_all_day: isAllDay, // Set is_all_day based on presence of start time and isAllDay flag
       };
 
       console.log('Task DB data being inserted:', taskDbData); // Debug log
