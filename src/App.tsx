@@ -1,106 +1,130 @@
+import React, { useState, useEffect } from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from 'react-router-dom';
+import { ThemeProvider } from './components/theme-provider';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Toaster } from '@/components/ui/toaster';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
-import Layout from "./components/layout/Layout";
-import Dashboard from "./pages/Dashboard";
-import Tasks from "./pages/Tasks";
-import Calendar from "./pages/Calendar";
-import Kanban from "./pages/Kanban";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import Auth from "./pages/Auth";
-import TagTasks from "./pages/TagTasks";
-import GoogleCalendarCallback from "./pages/api/GoogleCalendarCallback";
+// Layout Components
+import Sidebar from './components/layout/Sidebar';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
 
-const queryClient = new QueryClient();
+// Page Components
+import Index from './pages/Index';
+import Tasks from './pages/Tasks';
+import Dashboard from './pages/Dashboard';
+import Calendar from './pages/Calendar';
+import Kanban from './pages/Kanban';
+import TagTasks from './pages/TagTasks';
+import Settings from './pages/Settings';
+import Auth from './pages/Auth';
+import GoogleCalendarCallback from './pages/GoogleCalendarCallback';
+import NotFound from './pages/NotFound';
 
-// Initialize theme based on local storage or system preference
-const initializeTheme = () => {
-  const storedTheme = localStorage.getItem("theme");
-  const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  
-  if (storedTheme === "dark" || (!storedTheme && systemPrefersDark)) {
-    document.documentElement.classList.add("dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-  }
-};
+// Context Providers
+import { AuthProvider } from '@/contexts/AuthContext';
+import { TasksProvider } from '@/contexts/TasksContext';
+import { ThemeContext } from '@/contexts/ThemeContext';
 
-// Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  
-  // While checking auth state, show nothing
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-  
-  // If no user is logged in, redirect to auth page
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-  
-  // User is logged in, render the children
-  return <>{children}</>;
-};
+// Import the new History component
+import History from './pages/History';
 
-// Auth route component (redirects to dashboard if already logged in)
-const AuthRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  
-  // While checking auth state, show nothing
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-  
-  // If user is already logged in, redirect to dashboard
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
-  
-  // No user is logged in, render the auth page
-  return <>{children}</>;
-};
+function Layout() {
+  const isMobile = useIsMobile();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const location = useLocation();
 
-const AppRoutes = () => (
-  <Routes>
-    <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-    <Route path="/" element={<Navigate to="/tasks" replace />} />
-    <Route path="/tasks" element={<ProtectedRoute><Layout><Tasks /></Layout></ProtectedRoute>} />
-    <Route path="/tag/:tagId" element={<ProtectedRoute><Layout><TagTasks /></Layout></ProtectedRoute>} />
-    <Route path="/calendar" element={<ProtectedRoute><Layout><Calendar /></Layout></ProtectedRoute>} />
-    <Route path="/kanban" element={<ProtectedRoute><Layout><Kanban /></Layout></ProtectedRoute>} />
-    <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-    <Route path="/api/google-calendar-callback" element={<GoogleCalendarCallback />} />
-    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-    <Route path="*" element={<NotFound />} />
-  </Routes>
-);
+  // Function to toggle the sidebar
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
-const App = () => {
-  // Initialize theme on app load
+  const openSidebar = () => {
+    setIsSidebarOpen(true);
+  };
+
+  const toggleCreateModal = () => {
+    setIsCreateModalOpen(!isCreateModalOpen);
+  };
+
+  // Close sidebar on route change for mobile
   useEffect(() => {
-    initializeTheme();
-  }, []);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <div className="h-screen flex overflow-hidden bg-background">
+      <Sidebar
+        isSidebarOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+        openSidebar={openSidebar}
+        toggleCreateModal={toggleCreateModal}
+      />
+      <div
+        className={cn(
+          "flex flex-col flex-1 overflow-x-hidden transition-transform duration-300",
+          isSidebarOpen ? "lg:ml-64" : "ml-20"
+        )}
+      >
+        <Header toggleSidebar={toggleSidebar} toggleCreateModal={toggleCreateModal} />
+        <main className="flex-1 overflow-y-auto py-6 px-4 sm:px-6 lg:px-8">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/tasks" element={<Tasks />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/kanban" element={<Kanban />} />
+            <Route path="/tags/:tagId" element={<TagTasks />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/google-calendar-callback" element={<GoogleCalendarCallback />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </div>
   );
-};
+}
+
+function App() {
+  return (
+    <ThemeProvider
+      defaultTheme="system"
+      storageKey="vite-react-tailwind-theme"
+    >
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/kanban" element={<Kanban />} />
+              <Route path="/tags/:tagId" element={<TagTasks />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/google-calendar-callback" element={<GoogleCalendarCallback />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </Router>
+      </AuthProvider>
+      <Toaster />
+    </ThemeProvider>
+  );
+}
 
 export default App;

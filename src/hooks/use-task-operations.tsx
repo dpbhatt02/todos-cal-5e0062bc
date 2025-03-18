@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
@@ -10,8 +9,13 @@ export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
 
   // Helper function to properly format time for Postgres timestamp
-  const formatTimeForDB = (dateInput: string | Date, timeString: string): string => {
+  const formatTimeForDB = (dateInput: string | Date, timeString: string, utcTimeString?: string): string => {
     try {
+      // If a UTC time string is provided, use it directly
+      if (utcTimeString) {
+        return utcTimeString;
+      }
+      
       // Extract date part based on type
       let datePart: string;
       
@@ -23,8 +27,20 @@ export const useTaskOperations = (user: any) => {
         datePart = dateInput.split('T')[0];
       }
       
-      // Combine date and time with timezone info
-      return `${datePart}T${timeString}:00.000Z`;
+      // Parse the time parts
+      const [hours, minutes] = timeString.split(':').map(Number);
+      
+      // Create a new Date object using the date and time
+      const dateObj = new Date(
+        parseInt(datePart.split('-')[0]),
+        parseInt(datePart.split('-')[1]) - 1,
+        parseInt(datePart.split('-')[2]),
+        hours,
+        minutes
+      );
+      
+      // Convert to ISO string for database (which will be in UTC)
+      return dateObj.toISOString();
     } catch (err) {
       console.error('Error formatting time:', err);
       return timeString;
@@ -52,13 +68,27 @@ export const useTaskOperations = (user: any) => {
       let endTime = null;
       
       if (taskData.startTime) {
-        startTime = formatTimeForDB(dueDate, taskData.startTime);
+        startTime = formatTimeForDB(dueDate, taskData.startTime, (taskData as any).startTimeUtc);
         console.log('Formatted start time:', startTime);
       }
       
       if (taskData.endTime) {
-        endTime = formatTimeForDB(dueDate, taskData.endTime);
+        endTime = formatTimeForDB(dueDate, taskData.endTime, (taskData as any).endTimeUtc);
         console.log('Formatted end time:', endTime);
+      }
+
+      // Log task creation to history
+      try {
+        await supabase.from('task_history').insert({
+          user_id: user.id,
+          task_id: 'pending', // Will be updated after task creation
+          task_title: taskData.title,
+          action: 'created',
+          timestamp: new Date().toISOString(),
+          details: `Priority: ${taskData.priority}`
+        });
+      } catch (historyErr) {
+        console.error('Failed to record task creation history:', historyErr);
       }
 
       // Prepare the task data for database
@@ -102,6 +132,20 @@ export const useTaskOperations = (user: any) => {
       } catch (syncError) {
         console.error('Error checking calendar integration:', syncError);
         // Continue without syncing
+      }
+
+      // Update the history record with the actual task ID
+      if (data) {
+        try {
+          await supabase
+            .from('task_history')
+            .update({ task_id: data.id })
+            .eq('user_id', user.id)
+            .eq('task_id', 'pending')
+            .eq('task_title', taskData.title);
+        } catch (updateErr) {
+          console.error('Failed to update task history with ID:', updateErr);
+        }
       }
 
       toast.success('Task created successfully');
@@ -177,6 +221,31 @@ export const useTaskOperations = (user: any) => {
       // Mark that this update came from the app
       dbUpdates.sync_source = 'app';
       dbUpdates.updated_at = new Date().toISOString();
+
+      // Log task update to history
+      try {
+        // Get the task title first
+        const { data: taskData } = await supabase
+          .from('tasks')
+          .select('title')
+          .eq('id', id)
+          .single();
+          
+        if (taskData) {
+          await supabase.from('task_history').insert({
+            user_id: user.id,
+            task_id: id,
+            task_title: updates.title || taskData.title,
+            action: 'updated',
+            timestamp: new Date().toISOString(),
+            details: updates.completed !== undefined 
+              ? `Marked as ${updates.completed ? 'completed' : 'incomplete'}`
+              : 'Details modified'
+          });
+        }
+      } catch (historyErr) {
+        console.error('Failed to record task update history:', historyErr);
+      }
 
       console.log('DB updates being sent:', dbUpdates); // Debug log
       
@@ -274,6 +343,27 @@ export const useTaskOperations = (user: any) => {
           console.error('Error handling Google Calendar event deletion:', calendarError);
           // Continue with task deletion even if event deletion fails
         }
+      }
+      
+      // Get task title before deletion for history
+      try {
+        const { data: taskData } = await supabase
+          .from('tasks')
+          .select('title')
+          .eq('id', id)
+          .single();
+          
+        if (taskData) {
+          await supabase.from('task_history').insert({
+            user_id: user.id,
+            task_id: id,
+            task_title: taskData.title,
+            action: 'deleted',
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (historyErr) {
+        console.error('Failed to record task deletion history:', historyErr);
       }
       
       const { error } = await supabase

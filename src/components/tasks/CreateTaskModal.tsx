@@ -58,6 +58,19 @@ function formatDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+// Fix time handling by converting to UTC properly
+function convertLocalToUTC(dateString: string, timeString: string) {
+  // Create a date object in local time
+  const [hours, minutes] = timeString.split(':').map(Number);
+  const [year, month, day] = dateString.split('-').map(Number);
+  
+  // Create a Date object (in local time zone)
+  const localDate = new Date(year, month - 1, day, hours, minutes);
+  
+  // Convert to ISO string which will be in UTC
+  return localDate.toISOString();
+}
+
 const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialData = {} }: CreateTaskModalProps) => {
   const [taskData, setTaskData] = useState(() => ({
     ...defaultTaskData,
@@ -114,11 +127,40 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(taskData);
-    // Don't reset form here as component will unmount on submit
-    onClose();
+  // Add default end time calculation when only start time is provided
+  const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const startTime = e.target.value;
+    setTaskData(prev => {
+      // If there's a start time but no end time, set end time to startTime + 30 min
+      if (startTime && !prev.endTime) {
+        // Parse hours and minutes
+        const [hours, minutes] = startTime.split(':').map(Number);
+        
+        // Add 30 minutes
+        let newMinutes = minutes + 30;
+        let newHours = hours;
+        
+        // Handle overflow
+        if (newMinutes >= 60) {
+          newHours = (newHours + 1) % 24;
+          newMinutes = newMinutes % 60;
+        }
+        
+        // Format back to time string
+        const endTime = `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`;
+        
+        return {
+          ...prev,
+          startTime,
+          endTime
+        };
+      }
+      
+      return {
+        ...prev,
+        startTime
+      };
+    });
   };
 
   // Text formatting functions
@@ -213,8 +255,30 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
     }
   }, [isOpen]);
 
+  // Modify the handleSubmit to prepare the proper UTC dates
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Create a copy of taskData to adjust the dates
+    const formattedData = { ...taskData };
+    
+    // Preserve the original date and times for display on the form
+    // but send the proper UTC formatted dates to the server
+    if (formattedData.startTime) {
+      formattedData.startTimeUtc = convertLocalToUTC(formattedData.dueDate, formattedData.startTime);
+    }
+    
+    if (formattedData.endTime) {
+      formattedData.endTimeUtc = convertLocalToUTC(formattedData.dueDate, formattedData.endTime);
+    }
+    
+    onSubmit(formattedData);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
+  // Update time input handlers to account for the default end time behavior
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
       <div 
@@ -371,7 +435,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
                     name="startTime"
                     type="time"
                     value={taskData.startTime}
-                    onChange={handleChange}
+                    onChange={handleStartTimeChange} // Use the new handler here
                     className="pl-9"
                   />
                 </div>

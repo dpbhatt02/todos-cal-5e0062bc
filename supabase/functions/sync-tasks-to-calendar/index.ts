@@ -325,6 +325,21 @@ serve(async (req) => {
           };
         }
         
+        // After successful sync, record in history
+        try {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          await supabase.from('task_history').insert({
+            user_id: userId,
+            task_id: task.id,
+            task_title: task.title,
+            action: 'synced',
+            timestamp: new Date().toISOString(),
+            details: task.google_calendar_event_id ? 'Updated in Google Calendar' : 'Added to Google Calendar'
+          });
+        } catch (historyErr) {
+          console.error('Failed to record sync history:', historyErr);
+        }
+        
         return {
           taskId: task.id,
           success: true,

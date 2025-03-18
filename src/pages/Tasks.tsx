@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -192,12 +191,18 @@ const TasksContent = ({
       completed: false,
     };
 
-    // Add time information if present
-    if (taskData.startTime) {
+    // Add time information using the UTC formatted strings from the form
+    if (taskData.startTimeUtc) {
+      formattedData.startTime = taskData.startTime; // Keep the display time
+      formattedData.startTimeUtc = taskData.startTimeUtc; // Add the UTC time
+    } else if (taskData.startTime) {
       formattedData.startTime = taskData.startTime;
     }
     
-    if (taskData.endTime) {
+    if (taskData.endTimeUtc) {
+      formattedData.endTime = taskData.endTime; // Keep the display time
+      formattedData.endTimeUtc = taskData.endTimeUtc; // Add the UTC time
+    } else if (taskData.endTime) {
       formattedData.endTime = taskData.endTime;
     }
     
