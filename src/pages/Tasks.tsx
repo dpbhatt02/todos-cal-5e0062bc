@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
+import { addMinutes, parseISO, format } from 'date-fns';
 
 // Define a simple interface for sync settings
 interface CalendarSyncSettings {
@@ -192,13 +193,25 @@ const TasksContent = ({
       completed: false,
     };
 
-    // Add time information if present
+    // Add time information if present - ensuring correct time formats with timezone handling
     if (taskData.startTime) {
       formattedData.startTime = taskData.startTime;
-    }
-    
-    if (taskData.endTime) {
-      formattedData.endTime = taskData.endTime;
+      
+      // If only start time is provided, set end time to 30 minutes later by default
+      if (!taskData.endTime) {
+        // Create a date object combining the due date and start time
+        const [startHours, startMinutes] = taskData.startTime.split(':').map(Number);
+        const startDateTime = new Date(taskData.dueDate);
+        startDateTime.setHours(startHours, startMinutes, 0, 0);
+        
+        // Add 30 minutes
+        const endDateTime = addMinutes(startDateTime, 30);
+        
+        // Format end time as HH:MM
+        formattedData.endTime = format(endDateTime, 'HH:mm');
+      } else {
+        formattedData.endTime = taskData.endTime;
+      }
     }
     
     if (taskData.isAllDay !== undefined) {

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
 import { toast } from 'sonner';
 import { mapDbTaskToTask } from './use-task-mapper';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addMinutes } from 'date-fns';
 
 export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
@@ -23,8 +23,8 @@ export const useTaskOperations = (user: any) => {
         datePart = dateInput.split('T')[0];
       }
       
-      // Combine date and time with timezone info
-      return `${datePart}T${timeString}:00.000Z`;
+      // Combine date and time
+      return `${datePart}T${timeString}`;
     } catch (err) {
       console.error('Error formatting time:', err);
       return timeString;
@@ -54,11 +54,24 @@ export const useTaskOperations = (user: any) => {
       if (taskData.startTime) {
         startTime = formatTimeForDB(dueDate, taskData.startTime);
         console.log('Formatted start time:', startTime);
-      }
-      
-      if (taskData.endTime) {
-        endTime = formatTimeForDB(dueDate, taskData.endTime);
-        console.log('Formatted end time:', endTime);
+        
+        // If end time is not provided, add 30 minutes to start time
+        if (!taskData.endTime) {
+          // Parse the start time
+          const [hours, minutes] = taskData.startTime.split(':').map(Number);
+          const startDateTime = new Date(dueDate);
+          startDateTime.setHours(hours, minutes, 0, 0);
+          
+          // Add 30 minutes
+          const endDateTime = addMinutes(startDateTime, 30);
+          const endTimeString = format(endDateTime, 'HH:mm');
+          
+          endTime = formatTimeForDB(dueDate, endTimeString);
+          console.log('Generated end time:', endTime);
+        } else {
+          endTime = formatTimeForDB(dueDate, taskData.endTime);
+          console.log('Formatted end time:', endTime);
+        }
       }
 
       // Prepare the task data for database

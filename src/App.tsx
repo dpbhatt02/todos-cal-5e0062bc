@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import TagTasks from "./pages/TagTasks";
+import History from "./pages/History";
 import GoogleCalendarCallback from "./pages/api/GoogleCalendarCallback";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,7 @@ const AppRoutes = () => (
     <Route path="/tasks" element={<ProtectedRoute><Layout><Tasks /></Layout></ProtectedRoute>} />
     <Route path="/tag/:tagId" element={<ProtectedRoute><Layout><TagTasks /></Layout></ProtectedRoute>} />
     <Route path="/calendar" element={<ProtectedRoute><Layout><Calendar /></Layout></ProtectedRoute>} />
+    <Route path="/history" element={<ProtectedRoute><Layout><History /></Layout></ProtectedRoute>} />
     <Route path="/kanban" element={<ProtectedRoute><Layout><Kanban /></Layout></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
     <Route path="/api/google-calendar-callback" element={<GoogleCalendarCallback />} />
