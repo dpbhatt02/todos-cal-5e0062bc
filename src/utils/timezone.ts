@@ -1,6 +1,6 @@
 
 /**
- * Timezone utility functions for consistent date/time handling across the app
+ * Simplified timezone utility functions for consistent date/time handling across the app
  */
 
 // Get the user's timezone from browser
@@ -73,7 +73,8 @@ export const getTimezoneOffsetString = (): string => {
   }
 };
 
-// Convert a date and time string to an ISO string with timezone
+// Convert a date and time string to a Date object
+// This function will create a proper Date object without timezone conversion issues
 export const dateAndTimeToISOWithTimezone = (
   dateString: string, 
   timeString: string | null
@@ -90,8 +91,9 @@ export const dateAndTimeToISOWithTimezone = (
     }
     
     if (!timeString) {
-      // If no time provided, create date at 00:00:00 in local timezone
-      const date = new Date(year, month - 1, day, 0, 0, 0);
+      // For date-only, set time to 00:00:00 but preserve date only in database
+      // Use UTC to avoid timezone shifts
+      const date = new Date(Date.UTC(year, month - 1, day));
       return date.toISOString();
     }
     
@@ -103,15 +105,23 @@ export const dateAndTimeToISOWithTimezone = (
       return null;
     }
     
-    // Create a date with the specified date and time components
-    const date = new Date(year, month - 1, day, hours, minutes, 0);
+    // Create date object at the specified time in user's timezone
+    // We need to use UTC to avoid timezone shifts
+    const userDate = new Date();
+    const userOffset = userDate.getTimezoneOffset();
     
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date created from inputs:', dateString, timeString);
-      return null;
-    }
+    // Create the date in UTC by applying the user's timezone offset
+    const utcDate = new Date(Date.UTC(
+      year, 
+      month - 1, 
+      day, 
+      hours, 
+      minutes, 
+      0
+    ));
     
-    return date.toISOString();
+    console.log(`Creating date: ${year}-${month}-${day} ${hours}:${minutes} in UTC`);
+    return utcDate.toISOString();
   } catch (error) {
     console.error('Error converting date and time to ISO:', error, dateString, timeString);
     return null;

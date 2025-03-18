@@ -22,8 +22,34 @@ export const useTaskOperations = (user: any) => {
       setOperationLoading(true);
       console.log('Creating task with data:', taskData); // Debug log
       
-      // Format due date - simple ISO string
-      const dueDate = taskData.dueDate ? new Date(taskData.dueDate).toISOString() : null;
+      // IMPORTANT: For date-only tasks, we need to store JUST the date without any time
+      // Format due date without time component
+      let dueDate = null;
+      if (taskData.dueDate) {
+        if (typeof taskData.dueDate === 'string') {
+          // Use the date string directly if it's already in YYYY-MM-DD format
+          if (/^\d{4}-\d{2}-\d{2}$/.test(taskData.dueDate)) {
+            const [year, month, day] = taskData.dueDate.split('-').map(Number);
+            dueDate = new Date(Date.UTC(year, month - 1, day)).toISOString();
+          } else {
+            // Otherwise parse the date string
+            const date = new Date(taskData.dueDate);
+            dueDate = new Date(Date.UTC(
+              date.getFullYear(),
+              date.getMonth(),
+              date.getDate()
+            )).toISOString();
+          }
+        } else {
+          // Handle Date object
+          dueDate = new Date(Date.UTC(
+            taskData.dueDate.getFullYear(),
+            taskData.dueDate.getMonth(),
+            taskData.dueDate.getDate()
+          )).toISOString();
+        }
+      }
+      
       console.log('Formatted due date:', dueDate);
 
       // Process start and end times
@@ -135,9 +161,31 @@ export const useTaskOperations = (user: any) => {
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
       
-      // Format due date - simple ISO string
+      // Format due date - storing just the date in UTC
       if (updates.dueDate !== undefined) {
-        dbUpdates.due_date = updates.dueDate ? new Date(updates.dueDate).toISOString() : null;
+        if (updates.dueDate) {
+          let dateObj;
+          if (typeof updates.dueDate === 'string') {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(updates.dueDate)) {
+              // Already in YYYY-MM-DD format
+              const [year, month, day] = updates.dueDate.split('-').map(Number);
+              dateObj = new Date(Date.UTC(year, month - 1, day));
+            } else {
+              dateObj = new Date(updates.dueDate);
+            }
+          } else {
+            dateObj = updates.dueDate;
+          }
+          
+          // Store date-only in UTC to avoid timezone issues
+          dbUpdates.due_date = new Date(Date.UTC(
+            dateObj.getFullYear(),
+            dateObj.getMonth(),
+            dateObj.getDate()
+          )).toISOString();
+        } else {
+          dbUpdates.due_date = null;
+        }
       }
       
       // Handle all-day flag

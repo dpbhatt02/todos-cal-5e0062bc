@@ -208,7 +208,7 @@ serve(async (req) => {
     
     console.log("Fetched Tasks:", tasks);
     if (tasks) {
-      tasks.forEach(task => console.log(`Task ID: ${task.id}, Title: ${task.title}, Updated At: ${task.updated_at}, Last Synced: ${task.last_synced_at}, Start Time: ${task.start_time}, End Time: ${task.end_time}, All Day: ${task.is_all_day}`));
+      tasks.forEach(task => console.log(`Task ID: ${task.id}, Title: ${task.title}, Due Date: ${task.due_date}, Is All Day: ${task.is_all_day}, Start Time: ${task.start_time}, End Time: ${task.end_time}`));
     }
     
     if (!tasks || tasks.length === 0) {
@@ -234,7 +234,7 @@ serve(async (req) => {
           };
         }
         
-        console.log(`Processing task: ${task.title}, Due date: ${task.due_date}, Is All Day: ${task.is_all_day}`);
+        console.log(`Processing task: ${task.title}, Due date: ${task.due_date}, Is All Day: ${task.is_all_day}, Start: ${task.start_time}, End: ${task.end_time}`);
         
         // Prepare event data for Google Calendar
         const eventData: any = {
@@ -244,65 +244,53 @@ serve(async (req) => {
         
         // Handle all-day events vs time-specific events
         if (task.is_all_day) {
-          // For all-day events, use the date part only
-          const dueDate = new Date(task.due_date);
-          const dateOnly = dueDate.toISOString().split('T')[0];
+          // For all-day events, use the date part only without any timezone conversion
+          // The due_date should be stored as 00:00:00 in UTC
+          const dueDateObj = new Date(task.due_date);
+          const dateOnly = dueDateObj.toISOString().split('T')[0];
           
           eventData.start = {
-            date: dateOnly
-          };
-          eventData.end = {
-            date: dateOnly
+            date: dateOnly,
+            timeZone: 'UTC'
           };
           
-          console.log(`Setting up all-day event for ${dateOnly}`);
+          // For all-day events, the end date is inclusive, so we use the same date
+          eventData.end = {
+            date: dateOnly,
+            timeZone: 'UTC'
+          };
+          
+          console.log(`Setting up all-day event for date: ${dateOnly}`);
+        } else if (task.start_time && task.end_time) {
+          // For time-specific events, use the start and end times directly
+          eventData.start = {
+            dateTime: task.start_time,
+            timeZone: userTimezone
+          };
+          
+          eventData.end = {
+            dateTime: task.end_time,
+            timeZone: userTimezone
+          };
+          
+          console.log(`Setting event time: ${task.start_time} to ${task.end_time} (${userTimezone})`);
         } else {
-          // For time-specific events
-          if (task.start_time) {
-            // Use start_time directly
-            const startDate = new Date(task.start_time);
-            
-            eventData.start = {
-              dateTime: startDate.toISOString()
-            };
-            
-            console.log(`Setting event start time: ${startDate.toISOString()}`);
-            
-            if (task.end_time) {
-              // Use end_time directly if available
-              const endDate = new Date(task.end_time);
-              
-              eventData.end = {
-                dateTime: endDate.toISOString()
-              };
-              
-              console.log(`Setting event end time: ${endDate.toISOString()}`);
-            } else {
-              // If no end_time, add 30 minutes to start time
-              const endDate = new Date(startDate.getTime() + 30 * 60000);
-              
-              eventData.end = {
-                dateTime: endDate.toISOString()
-              };
-              
-              console.log(`Generated end time (start + 30min): ${endDate.toISOString()}`);
-            }
-          } else {
-            // Fallback to due_date with a 30-minute duration
-            const dueDate = new Date(task.due_date);
-            
-            eventData.start = {
-              dateTime: dueDate.toISOString()
-            };
-            
-            const endDate = new Date(dueDate.getTime() + 30 * 60000);
-            
-            eventData.end = {
-              dateTime: endDate.toISOString()
-            };
-            
-            console.log(`Using due_date as event time: ${dueDate.toISOString()} to ${endDate.toISOString()}`);
-          }
+          // Fallback for when we only have due_date but is_all_day is false
+          // Make it an all-day event to be safe
+          const dueDateObj = new Date(task.due_date);
+          const dateOnly = dueDateObj.toISOString().split('T')[0];
+          
+          eventData.start = {
+            date: dateOnly,
+            timeZone: 'UTC'
+          };
+          
+          eventData.end = {
+            date: dateOnly,
+            timeZone: 'UTC'
+          };
+          
+          console.log(`Setting up all-day event (fallback) for date: ${dateOnly}`);
         }
         
         console.log("Event data prepared:", eventData);
