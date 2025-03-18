@@ -171,6 +171,18 @@ serve(async (req) => {
       console.log("No enabled calendars found, using primary calendar");
     }
 
+    // Get user profile for timezone info
+    const { data: userProfile, error: userProfileError } = await supabase
+      .auth.admin.getUserById(userId);
+      
+    if (userProfileError) {
+      console.error("Error fetching user profile:", userProfileError);
+    }
+    
+    // Get the user's timezone or use UTC as fallback
+    const userTimezone = userProfile?.user?.user_metadata?.timezone || "UTC";
+    console.log(`Using user timezone: ${userTimezone}`);
+
     // Fetch task(s) to sync
     let tasksQuery = supabase
       .from("tasks")
@@ -224,11 +236,20 @@ serve(async (req) => {
           };
         }
         
-        // The due_date already has timezone info, so use it directly
+        // Parse the due date respecting its timezone
         const taskDate = new Date(task.due_date);
         console.log(`Processing task: ${task.title}, Due date: ${task.due_date}, Date obj: ${taskDate}`);
         
-        // Prepare event data
+        // Extract timezone from due_date if available
+        let taskTimezone = userTimezone;
+        const tzMatch = task.due_date.match(/([+-]\d{2}:?\d{2})$/);
+        if (tzMatch) {
+          // Convert offset to IANA timezone format (best effort approximation)
+          const offset = tzMatch[1];
+          console.log(`Task has timezone offset: ${offset}`);
+        }
+        
+        // Prepare event data for Google Calendar
         const eventData: any = {
           summary: task.title,
           description: task.description || `Priority: ${task.priority || 'medium'}`,
@@ -236,60 +257,79 @@ serve(async (req) => {
         
         // Handle all-day events vs time-specific events
         if (task.is_all_day || (!task.start_time && !task.end_time)) {
-          // All-day event
+          // All-day event - use the date part only
+          const dateOnly = task.due_date.split('T')[0];
+          
           eventData.start = {
-            date: task.due_date.split('T')[0],
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            date: dateOnly,
+            timeZone: taskTimezone
           };
           eventData.end = {
-            date: task.due_date.split('T')[0],
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            date: dateOnly,
+            timeZone: taskTimezone
           };
+          
+          console.log(`Setting up all-day event for ${dateOnly}`);
         } else {
-          // Time-specific event - use the stored timezone information
+          // Time-specific event - preserve the user's timezone
           if (task.start_time) {
-            // The start_time already has timezone info, so use it directly
+            // Extract start time with timezone
             eventData.start = {
               dateTime: task.start_time,
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+              timeZone: taskTimezone
             };
+            
+            console.log(`Setting event start time: ${task.start_time} (${taskTimezone})`);
           } else {
-            // Fallback to all-day if only due_date is available
+            // Fallback to due_date if no start_time
             eventData.start = {
-              date: task.due_date.split('T')[0],
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+              dateTime: task.due_date,
+              timeZone: taskTimezone
             };
           }
           
           if (task.end_time) {
-            // The end_time already has timezone info, so use it directly
+            // Extract end time with timezone
             eventData.end = {
               dateTime: task.end_time,
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+              timeZone: taskTimezone
             };
+            
+            console.log(`Setting event end time: ${task.end_time} (${taskTimezone})`);
           } else if (task.start_time) {
-            // If we have start time but no end time, use start time + 30 minutes
-            // Since start_time already has timezone, parse it and add 30 minutes
+            // If start_time but no end_time, add 30 minutes
+            // Parse the start time including its timezone
             const startDate = new Date(task.start_time);
-            const endDate = new Date(startDate.getTime() + 30 * 60000); // Add 30 minutes
+            
+            // Add 30 minutes
+            const endDate = new Date(startDate.getTime() + 30 * 60000);
             
             // Format with the same timezone as start_time
-            const tzMatch = task.start_time.match(/([+-]\d{2}:\d{2})$/);
-            const tzString = tzMatch ? tzMatch[1] : 'Z';
+            // Get timezone from start_time
+            const startTzMatch = task.start_time.match(/([+-]\d{2}:?\d{2})$/);
+            const tzString = startTzMatch ? startTzMatch[1] : 'Z';
             
-            // Format the end date with the same timezone
-            const endIsoWithoutTz = endDate.toISOString().replace(/Z$/, '');
-            const endIsoWithTz = `${endIsoWithoutTz}${tzString}`;
+            // Format the end date preserving timezone
+            const endIso = endDate.toISOString().replace(/\.\d{3}Z$/, tzString);
             
             eventData.end = {
-              dateTime: endIsoWithTz,
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+              dateTime: endIso,
+              timeZone: taskTimezone
             };
+            
+            console.log(`Generated end time (start + 30min): ${endIso} (${taskTimezone})`);
           } else {
-            // Fallback
+            // Fallback to due_date if no times available
+            const dueDate = new Date(task.due_date);
+            const endTime = new Date(dueDate.getTime() + 30 * 60000);
+            
+            // Format with timezone
+            const tzOffset = tzMatch ? tzMatch[1] : 'Z';
+            const endIso = endTime.toISOString().replace(/\.\d{3}Z$/, tzOffset);
+            
             eventData.end = {
-              date: task.due_date.split('T')[0],
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+              dateTime: endIso,
+              timeZone: taskTimezone
             };
           }
         }
@@ -352,7 +392,7 @@ serve(async (req) => {
           .from("tasks")
           .update({
             google_calendar_event_id: eventData2.id,
-            google_calendar_id: eventData2.calendarId || defaultCalendarId,
+            google_calendar_id: eventData2.organizer?.email || defaultCalendarId,
             last_synced_at: nowISOString,
             sync_source: "app"
           })

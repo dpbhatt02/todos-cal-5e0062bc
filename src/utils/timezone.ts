@@ -3,7 +3,7 @@
  * Timezone utility functions for consistent date/time handling across the app
  */
 
-// Get the user's timezone from browser
+// Get the user's timezone from browser or context
 export const getLocalTimezone = (): string => {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -16,6 +16,8 @@ export const getLocalTimezone = (): string => {
 // Format a date for display in the user's timezone
 export const formatDateInTimezone = (date: Date | string, timezone?: string): string => {
   try {
+    if (!date) return '';
+    
     const dateObject = typeof date === 'string' ? new Date(date) : date;
     
     // Use provided timezone or default to browser's timezone
@@ -40,6 +42,8 @@ export const formatDateInTimezone = (date: Date | string, timezone?: string): st
 // Format a time for display in the user's timezone
 export const formatTimeInTimezone = (date: Date | string, timezone?: string): string => {
   try {
+    if (!date) return '';
+    
     const dateObject = typeof date === 'string' ? new Date(date) : date;
     
     // Use provided timezone or default to browser's timezone
@@ -99,26 +103,120 @@ export const getTimezoneOffsetString = (timezone?: string): string => {
 // Convert a date to ISO string with the user's timezone offset
 export const toISOWithTimezone = (date: Date | string, timezone?: string): string => {
   try {
+    if (!date) return '';
+    
     const dateObject = typeof date === 'string' ? new Date(date) : date;
     
-    // Get the date parts in local format
-    const year = dateObject.getFullYear();
-    const month = (dateObject.getMonth() + 1).toString().padStart(2, '0');
-    const day = dateObject.getDate().toString().padStart(2, '0');
-    const hours = dateObject.getHours().toString().padStart(2, '0');
-    const minutes = dateObject.getMinutes().toString().padStart(2, '0');
-    const seconds = dateObject.getSeconds().toString().padStart(2, '0');
+    // Get the timezone
+    const tz = timezone || getLocalTimezone();
+    
+    // Format the date in ISO format with the timezone offset
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit', 
+      hour12: false,
+      timeZone: tz
+    });
+    
+    const parts = formatter.formatToParts(dateObject);
+    const dateParts = {
+      year: parts.find(part => part.type === 'year')?.value || '',
+      month: parts.find(part => part.type === 'month')?.value || '',
+      day: parts.find(part => part.type === 'day')?.value || '',
+      hour: parts.find(part => part.type === 'hour')?.value || '',
+      minute: parts.find(part => part.type === 'minute')?.value || '',
+      second: parts.find(part => part.type === 'second')?.value || ''
+    };
     
     // Get timezone offset string
-    const tzOffset = getTimezoneOffsetString(timezone);
+    const tzOffset = getTimezoneOffsetString(tz);
     
-    // Format as ISO with timezone
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${tzOffset}`;
+    // Create the ISO string with timezone
+    return `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}${tzOffset}`;
   } catch (error) {
     console.error('Error converting to ISO with timezone:', error);
     
     // Fallback to standard ISO
     const dateObject = typeof date === 'string' ? new Date(date) : date;
     return dateObject.toISOString();
+  }
+};
+
+// Convert a date string with a time string to an ISO string with timezone
+export const dateAndTimeToISOWithTimezone = (
+  dateString: string, 
+  timeString: string | null,
+  timezone?: string
+): string | null => {
+  if (!dateString) return null;
+  if (!timeString) {
+    // If no time provided, set to 00:00:00 in the user's timezone
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return null;
+    
+    // Set to midnight in the user's timezone
+    const tz = timezone || getLocalTimezone();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      timeZone: tz
+    });
+    
+    const parts = formatter.formatToParts(date);
+    const dateParts = {
+      year: parts.find(part => part.type === 'year')?.value || '',
+      month: parts.find(part => part.type === 'month')?.value || '',
+      day: parts.find(part => part.type === 'day')?.value || '',
+    };
+    
+    // Get timezone offset string
+    const tzOffset = getTimezoneOffsetString(tz);
+    
+    // Create the ISO string with timezone
+    return `${dateParts.year}-${dateParts.month}-${dateParts.day}T00:00:00${tzOffset}`;
+  }
+  
+  try {
+    // Combine date and time
+    const [hours, minutes] = timeString.split(':').map(Number);
+    
+    const tz = timezone || getLocalTimezone();
+    
+    // Create a date in the user's timezone
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return null;
+    
+    // Format with timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      timeZone: tz
+    });
+    
+    const parts = formatter.formatToParts(date);
+    const dateParts = {
+      year: parts.find(part => part.type === 'year')?.value || '',
+      month: parts.find(part => part.type === 'month')?.value || '',
+      day: parts.find(part => part.type === 'day')?.value || '',
+    };
+    
+    // Get timezone offset string
+    const tzOffset = getTimezoneOffsetString(tz);
+    
+    // Format hours and minutes with leading zeros
+    const formattedHours = hours.toString().padStart(2, '0');
+    const formattedMinutes = minutes.toString().padStart(2, '0');
+    
+    // Create the ISO string with timezone
+    return `${dateParts.year}-${dateParts.month}-${dateParts.day}T${formattedHours}:${formattedMinutes}:00${tzOffset}`;
+  } catch (error) {
+    console.error('Error converting date and time to ISO:', error);
+    return null;
   }
 };

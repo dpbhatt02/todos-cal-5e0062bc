@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { mapDbTaskToTask } from './use-task-mapper';
 import { format, parseISO, addMinutes } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
+import { formDateTimeToISO, getLocalTimezone } from '@/utils/timezone';
 
 export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
@@ -19,80 +20,40 @@ export const useTaskOperations = (user: any) => {
     }
     
     // Fallback to browser's timezone
-    try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone;
-    } catch (err) {
-      console.error('Error getting timezone:', err);
-      return 'UTC'; // Default fallback
-    }
+    return getLocalTimezone();
   };
 
-  // Helper function to properly format time with user's timezone
-  const formatTimeForDB = (dateInput: string | Date, timeString: string | null): string | null => {
-    if (!timeString) return null;
+  // Helper function to properly format time with user's timezone for database
+  const formatTimeForDB = (dateInput: string, timeString: string | null): string | null => {
+    if (!timeString || !dateInput) return null;
     
     try {
-      // Extract date part based on type
-      let datePart: string;
-      
-      if (dateInput instanceof Date) {
-        // If it's a Date object, format it
-        datePart = format(dateInput, 'yyyy-MM-dd');
-      } else {
-        // If it's a string, extract the date part
-        datePart = dateInput.split('T')[0];
-      }
-      
-      // Now we have the date part, combine with time
-      const combinedDateTime = `${datePart}T${timeString}:00`;
-      
-      // Get user's timezone from profile or browser
+      // Get user's timezone
       const userTimezone = getUserTimezone();
       console.log('Using timezone for time formatting:', userTimezone);
       
-      // Create a Date object
-      const date = new Date(`${datePart}T${timeString}:00`);
-      
-      // Format the time with the user's timezone
-      return `${combinedDateTime}`;
+      // Convert date and time to ISO string with timezone
+      return formDateTimeToISO(dateInput, timeString);
     } catch (err) {
-      console.error('Error formatting time:', err);
+      console.error('Error formatting time for DB:', err);
       return null;
     }
   };
 
-  // Helper function to properly format date with user's timezone
-  const formatDateForDB = (date: Date | string): string => {
+  // Helper function to properly format date with user's timezone for database
+  const formatDateForDB = (date: Date | string): string | null => {
+    if (!date) return null;
+    
     try {
-      let dateObj: Date;
-      
-      if (typeof date === 'string') {
-        // If it's an ISO string
-        dateObj = new Date(date);
-      } else {
-        // It's already a Date object
-        dateObj = date;
-      }
-      
-      // Get the user's timezone
+      // Get user's timezone
       const userTimezone = getUserTimezone();
       console.log('Using timezone for date formatting:', userTimezone);
       
-      // Format the date in yyyy-MM-dd format
-      const formattedDate = format(dateObj, 'yyyy-MM-dd');
-      
-      // Get time part (or set to 00:00:00 if not available)
-      const timePart = dateObj.toISOString().split('T')[1].substring(0, 8);
-      
-      // Combine date and time with user's timezone indicator
-      return `${formattedDate}T${timePart}`;
+      // Convert to ISO string with timezone (use midnight as the time)
+      return formDateTimeToISO(typeof date === 'string' ? date : format(date, 'yyyy-MM-dd'), null);
     } catch (err) {
-      console.error('Error formatting date:', err);
-      // Fallback to ISO string without timezone
-      if (date instanceof Date) {
-        return date.toISOString();
-      }
-      return date;
+      console.error('Error formatting date for DB:', err);
+      return null;
     }
   };
 
@@ -108,44 +69,31 @@ export const useTaskOperations = (user: any) => {
       console.log('Creating task with data:', taskData); // Debug log
       
       // Format due date with timezone information
-      const dueDate = taskData.dueDate instanceof Date || typeof taskData.dueDate === 'string'
-        ? formatDateForDB(taskData.dueDate)
-        : null;
+      const dueDate = taskData.dueDate ? formatDateForDB(taskData.dueDate) : null;
+      console.log('Formatted due date:', dueDate);
 
       // Format start and end times properly with timezone information
       let startTime = null;
       let endTime = null;
       
-      if (taskData.startTime) {
-        console.log('start time : '+ taskData.startTime);
-        startTime = formatTimeForDB(dueDate || new Date(), taskData.startTime);
+      if (taskData.startTime && typeof taskData.dueDate === 'string') {
+        console.log('Start time:', taskData.startTime);
+        startTime = formatTimeForDB(taskData.dueDate, taskData.startTime);
         console.log('Formatted start time:', startTime);
         
         // If end time is not provided, add 30 minutes to start time
-        if (!taskData.endTime) {
+        if (!taskData.endTime && startTime) {
           // Parse the start time
-          const [hours, minutes] = taskData.startTime.split(':').map(Number);
-          const startDateTime = new Date();
-          if (taskData.dueDate instanceof Date) {
-            startDateTime.setFullYear(taskData.dueDate.getFullYear());
-            startDateTime.setMonth(taskData.dueDate.getMonth());
-            startDateTime.setDate(taskData.dueDate.getDate());
-          } else if (typeof taskData.dueDate === 'string') {
-            const dueDateTime = new Date(taskData.dueDate);
-            startDateTime.setFullYear(dueDateTime.getFullYear());
-            startDateTime.setMonth(dueDateTime.getMonth());
-            startDateTime.setDate(dueDateTime.getDate());
-          }
-          startDateTime.setHours(hours, minutes, 0, 0);
+          const startDateTime = new Date(startTime);
           
           // Add 30 minutes
           const endDateTime = addMinutes(startDateTime, 30);
-          const endTimeString = format(endDateTime, 'HH:mm');
+          const endTimeIso = endDateTime.toISOString();
           
-          endTime = formatTimeForDB(dueDate || new Date(), endTimeString);
+          endTime = endTimeIso;
           console.log('Generated end time:', endTime);
-        } else {
-          endTime = formatTimeForDB(dueDate || new Date(), taskData.endTime);
+        } else if (taskData.endTime) {
+          endTime = formatTimeForDB(taskData.dueDate, taskData.endTime);
           console.log('Formatted end time:', endTime);
         }
       }
@@ -205,7 +153,7 @@ export const useTaskOperations = (user: any) => {
       // Get the task before updating to record in history
       const { data: existingTask } = await supabase
         .from('tasks')
-        .select('title')
+        .select('title, due_date')
         .eq('id', id)
         .single();
       
@@ -229,7 +177,6 @@ export const useTaskOperations = (user: any) => {
         return mockUpdatedTask;
       }
       
-      // Continue with real database update for UUID task IDs
       // Convert to database format
       const dbUpdates: any = {};
       if (updates.title !== undefined) dbUpdates.title = updates.title;
@@ -238,9 +185,8 @@ export const useTaskOperations = (user: any) => {
       
       // Format due date with timezone information
       if (updates.dueDate !== undefined) {
-        dbUpdates.due_date = updates.dueDate instanceof Date || typeof updates.dueDate === 'string'
-          ? formatDateForDB(updates.dueDate)
-          : null;
+        dbUpdates.due_date = updates.dueDate ? formatDateForDB(updates.dueDate) : null;
+        console.log('Formatted due date for update:', dbUpdates.due_date);
       }
       
       // Handle all-day flag
@@ -255,9 +201,12 @@ export const useTaskOperations = (user: any) => {
       }
       
       // Format start and end times properly with timezone information
-      if (updates.startTime !== undefined) {
-        const dueDate = updates.dueDate || dbUpdates.due_date || new Date();
-        dbUpdates.start_time = updates.startTime ? formatTimeForDB(dueDate, updates.startTime) : null;
+      const dueDate = updates.dueDate || existingTask.due_date || null;
+      
+      if (updates.startTime !== undefined && dueDate) {
+        const dueDateStr = typeof dueDate === 'string' ? dueDate.split('T')[0] : format(dueDate, 'yyyy-MM-dd');
+        dbUpdates.start_time = updates.startTime ? formatTimeForDB(dueDateStr, updates.startTime) : null;
+        console.log('Formatted start time for update:', dbUpdates.start_time);
         
         // Update is_all_day when setting a time
         if (updates.startTime && dbUpdates.is_all_day === undefined) {
@@ -265,9 +214,10 @@ export const useTaskOperations = (user: any) => {
         }
       }
       
-      if (updates.endTime !== undefined) {
-        const dueDate = updates.dueDate || dbUpdates.due_date || new Date();
-        dbUpdates.end_time = updates.endTime ? formatTimeForDB(dueDate, updates.endTime) : null;
+      if (updates.endTime !== undefined && dueDate) {
+        const dueDateStr = typeof dueDate === 'string' ? dueDate.split('T')[0] : format(dueDate, 'yyyy-MM-dd');
+        dbUpdates.end_time = updates.endTime ? formatTimeForDB(dueDateStr, updates.endTime) : null;
+        console.log('Formatted end time for update:', dbUpdates.end_time);
         
         // Update is_all_day when setting a time
         if (updates.endTime && dbUpdates.is_all_day === undefined) {

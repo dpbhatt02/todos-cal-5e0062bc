@@ -1,31 +1,64 @@
+
 import { format } from 'date-fns';
 import { 
   formatDateInTimezone, 
   formatTimeInTimezone, 
-  getLocalTimezone 
+  getLocalTimezone,
+  dateAndTimeToISOWithTimezone
 } from '@/utils/timezone';
 
 export const formatDate = (date: Date | string) => {
+  if (!date) return '';
+  
   // Use our timezone utility instead of basic formatting
   return formatDateInTimezone(date);
 };
 
 export const formatFullDate = (date: Date | string) => {
+  if (!date) return '';
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
-  const day = format(dateObj, 'd');
-  const month = format(dateObj, 'MMM');
-  const year = format(dateObj, 'yyyy');
-  const dayName = format(dateObj, 'EEEE');
+  // Get date parts in user's timezone
+  const userTimezone = getLocalTimezone();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: userTimezone,
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+  
+  const parts = formatter.formatToParts(dateObj);
+  const day = parts.find(part => part.type === 'day')?.value || '';
+  const month = parts.find(part => part.type === 'month')?.value || '';
+  const year = parts.find(part => part.type === 'year')?.value || '';
+  
+  // Get day of week in user's timezone
+  const dayFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: userTimezone,
+    weekday: 'long'
+  });
+  const dayName = dayFormatter.format(dateObj);
+  
+  // Check if it's today or tomorrow in user's timezone
+  const todayFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: userTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
   
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   
-  if (dateObj.getTime() === today.getTime()) {
+  const dateStr = todayFormatter.format(dateObj);
+  const todayStr = todayFormatter.format(today);
+  const tomorrowStr = todayFormatter.format(tomorrow);
+  
+  if (dateStr === todayStr) {
     return `${day} ${month}, ${year} · Today`;
-  } else if (dateObj.getTime() === tomorrow.getTime()) {
+  } else if (dateStr === tomorrowStr) {
     return `${day} ${month}, ${year} · Tomorrow`;
   } else {
     return `${day} ${month}, ${year} · ${dayName}`;
@@ -105,4 +138,11 @@ export const getCurrentTimezone = (): { name: string, offset: string } => {
       offset: ''
     };
   }
+};
+
+// Convert a form date and time to an ISO string with timezone
+export const formDateTimeToISO = (dateStr: string, timeStr: string | null): string | null => {
+  if (!dateStr) return null;
+  
+  return dateAndTimeToISOWithTimezone(dateStr, timeStr);
 };
