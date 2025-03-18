@@ -54,6 +54,8 @@ export const useTaskOperations = (user: any) => {
       let endTime = null;
       
       if (taskData.startTime) {
+        console.log('start time : '+ taskData.startTime);
+        stop();
         startTime = formatTimeForDB(dueDate, taskData.startTime);
         console.log('Formatted start time:', startTime);
         
