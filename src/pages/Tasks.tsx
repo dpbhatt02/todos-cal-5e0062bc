@@ -195,13 +195,13 @@ const TasksContent = ({
     // Add time information if present - ensuring correct time formats with timezone handling
     if (taskData.startTime) {
       formattedData.startTime = taskData.startTime;
-      
+      console.log('start time:'+ taskData.startTime);
       // If only start time is provided, the backend will automatically set 
       // end time to start time + 30 minutes
       if (taskData.endTime) {
         formattedData.endTime = taskData.endTime;
-        console.log('start time:'+ submissionData.startTime);
-        console.log('end time:'+ submissionData.endTime);
+        console.log('start time:'+ taskData.startTime);
+        console.log('end time:'+ taskData.endTime);
       }
     }
     
@@ -223,7 +223,8 @@ const TasksContent = ({
         formattedData.recurring.endAfter = taskData.recurrenceCount;
       }
     }
-
+      console.log('start time:'+ taskData.startTime);
+        console.log('end time:'+ taskData.endTime);
     console.log('Formatted task data:', formattedData);
     
     const newTask = await createTask(formattedData as Omit<TaskProps, 'id'>);
