@@ -1,10 +1,11 @@
+
 import { useState, useEffect, useRef } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import WeekView from '@/components/tasks/WeekView';
 import { useTaskFiltering } from '@/hooks/use-task-filtering';
-import { TaskDateGroups, useTaskDateGroups } from '@/hooks/use-task-date-groups';
+import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Tab } from '@headlessui/react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +15,7 @@ import { RefreshCw } from 'lucide-react';
 import { addMinutes } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { TaskProps } from '@/components/tasks/types';
 
 interface Task {
   id: string;
@@ -35,8 +37,29 @@ const Tasks = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
-  const { filteredTasks, filterTasks } = useTaskFiltering(tasks);
-  const { taskDateGroups, groupTasksByDate } = useTaskDateGroups(filteredTasks);
+  
+  // Use view and sort options directly in Tasks component
+  const [viewOption, setViewOption] = useState('active');
+  const [sortOption, setSortOption] = useState('date');
+  const customOrder: string[] = [];
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  // Use useTaskFiltering and useTaskDateGroups with correct parameters
+  const { sortedTasks } = useTaskFiltering(
+    tasks.map(mapDbTaskToTaskProps),
+    viewOption, 
+    sortOption, 
+    customOrder
+  );
+  
+  const { overdueTasks, todayTasks, futureDatesGrouped } = useTaskDateGroups(
+    tasks.map(mapDbTaskToTaskProps),
+    viewOption,
+    sortOption,
+    customOrder,
+    selectedDate
+  );
+  
   const [currentTab, setCurrentTab] = useState<string>('list');
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -73,14 +96,6 @@ const Tasks = () => {
     fetchTasks();
   }, [user, navigate]);
 
-  useEffect(() => {
-    if (initialRender.current) {
-      initialRender.current = false;
-      return;
-    }
-    groupTasksByDate(filteredTasks);
-  }, [filteredTasks, groupTasksByDate]);
-
   const toggleCreateModal = () => {
     setIsCreateModalOpen(!isCreateModalOpen);
   };
@@ -91,8 +106,10 @@ const Tasks = () => {
       title: taskData.title,
       description: taskData.description,
       priority: taskData.priority,
-      dueDate: new Date(taskData.dueDate),
+      dueDate: new Date(taskData.dueDate).toISOString(),
       completed: false,
+      startTime: null as string | null,
+      endTime: null as string | null
     };
 
     // Add time information if present
@@ -112,17 +129,23 @@ const Tasks = () => {
       const { data, error } = await supabase
         .from('tasks')
         .insert([{
-          ...newTask,
+          title: newTask.title,
+          description: newTask.description,
+          priority: newTask.priority,
+          due_date: newTask.dueDate,
+          start_time: newTask.startTime,
+          end_time: newTask.endTime,
+          completed: newTask.completed,
           user_id: user!.id,
         }])
-        .select()
+        .select();
 
       if (error) {
         console.error('Error saving task:', error);
         return;
       }
 
-      setTasks(prevTasks => [...prevTasks, data![0]]);
+      setTasks(prevTasks => [...prevTasks, data![0] as Task]);
       setIsCreateModalOpen(false);
     } catch (error) {
       console.error('Error creating task:', error);
@@ -197,6 +220,21 @@ const Tasks = () => {
     }
   };
 
+  // Mapping function to convert database tasks to TaskProps
+  function mapDbTaskToTaskProps(task: Task): TaskProps {
+    return {
+      id: task.id,
+      title: task.title || '',
+      description: task.description || '',
+      priority: (task.priority as 'low' | 'medium' | 'high') || 'medium',
+      dueDate: task.dueDate || new Date().toISOString(),
+      completed: task.completed,
+      tags: [],
+      startTime: task.startTime || undefined,
+      endTime: task.endTime || undefined
+    };
+  }
+
   return (
     <div className="container py-6">
       <div className="flex justify-between items-center mb-6">
@@ -206,7 +244,7 @@ const Tasks = () => {
             variant="secondary"
             onClick={handleSyncTasks}
             disabled={syncing}
-            icon={<RefreshCw className="h-4 w-4 animate-spin" />}
+            icon={<RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />}
           >
             {syncing ? 'Syncing...' : 'Sync to Calendar'}
           </ButtonCustom>
@@ -249,19 +287,19 @@ const Tasks = () => {
         <Tab.Panels>
           <Tab.Panel>
             <TaskList
-              loading={loading}
-              tasks={taskDateGroups}
-              filterTasks={filterTasks}
-              onUpdateTask={handleUpdateTask}
-              onDeleteTask={handleDeleteTask}
+              onTaskEdited={() => {}}
+              onTaskDeleted={() => {}}
             />
           </Tab.Panel>
           <Tab.Panel>
             <WeekView
-              tasks={tasks}
-              loading={loading}
-              onUpdateTask={handleUpdateTask}
-              onDeleteTask={handleDeleteTask}
+              currentDate={new Date()}
+              selectedDate={selectedDate}
+              tasks={tasks.map(mapDbTaskToTaskProps)}
+              onPreviousWeek={() => {}}
+              onNextWeek={() => {}}
+              onToday={() => {}}
+              onSelectDay={setSelectedDate}
             />
           </Tab.Panel>
         </Tab.Panels>
@@ -270,7 +308,7 @@ const Tasks = () => {
       <CreateTaskModal
         isOpen={isCreateModalOpen}
         onClose={toggleCreateModal}
-        onCreate={handleCreateTask}
+        onSubmit={handleCreateTask}
       />
     </div>
   );

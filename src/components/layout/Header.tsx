@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { MenuIcon, BellIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { MenuIcon } from 'lucide-react';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,12 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar, toggleCreateModal }) => {
   const isMobile = useIsMobile();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // Handler for search component
+  const handleSearchClick = () => {
+    // Handle search click if needed
+  };
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -28,10 +34,10 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, toggleCreateModal }) => 
           />
         </div>
         <div className={cn("hidden md:flex", isMobile ? "mx-2" : "mx-4")}>
-          <SearchBar />
+          <SearchBar isSidebarOpen={isSidebarOpen} handleSearchClick={handleSearchClick} />
         </div>
         <div className="flex items-center ml-auto">
-          <NotificationsPopover />
+          <NotificationsPopover isSidebarOpen={isSidebarOpen} />
         </div>
       </div>
     </header>
