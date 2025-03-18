@@ -74,7 +74,7 @@ export const getTimezoneOffsetString = (): string => {
 };
 
 // Convert a date and time string to a Date object
-// This function will create a proper Date object without timezone conversion issues
+// This function will create a proper Date object in the user's timezone
 export const dateAndTimeToISOWithTimezone = (
   dateString: string, 
   timeString: string | null
@@ -105,23 +105,15 @@ export const dateAndTimeToISOWithTimezone = (
       return null;
     }
     
-    // Create date object at the specified time in user's timezone
-    // We need to use UTC to avoid timezone shifts
-    const userDate = new Date();
-    const userOffset = userDate.getTimezoneOffset();
+    // Create a local date object with the specified date and time
+    const localDate = new Date();
+    localDate.setFullYear(year, month - 1, day);
+    localDate.setHours(hours, minutes, 0, 0);
     
-    // Create the date in UTC by applying the user's timezone offset
-    const utcDate = new Date(Date.UTC(
-      year, 
-      month - 1, 
-      day, 
-      hours, 
-      minutes, 
-      0
-    ));
+    console.log(`Creating local datetime: ${localDate.toISOString()} for ${year}-${month}-${day} ${hours}:${minutes}`);
     
-    console.log(`Creating date: ${year}-${month}-${day} ${hours}:${minutes} in UTC`);
-    return utcDate.toISOString();
+    // Return ISO string which will include timezone information
+    return localDate.toISOString();
   } catch (error) {
     console.error('Error converting date and time to ISO:', error, dateString, timeString);
     return null;

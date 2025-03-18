@@ -60,16 +60,29 @@ export const useTaskOperations = (user: any) => {
       // Only process time if it's explicitly not an all-day task
       if (taskData.isAllDay === false && taskData.startTime && typeof taskData.dueDate === 'string') {
         console.log('Processing time for non-all-day task');
-        startTime = dateAndTimeToISOWithTimezone(taskData.dueDate, taskData.startTime);
+        
+        // Extract date string in YYYY-MM-DD format
+        let dateStr = taskData.dueDate;
+        if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const date = new Date(taskData.dueDate);
+          dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+        
+        // Log the input values for debugging
+        console.log('Converting to ISO with timezone:', dateStr, taskData.startTime);
+        
+        startTime = dateAndTimeToISOWithTimezone(dateStr, taskData.startTime);
         console.log('Processed start time:', startTime);
         
         if (taskData.endTime) {
-          endTime = dateAndTimeToISOWithTimezone(taskData.dueDate, taskData.endTime);
+          endTime = dateAndTimeToISOWithTimezone(dateStr, taskData.endTime);
+          console.log('Processed end time:', endTime);
         } else if (startTime) {
           // Add 30 minutes to start time for end time
           const startDate = new Date(startTime);
           const endDate = addMinutes(startDate, 30);
           endTime = endDate.toISOString();
+          console.log('Generated end time (+30 mins):', endTime);
         }
         
         // Ensure isAllDay is false when we have start time
@@ -200,21 +213,37 @@ export const useTaskOperations = (user: any) => {
       }
       
       // Special handling for time fields
-      if (!dbUpdates.is_all_day && updates.startTime) {
-        const dueDateStr = typeof updates.dueDate === 'string' 
-          ? updates.dueDate 
-          : existingTask.due_date ? format(new Date(existingTask.due_date), 'yyyy-MM-dd') : null;
+      if (updates.isAllDay === false && updates.startTime) {
+        let dateStr;
+        if (typeof updates.dueDate === 'string') {
+          // If dueDate is provided in the updates, use it
+          if (/^\d{4}-\d{2}-\d{2}$/.test(updates.dueDate)) {
+            dateStr = updates.dueDate;
+          } else {
+            const date = new Date(updates.dueDate);
+            dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+          }
+        } else if (existingTask.due_date) {
+          // Otherwise use the existing due_date
+          const date = new Date(existingTask.due_date);
+          dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+        
+        if (dateStr) {
+          console.log('Converting to ISO with timezone for update:', dateStr, updates.startTime);
           
-        if (dueDateStr) {
-          dbUpdates.start_time = dateAndTimeToISOWithTimezone(dueDateStr, updates.startTime);
+          dbUpdates.start_time = dateAndTimeToISOWithTimezone(dateStr, updates.startTime);
+          console.log('Updated start time:', dbUpdates.start_time);
           
           if (updates.endTime) {
-            dbUpdates.end_time = dateAndTimeToISOWithTimezone(dueDateStr, updates.endTime);
+            dbUpdates.end_time = dateAndTimeToISOWithTimezone(dateStr, updates.endTime);
+            console.log('Updated end time:', dbUpdates.end_time);
           } else if (dbUpdates.start_time) {
             // Auto-generate end time (start + 30 min) if not provided
             const startDateTime = new Date(dbUpdates.start_time);
             const endDateTime = addMinutes(startDateTime, 30);
             dbUpdates.end_time = endDateTime.toISOString();
+            console.log('Generated end time (+30 mins):', dbUpdates.end_time);
           }
         }
       }

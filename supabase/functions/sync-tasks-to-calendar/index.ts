@@ -275,7 +275,7 @@ serve(async (req) => {
           
           console.log(`Setting event time: ${task.start_time} to ${task.end_time} (${userTimezone})`);
         } else {
-          // Fallback for when we only have due_date but is_all_day is false
+          // Fallback for when we only have due_date but is_all_day is false and no time info
           // Make it an all-day event to be safe
           const dueDateObj = new Date(task.due_date);
           const dateOnly = dueDateObj.toISOString().split('T')[0];
