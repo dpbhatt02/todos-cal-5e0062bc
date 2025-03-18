@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,19 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detectedTimezone, setDetectedTimezone] = useState<string>('');
+
+  // Detect user's timezone on component mount
+  useEffect(() => {
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      setDetectedTimezone(timezone);
+      console.log('Detected timezone:', timezone);
+    } catch (error) {
+      console.error('Error detecting timezone:', error);
+      setDetectedTimezone('UTC');
+    }
+  }, []);
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -96,6 +109,11 @@ const Auth = () => {
           <CardDescription>
             Manage your tasks and calendar effectively
           </CardDescription>
+          {detectedTimezone && (
+            <CardDescription className="text-xs text-muted-foreground mt-1">
+              Your detected timezone: {detectedTimezone}
+            </CardDescription>
+          )}
         </CardHeader>
         
         <Tabs defaultValue="login" value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "signup")}>

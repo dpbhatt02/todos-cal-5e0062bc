@@ -5,11 +5,29 @@ import { TaskProps } from '@/components/tasks/types';
 import { toast } from 'sonner';
 import { mapDbTaskToTask } from './use-task-mapper';
 import { format, parseISO, addMinutes } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
+  const { user: authUser } = useAuth();
+  
+  // Helper function to get the user's timezone
+  const getUserTimezone = (): string => {
+    // Get timezone from user metadata if available
+    if (authUser?.timezone) {
+      return authUser.timezone;
+    }
+    
+    // Fallback to browser's timezone
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (err) {
+      console.error('Error getting timezone:', err);
+      return 'UTC'; // Default fallback
+    }
+  };
 
-  // Helper function to properly format time with local timezone offset
+  // Helper function to properly format time with user's timezone
   const formatTimeForDB = (dateInput: string | Date, timeString: string | null): string | null => {
     if (!timeString) return null;
     
@@ -28,27 +46,22 @@ export const useTaskOperations = (user: any) => {
       // Now we have the date part, combine with time
       const combinedDateTime = `${datePart}T${timeString}:00`;
       
-      // Create a Date object to include timezone offset
+      // Get user's timezone from profile or browser
+      const userTimezone = getUserTimezone();
+      console.log('Using timezone for time formatting:', userTimezone);
+      
+      // Create a Date object
       const date = new Date(`${datePart}T${timeString}:00`);
       
-      // Get local timezone offset in minutes
-      const tzOffset = date.getTimezoneOffset();
-      const tzOffsetHours = Math.abs(Math.floor(tzOffset / 60));
-      const tzOffsetMinutes = Math.abs(tzOffset % 60);
-      
-      // Format timezone offset string
-      const tzSign = tzOffset <= 0 ? '+' : '-';
-      const tzString = `${tzSign}${tzOffsetHours.toString().padStart(2, '0')}:${tzOffsetMinutes.toString().padStart(2, '0')}`;
-      
-      // Return the ISO formatted string with local timezone
-      return `${combinedDateTime}${tzString}`;
+      // Format the time with the user's timezone
+      return `${combinedDateTime}`;
     } catch (err) {
       console.error('Error formatting time:', err);
       return null;
     }
   };
 
-  // Helper function to properly format date with local timezone info
+  // Helper function to properly format date with user's timezone
   const formatDateForDB = (date: Date | string): string => {
     try {
       let dateObj: Date;
@@ -61,24 +74,18 @@ export const useTaskOperations = (user: any) => {
         dateObj = date;
       }
       
-      // Get the ISO string
-      const isoString = dateObj.toISOString();
+      // Get the user's timezone
+      const userTimezone = getUserTimezone();
+      console.log('Using timezone for date formatting:', userTimezone);
       
-      // Get local timezone offset in minutes
-      const tzOffset = dateObj.getTimezoneOffset();
-      const tzOffsetHours = Math.abs(Math.floor(tzOffset / 60));
-      const tzOffsetMinutes = Math.abs(tzOffset % 60);
+      // Format the date in yyyy-MM-dd format
+      const formattedDate = format(dateObj, 'yyyy-MM-dd');
       
-      // Format timezone offset string
-      const tzSign = tzOffset <= 0 ? '+' : '-';
-      const tzString = `${tzSign}${tzOffsetHours.toString().padStart(2, '0')}:${tzOffsetMinutes.toString().padStart(2, '0')}`;
+      // Get time part (or set to 00:00:00 if not available)
+      const timePart = dateObj.toISOString().split('T')[1].substring(0, 8);
       
-      // Get date part and time part
-      const datePart = isoString.split('T')[0];
-      const timePart = isoString.split('T')[1].substring(0, 8);
-      
-      // Return the ISO formatted string with local timezone
-      return `${datePart}T${timePart}${tzString}`;
+      // Combine date and time with user's timezone indicator
+      return `${formattedDate}T${timePart}`;
     } catch (err) {
       console.error('Error formatting date:', err);
       // Fallback to ISO string without timezone

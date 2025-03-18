@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,12 +10,14 @@ export interface User {
   email: string;
   name?: string;
   photoURL?: string;
+  timezone?: string;
 }
 
 // Define user update type
 interface UserUpdate {
   name?: string;
   photoURL?: string | null;
+  timezone?: string;
 }
 
 // Define auth context type
@@ -42,6 +45,16 @@ const AuthContext = createContext<AuthContextType>({
 // Custom hook to use auth context
 export const useAuth = () => useContext(AuthContext);
 
+// Get user's local timezone
+const getUserTimezone = (): string => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch (error) {
+    console.error('Error detecting timezone:', error);
+    return 'UTC';
+  }
+};
+
 // Helper to convert Supabase user to our User type
 const formatUser = (supabaseUser: SupabaseUser | null): User | null => {
   if (!supabaseUser) return null;
@@ -51,6 +64,7 @@ const formatUser = (supabaseUser: SupabaseUser | null): User | null => {
     email: supabaseUser.email || '',
     name: supabaseUser.user_metadata?.name,
     photoURL: supabaseUser.user_metadata?.avatar_url,
+    timezone: supabaseUser.user_metadata?.timezone || getUserTimezone(),
   };
 };
 
@@ -70,7 +84,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Set user if session exists
         if (session?.user) {
-          setUser(formatUser(session.user));
+          const formattedUser = formatUser(session.user);
+          
+          // Check if timezone needs to be updated
+          if (formattedUser && !formattedUser.timezone) {
+            // Update the user's timezone in Supabase
+            const timezone = getUserTimezone();
+            await supabase.auth.updateUser({
+              data: { timezone }
+            });
+            
+            // Update the formatted user with the timezone
+            formattedUser.timezone = timezone;
+          }
+          
+          setUser(formattedUser);
         }
       } catch (error) {
         console.error('Error checking auth state:', error);
@@ -82,8 +110,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuthState();
     
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(formatUser(session?.user || null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const formattedUser = formatUser(session?.user || null);
+      
+      // Check if timezone needs to be updated on auth state change
+      if (formattedUser && !formattedUser.timezone) {
+        // Update the user's timezone in Supabase
+        const timezone = getUserTimezone();
+        await supabase.auth.updateUser({
+          data: { timezone }
+        });
+        
+        // Update the formatted user with the timezone
+        formattedUser.timezone = timezone;
+      }
+      
+      setUser(formattedUser);
       setLoading(false);
     });
     
@@ -123,6 +165,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       
+      const timezone = getUserTimezone();
+      console.log('Detected timezone during signup:', timezone);
+      
       // Sign up with Supabase
       const { error } = await supabase.auth.signUp({
         email,
@@ -130,6 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             name,
+            timezone,
           }
         }
       });
@@ -156,7 +202,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/tasks`
+          redirectTo: `${window.location.origin}/tasks`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
       
@@ -208,6 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         data: {
           name: userData.name !== undefined ? userData.name : user.name,
           avatar_url: userData.photoURL !== undefined ? userData.photoURL : user.photoURL,
+          timezone: userData.timezone !== undefined ? userData.timezone : user.timezone,
         }
       });
       
@@ -223,6 +274,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prev,
           name: userData.name !== undefined ? userData.name : prev.name,
           photoURL: userData.photoURL !== undefined ? userData.photoURL : prev.photoURL,
+          timezone: userData.timezone !== undefined ? userData.timezone : prev.timezone,
         };
       });
       

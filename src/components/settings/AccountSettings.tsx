@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,32 +7,86 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { User, Mail, Key, Upload, Trash, AlertTriangle, Save } from "lucide-react";
+import { User, Mail, Key, Upload, Trash, AlertTriangle, Save, Clock } from "lucide-react";
 import { ChangePasswordModal } from "./ChangePasswordModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// List of popular timezones
+const popularTimezones = [
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Asia/Tokyo',
+  'Asia/Shanghai',
+  'Asia/Kolkata',
+  'Australia/Sydney',
+  'Pacific/Auckland',
+];
 
 export const AccountSettings = () => {
   const { user, updateUser } = useAuth();
   const [formData, setFormData] = useState({
     name: user?.name || "John Doe",
     email: user?.email || "john.doe@example.com",
-    avatar: user?.photoURL || "/placeholder.svg"
+    avatar: user?.photoURL || "/placeholder.svg",
+    timezone: user?.timezone || ""
   });
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [availableTimezones, setAvailableTimezones] = useState<string[]>([]);
   const isMobile = useIsMobile();
+
+  // Get all available timezones
+  useEffect(() => {
+    try {
+      // Start with detected timezone if available
+      const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      // Combine detected timezone with popular ones (if not already included)
+      const timezones = new Set([
+        detectedTimezone,
+        ...popularTimezones
+      ]);
+      
+      setAvailableTimezones(Array.from(timezones));
+      
+      // Set detected timezone as default if none is set
+      if (!formData.timezone) {
+        setFormData(prev => ({ 
+          ...prev, 
+          timezone: detectedTimezone 
+        }));
+      }
+    } catch (error) {
+      console.error('Error getting timezones:', error);
+      setAvailableTimezones(popularTimezones);
+    }
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleTimezoneChange = (value: string) => {
+    setFormData(prev => ({ ...prev, timezone: value }));
+  };
+
   const handleSave = async () => {
     try {
-      await updateUser({ name: formData.name });
+      await updateUser({ 
+        name: formData.name,
+        timezone: formData.timezone 
+      });
       toast.success("Profile updated successfully");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -133,6 +187,31 @@ export const AccountSettings = () => {
     console.log("Delete account");
   };
 
+  // Format timezone for display
+  const formatTimezone = (timezone: string): string => {
+    if (!timezone) return '';
+    
+    try {
+      // Get current date in the timezone
+      const date = new Date();
+      const options: Intl.DateTimeFormatOptions = { 
+        timeZone: timezone, 
+        timeZoneName: 'long'
+      };
+      
+      // Get the timezone name part from the formatted date
+      const timeZoneName = new Intl.DateTimeFormat('en-US', options)
+        .formatToParts(date)
+        .find(part => part.type === 'timeZoneName')?.value || timezone;
+      
+      // Return formatted timezone string
+      return `${timezone} (${timeZoneName})`;
+    } catch (error) {
+      console.error('Error formatting timezone:', error);
+      return timezone;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -228,6 +307,31 @@ export const AccountSettings = () => {
                   disabled
                   className="bg-muted"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="timezone" className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  <span>Timezone</span>
+                </Label>
+                <Select
+                  value={formData.timezone}
+                  onValueChange={handleTimezoneChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableTimezones.map((timezone) => (
+                      <SelectItem key={timezone} value={timezone}>
+                        {formatTimezone(timezone)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Your timezone is used for date and time calculations across the app.
+                </p>
               </div>
             </div>
           </div>
