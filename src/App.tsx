@@ -5,6 +5,7 @@ import {
   Routes,
   Route,
   useLocation,
+  Outlet,
 } from 'react-router-dom';
 import { ThemeProvider } from './components/theme-provider';
 import { cn } from '@/lib/utils';
@@ -15,6 +16,7 @@ import { Toaster } from '@/components/ui/toaster';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
+import AuthLayout from './components/layout/AuthLayout';
 
 // Page Components
 import Index from './pages/Index';
@@ -27,16 +29,13 @@ import Settings from './pages/Settings';
 import Auth from './pages/Auth';
 import GoogleCalendarCallback from './pages/GoogleCalendarCallback';
 import NotFound from './pages/NotFound';
+import History from './pages/History';
 
 // Context Providers
 import { AuthProvider } from '@/contexts/AuthContext';
-import { TasksProvider } from '@/contexts/TasksContext';
-import { ThemeContext } from '@/contexts/ThemeContext';
 
-// Import the new History component
-import History from './pages/History';
-
-function Layout() {
+// MainLayout for authenticated pages with sidebar
+function MainLayout() {
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -78,19 +77,7 @@ function Layout() {
       >
         <Header toggleSidebar={toggleSidebar} toggleCreateModal={toggleCreateModal} />
         <main className="flex-1 overflow-y-auto py-6 px-4 sm:px-6 lg:px-8">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/kanban" element={<Kanban />} />
-            <Route path="/tags/:tagId" element={<TagTasks />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/google-calendar-callback" element={<GoogleCalendarCallback />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Outlet />
         </main>
         <Footer />
       </div>
@@ -107,7 +94,11 @@ function App() {
       <AuthProvider>
         <Router>
           <Routes>
-            <Route element={<Layout />}>
+            {/* Auth routes without sidebar */}
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Main application routes with sidebar */}
+            <Route element={<MainLayout />}>
               <Route path="/" element={<Index />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -116,7 +107,6 @@ function App() {
               <Route path="/tags/:tagId" element={<TagTasks />} />
               <Route path="/history" element={<History />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/auth" element={<Auth />} />
               <Route path="/auth/google-calendar-callback" element={<GoogleCalendarCallback />} />
               <Route path="*" element={<NotFound />} />
             </Route>
