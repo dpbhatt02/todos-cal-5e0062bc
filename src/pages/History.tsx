@@ -61,7 +61,7 @@ const History = () => {
           id: item.id,
           taskId: item.task_id,
           taskTitle: item.task_title,
-          action: item.action,
+          action: item.action as 'created' | 'updated' | 'completed' | 'deleted' | 'synced',
           timestamp: parseISO(item.timestamp),
           details: item.details,
           userId: item.user_id
