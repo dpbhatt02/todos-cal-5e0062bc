@@ -7,7 +7,7 @@ import WeekView from '@/components/tasks/WeekView';
 import { useTaskFiltering } from '@/hooks/use-task-filtering';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { ButtonCustom } from '@/components/ui/button-custom';
-import { Tab } from '@headlessui/react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { invokeSyncFunction } from '@/integrations/supabase/client';
@@ -85,7 +85,22 @@ const Tasks = () => {
           return;
         }
 
-        setTasks(data || []);
+        // Map the data from Supabase to our Task interface
+        const mappedTasks: Task[] = (data || []).map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          dueDate: item.due_date,
+          startTime: item.start_time,
+          endTime: item.end_time,
+          completed: item.completed,
+          priority: item.priority,
+          user_id: item.user_id,
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        }));
+
+        setTasks(mappedTasks);
       } catch (err) {
         console.error('Failed to fetch tasks:', err);
       } finally {
@@ -145,7 +160,22 @@ const Tasks = () => {
         return;
       }
 
-      setTasks(prevTasks => [...prevTasks, data![0] as Task]);
+      // Map the new task data to our Task interface
+      const newCreatedTask: Task = {
+        id: data![0].id,
+        title: data![0].title,
+        description: data![0].description,
+        dueDate: data![0].due_date,
+        startTime: data![0].start_time,
+        endTime: data![0].end_time,
+        completed: data![0].completed,
+        priority: data![0].priority,
+        user_id: data![0].user_id,
+        created_at: data![0].created_at,
+        updated_at: data![0].updated_at
+      };
+
+      setTasks(prevTasks => [...prevTasks, newCreatedTask]);
       setIsCreateModalOpen(false);
     } catch (error) {
       console.error('Error creating task:', error);
@@ -154,9 +184,19 @@ const Tasks = () => {
 
   const handleUpdateTask = async (taskId: string, updatedTaskData: Partial<Task>) => {
     try {
+      // Convert from camelCase to snake_case for the Supabase update
+      const supabaseData: any = {};
+      if (updatedTaskData.title) supabaseData.title = updatedTaskData.title;
+      if (updatedTaskData.description !== undefined) supabaseData.description = updatedTaskData.description;
+      if (updatedTaskData.dueDate !== undefined) supabaseData.due_date = updatedTaskData.dueDate;
+      if (updatedTaskData.startTime !== undefined) supabaseData.start_time = updatedTaskData.startTime;
+      if (updatedTaskData.endTime !== undefined) supabaseData.end_time = updatedTaskData.endTime;
+      if (updatedTaskData.completed !== undefined) supabaseData.completed = updatedTaskData.completed;
+      if (updatedTaskData.priority !== undefined) supabaseData.priority = updatedTaskData.priority;
+
       const { error } = await supabase
         .from('tasks')
-        .update(updatedTaskData)
+        .update(supabaseData)
         .eq('id', taskId);
 
       if (error) {
@@ -254,56 +294,33 @@ const Tasks = () => {
         </div>
       </div>
 
-      <Tab.Group
-        selectedIndex={currentTab === 'list' ? 0 : 1}
-        onChange={(index) => setCurrentTab(index === 0 ? 'list' : 'calendar')}
+      <Tabs 
+        value={currentTab} 
+        onValueChange={setCurrentTab}
+        className="w-full"
       >
-        <Tab.List className="flex space-x-4 mb-4">
-          <Tab
-            className={({ selected }) =>
-              cn(
-                'rounded-md py-2 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary',
-                selected
-                  ? 'bg-primary text-primary-foreground shadow'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              )
-            }
-          >
-            List View
-          </Tab>
-          <Tab
-            className={({ selected }) =>
-              cn(
-                'rounded-md py-2 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary',
-                selected
-                  ? 'bg-primary text-primary-foreground shadow'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              )
-            }
-          >
-            Calendar View
-          </Tab>
-        </Tab.List>
-        <Tab.Panels>
-          <Tab.Panel>
-            <TaskList
-              onTaskEdited={() => {}}
-              onTaskDeleted={() => {}}
-            />
-          </Tab.Panel>
-          <Tab.Panel>
-            <WeekView
-              currentDate={new Date()}
-              selectedDate={selectedDate}
-              tasks={tasks.map(mapDbTaskToTaskProps)}
-              onPreviousWeek={() => {}}
-              onNextWeek={() => {}}
-              onToday={() => {}}
-              onSelectDay={setSelectedDate}
-            />
-          </Tab.Panel>
-        </Tab.Panels>
-      </Tab.Group>
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="list">List View</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
+        </TabsList>
+        <TabsContent value="list">
+          <TaskList
+            onTaskEdited={() => {}}
+            onTaskDeleted={() => {}}
+          />
+        </TabsContent>
+        <TabsContent value="calendar">
+          <WeekView
+            currentDate={new Date()}
+            selectedDate={selectedDate}
+            tasks={tasks.map(mapDbTaskToTaskProps)}
+            onPreviousWeek={() => {}}
+            onNextWeek={() => {}}
+            onToday={() => {}}
+            onSelectDay={setSelectedDate}
+          />
+        </TabsContent>
+      </Tabs>
 
       <CreateTaskModal
         isOpen={isCreateModalOpen}
