@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
@@ -6,7 +5,7 @@ import { toast } from 'sonner';
 import { mapDbTaskToTask } from './use-task-mapper';
 import { format, parseISO, addMinutes } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
-import { formDateTimeToISO, getLocalTimezone } from '@/utils/timezone';
+import { dateAndTimeToISOWithTimezone, getLocalTimezone } from '@/utils/timezone';
 
 export const useTaskOperations = (user: any) => {
   const [operationLoading, setOperationLoading] = useState(false);
@@ -33,7 +32,7 @@ export const useTaskOperations = (user: any) => {
       console.log('Using timezone for time formatting:', userTimezone);
       
       // Convert date and time to ISO string with timezone
-      return formDateTimeToISO(dateInput, timeString);
+      return dateAndTimeToISOWithTimezone(dateInput, timeString);
     } catch (err) {
       console.error('Error formatting time for DB:', err);
       return null;
@@ -50,7 +49,7 @@ export const useTaskOperations = (user: any) => {
       console.log('Using timezone for date formatting:', userTimezone);
       
       // Convert to ISO string with timezone (use midnight as the time)
-      return formDateTimeToISO(typeof date === 'string' ? date : format(date, 'yyyy-MM-dd'), null);
+      return dateAndTimeToISOWithTimezone(typeof date === 'string' ? date : format(date, 'yyyy-MM-dd'), null);
     } catch (err) {
       console.error('Error formatting date for DB:', err);
       return null;
