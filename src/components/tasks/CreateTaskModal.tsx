@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Bold, Italic, Link, List, Underline, Repeat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -42,14 +43,15 @@ const defaultTaskData = {
   description: '',
   priority: 'medium',
   dueDate: formatDate(new Date()),
-  startTime: '09:00',
-  endTime: '10:00',
+  startTime: '', // Changed from '09:00' to empty string
+  endTime: '',   // Changed from '10:00' to empty string
   tags: [] as string[],
   recurring: 'none',
   recurrenceEndType: 'never', // 'never', 'date', 'after'
   recurrenceEndDate: formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days from now
   recurrenceCount: 5,
-  selectedWeekdays: [] as string[]
+  selectedWeekdays: [] as string[],
+  isAllDay: true  // Added to default to all-day tasks when no time is selected
 };
 
 function formatDate(date: Date) {
@@ -86,11 +88,19 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
     { id: 'learning', label: 'Learning' }
   ];
 
-  
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setTaskData(prev => ({ ...prev, [name]: value }));
+    
+    // If user sets a time value, update isAllDay accordingly
+    if ((name === 'startTime' || name === 'endTime') && value) {
+      setTaskData(prev => ({ 
+        ...prev, 
+        [name]: value,
+        isAllDay: false // If user sets a time, it's not an all-day task
+      }));
+    } else {
+      setTaskData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleTagToggle = (tagId: string) => {
@@ -121,23 +131,30 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
     // Create a copy of the data that will be submitted
     const submissionData = { ...taskData };
     
-    // Ensure time formats are correctly handled - they should be in HH:MM format, not Date objects
-    if (submissionData.startTime) {
+    // Only include time fields if they have values (not empty strings)
+    if (!submissionData.startTime) {
+      // If no start time, this is an all-day task
+      submissionData.isAllDay = true;
+      // Remove time fields if they're empty
+      delete submissionData.startTime;
+      delete submissionData.endTime;
+    } else {
+      // If start time is provided, ensure it's properly formatted
+      submissionData.isAllDay = false;
+      
       // Ensure startTime is a string in HH:MM format
       if (submissionData.startTime instanceof Date) {
         submissionData.startTime = format(submissionData.startTime, 'HH:mm');
       }
-    }
-    
-    if (submissionData.endTime) {
-      // Ensure endTime is a string in HH:MM format
-      if (submissionData.endTime instanceof Date) {
-        submissionData.endTime = format(submissionData.endTime, 'HH:mm');
+      
+      // If end time is provided, ensure it's properly formatted
+      if (submissionData.endTime) {
+        if (submissionData.endTime instanceof Date) {
+          submissionData.endTime = format(submissionData.endTime, 'HH:mm');
+        }
       }
+      // Note: If no end time is provided, backend will add +30 minutes to start time
     }
-    
-    // If start time is provided but end time is not, we'll let the backend
-    // automatically set end time to start time + 30 minutes
     
     console.log('Submitting task data:', submissionData);
     onSubmit(submissionData);
@@ -224,6 +241,17 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
       default:
         return '';
     }
+  };
+
+  // Add a toggle for all-day tasks
+  const toggleAllDay = (checked: boolean) => {
+    setTaskData(prev => ({
+      ...prev,
+      isAllDay: checked,
+      // Clear time fields if switching to all-day
+      startTime: checked ? '' : prev.startTime,
+      endTime: checked ? '' : prev.endTime
+    }));
   };
 
   useEffect(() => {
@@ -384,37 +412,61 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time</Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="startTime"
-                    name="startTime"
-                    type="time"
-                    value={taskData.startTime}
-                    onChange={handleChange}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="endTime">End Time</Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="endTime"
-                    name="endTime"
-                    type="time"
-                    value={taskData.endTime}
-                    onChange={handleChange}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
+            {/* All-day toggle */}
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="isAllDay"
+                checked={taskData.isAllDay}
+                onCheckedChange={toggleAllDay}
+              />
+              <label 
+                htmlFor="isAllDay"
+                className="text-sm cursor-pointer"
+              >
+                All-day task (no specific time)
+              </label>
             </div>
+
+            {/* Only show time fields if not all-day task */}
+            {!taskData.isAllDay && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">Start Time</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="startTime"
+                      name="startTime"
+                      type="time"
+                      value={taskData.startTime}
+                      onChange={handleChange}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">End Time (optional)</Label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="endTime"
+                      name="endTime"
+                      type="time"
+                      value={taskData.endTime}
+                      onChange={handleChange}
+                      className="pl-9"
+                      placeholder="+ 30min from start"
+                    />
+                  </div>
+                  {taskData.startTime && !taskData.endTime && (
+                    <p className="text-xs text-muted-foreground">
+                      Will default to 30 minutes after start time
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="recurring">Recurring</Label>

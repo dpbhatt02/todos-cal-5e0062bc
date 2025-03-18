@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Calendar, Clock, Flag } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { TaskProps, priorityClasses } from './types';
 
@@ -35,12 +34,23 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
   };
 
   // Format time for display
-  const formatTime = (time: string) => {
+  const formatTime = (timeString: string) => {
     try {
-      return new Date(time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      // If the timeString contains a 'T', it's an ISO string
+      if (timeString.includes('T')) {
+        const date = parseISO(timeString);
+        return format(date, 'h:mm a'); // e.g., "9:30 AM"
+      } 
+      // Otherwise it's just a time string
+      else {
+        const [hours, minutes] = timeString.split(':').map(Number);
+        const date = new Date();
+        date.setHours(hours, minutes, 0, 0);
+        return format(date, 'h:mm a');
+      }
     } catch (err) {
-      console.error('Error formatting time:', err, time);
-      return time;
+      console.error('Error formatting time:', err, timeString);
+      return timeString;
     }
   };
 
@@ -91,14 +101,22 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
           </div>
         )}
         
-        {/* Display time duration if available */}
-        {task.startTime && (
+        {/* Display time duration if available and not all-day */}
+        {!task.isAllDay && task.startTime && (
           <div className="flex items-center text-muted-foreground">
             <Clock className="h-3 w-3 mr-1" />
             <span>
               {formatTime(task.startTime)}
               {task.endTime && ` - ${formatTime(task.endTime)}`}
             </span>
+          </div>
+        )}
+        
+        {/* Show "All day" indicator for all-day tasks */}
+        {task.isAllDay && (
+          <div className="flex items-center text-muted-foreground">
+            <Clock className="h-3 w-3 mr-1" />
+            <span>All day</span>
           </div>
         )}
         

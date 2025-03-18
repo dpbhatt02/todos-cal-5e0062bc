@@ -11,7 +11,9 @@ export const useTaskOperations = (user: any) => {
 
   // Helper function to properly format time for Postgres timestamp
   // This is a critical fix for the time issue
-  const formatTimeForDB = (dateInput: string | Date, timeString: string): string => {
+  const formatTimeForDB = (dateInput: string | Date, timeString: string | null): string | null => {
+    if (!timeString) return null;
+    
     try {
       // Extract date part based on type
       let datePart: string;
@@ -29,7 +31,7 @@ export const useTaskOperations = (user: any) => {
       return `${datePart}T${timeString}:00`;
     } catch (err) {
       console.error('Error formatting time:', err);
-      return timeString;
+      return null;
     }
   };
 
@@ -55,7 +57,6 @@ export const useTaskOperations = (user: any) => {
       
       if (taskData.startTime) {
         console.log('start time : '+ taskData.startTime);
-        stop();
         startTime = formatTimeForDB(dueDate, taskData.startTime);
         console.log('Formatted start time:', startTime);
         
@@ -171,19 +172,39 @@ export const useTaskOperations = (user: any) => {
           : updates.dueDate;
       }
       
+      // Handle all-day flag
+      if (updates.isAllDay !== undefined) {
+        dbUpdates.is_all_day = updates.isAllDay;
+        
+        // If switching to all-day, clear time fields
+        if (updates.isAllDay) {
+          dbUpdates.start_time = null;
+          dbUpdates.end_time = null;
+        }
+      }
+      
       // Format start and end times properly without timezone conversion
       if (updates.startTime !== undefined) {
         const dueDate = updates.dueDate || dbUpdates.due_date;
         dbUpdates.start_time = updates.startTime ? formatTimeForDB(dueDate, updates.startTime) : null;
+        
+        // Update is_all_day when setting a time
+        if (updates.startTime && dbUpdates.is_all_day === undefined) {
+          dbUpdates.is_all_day = false;
+        }
       }
       
       if (updates.endTime !== undefined) {
         const dueDate = updates.dueDate || dbUpdates.due_date;
         dbUpdates.end_time = updates.endTime ? formatTimeForDB(dueDate, updates.endTime) : null;
+        
+        // Update is_all_day when setting a time
+        if (updates.endTime && dbUpdates.is_all_day === undefined) {
+          dbUpdates.is_all_day = false;
+        }
       }
       
       if (updates.completed !== undefined) dbUpdates.completed = updates.completed;
-      if (updates.isAllDay !== undefined) dbUpdates.is_all_day = updates.isAllDay;
       
       // Mark that this update came from the app
       dbUpdates.sync_source = 'app';
