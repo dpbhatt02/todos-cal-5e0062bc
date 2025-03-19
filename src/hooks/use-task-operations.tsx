@@ -63,9 +63,9 @@ export const useTaskOperations = (user: any) => {
         console.log('Processing time for non-all-day task');
         
         // Extract date string in YYYY-MM-DD format
-        let dateStr = taskData.dueDate;
+        let dateStr = dueDate;
         if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const date = new Date(taskData.dueDate);
+          const date = new Date(dueDate);
           dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         }
         
