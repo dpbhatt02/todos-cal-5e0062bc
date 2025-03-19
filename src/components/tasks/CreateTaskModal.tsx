@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Bold, Italic, Link, List, Underline, Repeat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -60,6 +59,43 @@ function formatDate(date: Date) {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+// Add helper function to convert time to 24-hour format
+const convertTo24HourFormat = (timeString: string): string => {
+  // If already in 24-hour format (e.g., "14:30"), return as is
+  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeString)) {
+    return timeString;
+  }
+
+  // Try to handle formats like "2:00 PM" or "8:00PM"
+  try {
+    // Remove any spaces
+    const cleanTimeString = timeString.replace(/\s/g, '');
+    
+    // Extract hours, minutes, and period
+    const match = cleanTimeString.match(/^(\d+):(\d+)(?::\d+)?(?:\s*)?(AM|PM|am|pm)?$/);
+    
+    if (match) {
+      let [_, hours, minutes, period] = match;
+      let hoursNum = parseInt(hours, 10);
+      
+      // Handle AM/PM conversion to 24-hour
+      if (period && (period.toUpperCase() === 'PM') && hoursNum < 12) {
+        hoursNum += 12;
+      } else if (period && (period.toUpperCase() === 'AM') && hoursNum === 12) {
+        hoursNum = 0;
+      }
+      
+      // Format back to HH:MM
+      return `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
+    }
+  } catch (error) {
+    console.error("Error converting time format:", error, timeString);
+  }
+  
+  // If we can't parse it, just return the original string
+  return timeString;
+};
 
 const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialData = {} }: CreateTaskModalProps) => {
   const [taskData, setTaskData] = useState(() => ({
@@ -143,18 +179,14 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
       // If start time is provided, ensure it's properly formatted
       submissionData.isAllDay = false;
       
+      // Ensure startTime is in 24-hour format
+      submissionData.startTime = convertTo24HourFormat(submissionData.startTime);
       console.log('submitting start time:'+ submissionData.startTime);
-      console.log('submitting end time:'+ submissionData.endTime);
-      // Ensure startTime is a string in HH:MM format
-      if (submissionData.startTime instanceof Date) {
-        submissionData.startTime = format(submissionData.startTime, 'HH:mm');
-      }
       
-      // If end time is provided, ensure it's properly formatted
+      // If end time is provided, ensure it's in 24-hour format
       if (submissionData.endTime) {
-        if (submissionData.endTime instanceof Date) {
-          submissionData.endTime = format(submissionData.endTime, 'HH:mm');
-        }
+        submissionData.endTime = convertTo24HourFormat(submissionData.endTime);
+        console.log('submitting end time:'+ submissionData.endTime);
       }
       // Note: If no end time is provided, backend will add +30 minutes to start time
     }

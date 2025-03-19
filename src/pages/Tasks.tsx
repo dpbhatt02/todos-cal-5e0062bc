@@ -192,14 +192,15 @@ const TasksContent = ({
       completed: false,
     };
 
-    // Add time information if present - ensuring correct time formats with timezone handling
+    // Add time information if present - ensuring correct time formats
     if (taskData.startTime) {
-      formattedData.startTime = taskData.startTime;
+      formattedData.startTime = taskData.startTime; // Time already converted in CreateTaskModal
       console.log('if startTime, start time:'+ taskData.startTime);
+      
       // If only start time is provided, the backend will automatically set 
       // end time to start time + 30 minutes
-      if (taskData.endTime) { // startTime is selected and backend is not adding 30min for endTime
-        formattedData.endTime = taskData.endTime;
+      if (taskData.endTime) { // Both start and end time provided
+        formattedData.endTime = taskData.endTime; // Time already converted in CreateTaskModal
         console.log('if endTime, start time:'+ taskData.startTime);
         console.log('if endTime, end time:'+ taskData.endTime);
       }
