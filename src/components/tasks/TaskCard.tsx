@@ -9,6 +9,7 @@ import TaskCardSwipeIndicator from './TaskCardSwipeIndicator';
 import { useSwipeGesture } from '@/hooks/use-swipe-gesture';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useTasksContext } from '@/contexts/TasksContext';
 
 interface TaskCardProps {
   task: TaskProps;
@@ -32,12 +33,14 @@ const TaskCard = ({
   const isMobile = useIsMobile();
 
   const handleEdit = () => {
-    console.log("Edit handler called for task:", task.id); //console
-   // if (onEdit) {
+    console.log("Edit handler called for task:", task.id);
+    if (onEdit) {
       // Explicitly pass the entire task object to trigger edit modal
       onEdit(task);
-      console.log("onEdit handler condition for task:", task.id);
-   // }
+      console.log("onEdit handler called with task:", task.id);
+    } else {
+      console.warn("No onEdit handler provided for task:", task.id);
+    }
   };
 
   const handleDelete = () => {

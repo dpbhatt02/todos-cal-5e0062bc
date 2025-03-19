@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowRight, Calendar } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { TaskProps } from './types';
 import TaskActions from './TaskActions';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -33,14 +33,6 @@ const TaskCardActions = ({
 }: TaskCardActionsProps) => {
   const { updateTask } = useTasksContext();
     
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent opening the modal
-    e.preventDefault(); // Prevent other events
-    console.log("Edit button clicked for task:", id);
-    // Call the provided onEdit handler
-    onEdit();
-  };
-  
   const handleReschedule = (date: Date | undefined) => {
     if (date) {
       console.log("Rescheduling task", id, "to date:", date);
