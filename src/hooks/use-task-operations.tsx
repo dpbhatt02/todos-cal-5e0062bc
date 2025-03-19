@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
@@ -115,6 +116,31 @@ export const useTaskOperations = (user: any) => {
       if (error) {
         console.error('Error creating task in database:', error);
         throw new Error(error.message);
+      }
+
+      // After creating the task, add recurring data if needed
+      if (taskData.recurring && taskData.recurring.frequency !== 'none') {
+        console.log('Adding recurring data:', taskData.recurring);
+        
+        const recurringData = {
+          task_id: data.id,
+          frequency: taskData.recurring.frequency,
+          custom_days: taskData.recurring.customDays || [],
+          end_date: taskData.recurring.endDate ? new Date(taskData.recurring.endDate).toISOString() : null,
+          end_after: taskData.recurring.endAfter || null
+        };
+        
+        console.log('Recurring data being inserted:', recurringData);
+        
+        const { error: recurringError } = await supabase
+          .from('recurring_tasks')
+          .insert(recurringData);
+          
+        if (recurringError) {
+          console.error('Error adding recurring data:', recurringError);
+          // We won't throw here since the task was created successfully
+          toast.error('Task created but recurring settings could not be saved');
+        }
       }
 
       // After creating the task, add an entry to task history table
@@ -285,6 +311,72 @@ export const useTaskOperations = (user: any) => {
         throw new Error(error.message);
       }
 
+      // Update recurring settings if provided
+      if (updates.recurring) {
+        console.log('Updating recurring settings:', updates.recurring);
+        
+        // Check if there's an existing recurring task entry
+        const { data: existingRecurring } = await supabase
+          .from('recurring_tasks')
+          .select('id')
+          .eq('task_id', id)
+          .maybeSingle();
+          
+        // Prepare recurring data
+        const recurringData = {
+          frequency: updates.recurring.frequency,
+          custom_days: updates.recurring.customDays || [],
+          end_date: updates.recurring.endDate ? new Date(updates.recurring.endDate).toISOString() : null,
+          end_after: updates.recurring.endAfter || null,
+          task_id: id,
+          updated_at: new Date().toISOString()
+        };
+        
+        console.log('Recurring data update:', recurringData, 'existing:', existingRecurring);
+        
+        // If we need to completely remove recurring settings
+        if (updates.recurring.frequency === 'none' || updates.recurring === undefined) {
+          if (existingRecurring) {
+            // Delete existing recurring settings
+            const { error: deleteError } = await supabase
+              .from('recurring_tasks')
+              .delete()
+              .eq('task_id', id);
+              
+            if (deleteError) {
+              console.error('Error deleting recurring settings:', deleteError);
+            } else {
+              console.log('Recurring settings removed successfully');
+            }
+          }
+        } else if (existingRecurring) {
+          // Update existing recurring settings
+          const { error: updateError } = await supabase
+            .from('recurring_tasks')
+            .update(recurringData)
+            .eq('id', existingRecurring.id);
+            
+          if (updateError) {
+            console.error('Error updating recurring settings:', updateError);
+            toast.error('Task updated but recurring settings could not be updated');
+          } else {
+            console.log('Recurring settings updated successfully');
+          }
+        } else {
+          // Insert new recurring settings
+          const { error: insertError } = await supabase
+            .from('recurring_tasks')
+            .insert(recurringData);
+            
+          if (insertError) {
+            console.error('Error inserting recurring settings:', insertError);
+            toast.error('Task updated but recurring settings could not be saved');
+          } else {
+            console.log('Recurring settings inserted successfully');
+          }
+        }
+      }
+
       // If this was a completion status change and the task has a Google Calendar event, update it
       if (updates.completed !== undefined && existingTask?.google_calendar_event_id && existingTask?.google_calendar_id) {
         try {
@@ -359,6 +451,24 @@ export const useTaskOperations = (user: any) => {
         
         toast.success('Task deleted successfully');
         return true;
+      }
+      
+      // Delete any recurring settings first
+      try {
+        const { error: recurringError } = await supabase
+          .from('recurring_tasks')
+          .delete()
+          .eq('task_id', id);
+          
+        if (recurringError) {
+          console.error('Error deleting recurring settings:', recurringError);
+          // Continue with task deletion even if recurring deletion fails
+        } else {
+          console.log('Recurring settings deleted successfully (if any)');
+        }
+      } catch (recurringErr) {
+        console.error('Exception deleting recurring settings:', recurringErr);
+        // Continue with task deletion even if recurring deletion fails
       }
       
       // If this task has an associated Google Calendar event, try to delete it

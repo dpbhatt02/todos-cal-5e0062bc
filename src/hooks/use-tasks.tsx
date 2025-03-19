@@ -63,9 +63,18 @@ export function useTasks() {
         // Filter tasks to only show those on or after March 12, 2025
         const minDate = new Date('2025-03-12T00:00:00.000Z');
         
+        // Query the tasks table and join with recurring_tasks to get recurring information
         const { data, error } = await supabase
           .from('tasks')
-          .select('*')
+          .select(`
+            *,
+            recurring_tasks(
+              frequency,
+              custom_days,
+              end_date,
+              end_after
+            )
+          `)
           .gte('due_date', minDate.toISOString())
           .order('due_date', { ascending: true });
 
@@ -73,8 +82,19 @@ export function useTasks() {
           throw new Error(error.message);
         }
 
-        // Map data to TaskProps
-        const mappedTasks = data.map(mapDbTaskToTask);
+        // Map data to TaskProps, processing the recurring information
+        const mappedTasks = data.map(task => {
+          // Extract recurring information if available
+          if (task.recurring_tasks && task.recurring_tasks.length > 0) {
+            const recurring = task.recurring_tasks[0];
+            // Add the recurring fields directly to the task for mapping
+            task.recurring_frequency = recurring.frequency;
+            task.recurring_custom_days = recurring.custom_days;
+            task.recurring_end_date = recurring.end_date;
+            task.recurring_end_after = recurring.end_after;
+          }
+          return mapDbTaskToTask(task);
+        });
         
         // If there are no tasks in the database, use mock data
         if (mappedTasks.length === 0) {
@@ -105,7 +125,7 @@ export function useTasks() {
           table: 'tasks',
           filter: `user_id=eq.${user.id}`
         }, 
-        (payload) => {
+        async (payload) => {
           console.log('Change received!', payload);
           
           // For new or updated tasks, make sure they meet the date filter
@@ -115,11 +135,50 @@ export function useTasks() {
             
             // Only process tasks on or after March 12, 2025
             if (taskDate >= minDate) {
+              // Fetch the task with its recurring data for proper mapping
+              const { data: taskWithRecurring, error: fetchError } = await supabase
+                .from('tasks')
+                .select(`
+                  *,
+                  recurring_tasks(
+                    frequency,
+                    custom_days,
+                    end_date,
+                    end_after
+                  )
+                `)
+                .eq('id', payload.new.id)
+                .single();
+                
+              if (fetchError) {
+                console.error('Error fetching updated task with recurring data:', fetchError);
+                // Fall back to basic mapping without recurring data
+                if (payload.eventType === 'INSERT') {
+                  setTasks(prev => [...prev, mapDbTaskToTask(payload.new)]);
+                } else if (payload.eventType === 'UPDATE') {
+                  setTasks(prev => prev.map(task => 
+                    task.id === payload.new.id ? mapDbTaskToTask(payload.new) : task
+                  ));
+                }
+                return;
+              }
+              
+              // Process recurring data
+              if (taskWithRecurring.recurring_tasks && taskWithRecurring.recurring_tasks.length > 0) {
+                const recurring = taskWithRecurring.recurring_tasks[0];
+                taskWithRecurring.recurring_frequency = recurring.frequency;
+                taskWithRecurring.recurring_custom_days = recurring.custom_days;
+                taskWithRecurring.recurring_end_date = recurring.end_date;
+                taskWithRecurring.recurring_end_after = recurring.end_after;
+              }
+              
+              const mappedTask = mapDbTaskToTask(taskWithRecurring);
+              
               if (payload.eventType === 'INSERT') {
-                setTasks(prev => [...prev, mapDbTaskToTask(payload.new)]);
+                setTasks(prev => [...prev, mappedTask]);
               } else if (payload.eventType === 'UPDATE') {
                 setTasks(prev => prev.map(task => 
-                  task.id === payload.new.id ? mapDbTaskToTask(payload.new) : task
+                  task.id === mappedTask.id ? mappedTask : task
                 ));
               }
             }
