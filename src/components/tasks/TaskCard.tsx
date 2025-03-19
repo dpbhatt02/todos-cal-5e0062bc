@@ -103,7 +103,7 @@ const TaskCard = ({
       {/* Task card */}
       <Card
         className={cn(
-          'relative bg-card border overflow-hidden transition-all',
+          'relative bg-card border overflow-hidden transition-all cursor-pointer',
           task.completed ? 'opacity-70' : 'opacity-100',
           isSwipingLeft || isSwipingRight ? 'shadow-md' : ''
         )}
@@ -111,7 +111,7 @@ const TaskCard = ({
         {...(isMobile ? handlers : {})}
         onClick={handleEdit} // Make the entire card clickable to edit
       >
-        <div className="p-4 flex gap-4" onClick={(e) => e.stopPropagation()}>
+        <div className="p-4 flex gap-4">
           <TaskCardCheckbox 
             isCompleted={task.completed} 
             onChange={(completed) => handleComplete(completed as boolean)}

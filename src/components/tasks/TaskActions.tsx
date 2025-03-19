@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Pencil, Calendar, Trash2 } from 'lucide-react';
+import { Calendar, Trash2 } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -14,13 +14,11 @@ import { useTasksContext } from '@/contexts/TasksContext';
 interface TaskActionsProps {
   id: string;
   selectedDate: Date;
-  onEdit: (e: React.MouseEvent) => void;
-  onDelete: (e: React.MouseEvent) => void;
   onReschedule: (date: Date | undefined) => void;
 }
 
-const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskActionsProps) => {
-  const { updateTask } = useTasksContext();
+const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
+  const { updateTask, deleteTask } = useTasksContext();
   
   const handleRescheduleToday = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -59,17 +57,17 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
     }
   };
 
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening the modal
+    e.preventDefault(); // Prevent other events
+    console.log("Delete button clicked for task:", id);
+    
+    // Actually delete the task from the database
+    await deleteTask(id);
+  };
+
   return (
     <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
-      <button 
-        className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
-        aria-label="Edit task"
-        type="button"
-        onClick={onEdit}
-      >
-        <Pencil className="h-4 w-4" />
-      </button>
-      
       <Popover>
         <PopoverTrigger asChild>
           <button 
@@ -117,7 +115,7 @@ const TaskActions = ({ id, selectedDate, onEdit, onDelete, onReschedule }: TaskA
         className="text-destructive hover:text-destructive/80 transition-colors p-1 rounded-md hover:bg-muted"
         aria-label="Delete task"
         type="button"
-        onClick={onDelete}
+        onClick={handleDelete}
       >
         <Trash2 className="h-4 w-4" />
       </button>
