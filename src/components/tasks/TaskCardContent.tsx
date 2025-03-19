@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Calendar, Clock, Flag } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -33,20 +34,51 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
     }
   };
 
-  // Format time for display
+  // Format time for display - improved error handling
   const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    
     try {
       // If the timeString contains a 'T', it's an ISO string
       if (timeString.includes('T')) {
-        const date = parseISO(timeString);
-        return format(date, 'h:mm a'); // e.g., "9:30 AM"
+        // Safely parse ISO string
+        try {
+          const date = parseISO(timeString);
+          // Validate if date is valid before formatting
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid date from ISO string:', timeString);
+            return timeString;
+          }
+          return format(date, 'h:mm a'); // e.g., "9:30 AM"
+        } catch (parseError) {
+          console.warn('Error parsing ISO time string:', parseError, timeString);
+          return timeString;
+        }
       } 
       // Otherwise it's just a time string
       else {
-        const [hours, minutes] = timeString.split(':').map(Number);
-        const date = new Date();
-        date.setHours(hours, minutes, 0, 0);
-        return format(date, 'h:mm a');
+        try {
+          // Validate time string format (HH:MM)
+          if (!/^\d{1,2}:\d{2}$/.test(timeString)) {
+            console.warn('Invalid time string format:', timeString);
+            return timeString;
+          }
+          
+          const [hours, minutes] = timeString.split(':').map(Number);
+          
+          // Validate hour and minute values
+          if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+            console.warn('Invalid hours or minutes:', hours, minutes);
+            return timeString;
+          }
+          
+          const date = new Date();
+          date.setHours(hours, minutes, 0, 0);
+          return format(date, 'h:mm a');
+        } catch (timeError) {
+          console.warn('Error processing time string:', timeError, timeString);
+          return timeString;
+        }
       }
     } catch (err) {
       console.error('Error formatting time:', err, timeString);
