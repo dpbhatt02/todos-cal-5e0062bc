@@ -106,12 +106,12 @@ export const mapDbTaskToTask = (dbTask: DbTaskWithRecurring): TaskProps => {
   if (dbTask.recurring_frequency) {
     // Make sure the frequency is one of the allowed types
     const validFrequencies = ['daily', 'weekly', 'monthly', 'custom'] as const;
-    const frequency = validFrequencies.includes(dbTask.recurring_frequency) 
-      ? dbTask.recurring_frequency 
+    const frequency = validFrequencies.includes(dbTask.recurring_frequency as any) 
+      ? dbTask.recurring_frequency as 'daily' | 'weekly' | 'monthly' | 'custom'
       : 'custom';
       
     task.recurring = {
-      frequency: frequency as 'daily' | 'weekly' | 'monthly' | 'custom',
+      frequency,
       customDays: dbTask.recurring_custom_days || [],
       endDate: dbTask.recurring_end_date,
       endAfter: dbTask.recurring_end_after
