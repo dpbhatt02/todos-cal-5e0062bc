@@ -8,6 +8,21 @@ import { useTaskOperations } from './use-task-operations';
 import { mockTasks } from '@/components/tasks/mockData';
 import { toast } from 'sonner';
 
+// Define type for task data from database including recurring fields
+interface DbTaskWithRecurring extends Record<string, any> {
+  recurring_tasks?: Array<{
+    frequency?: string;
+    custom_days?: string[];
+    end_date?: string;
+    end_after?: number;
+  }>;
+  // These fields will be added dynamically
+  recurring_frequency?: string;
+  recurring_custom_days?: string[];
+  recurring_end_date?: string;
+  recurring_end_after?: number;
+}
+
 export function useTasks() {
   const [tasks, setTasks] = useState<TaskProps[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,11 +100,11 @@ export function useTasks() {
         // Map data to TaskProps, processing the recurring information
         const mappedTasks = data.map(task => {
           // Process the task with recurring information
-          const processedTask = { ...task };
+          const processedTask = { ...task } as DbTaskWithRecurring;
           
           // Extract recurring information if available
-          if (task.recurring_tasks && task.recurring_tasks.length > 0) {
-            const recurring = task.recurring_tasks[0];
+          if (processedTask.recurring_tasks && processedTask.recurring_tasks.length > 0) {
+            const recurring = processedTask.recurring_tasks[0];
             // Add the recurring fields directly to the processed task for mapping
             processedTask.recurring_frequency = recurring.frequency;
             processedTask.recurring_custom_days = recurring.custom_days;
@@ -168,9 +183,9 @@ export function useTasks() {
               }
               
               // Process recurring data
-              const processedTask = { ...taskWithRecurring };
-              if (taskWithRecurring.recurring_tasks && taskWithRecurring.recurring_tasks.length > 0) {
-                const recurring = taskWithRecurring.recurring_tasks[0];
+              const processedTask = { ...taskWithRecurring } as DbTaskWithRecurring;
+              if (processedTask.recurring_tasks && processedTask.recurring_tasks.length > 0) {
+                const recurring = processedTask.recurring_tasks[0];
                 processedTask.recurring_frequency = recurring.frequency;
                 processedTask.recurring_custom_days = recurring.custom_days;
                 processedTask.recurring_end_date = recurring.end_date;

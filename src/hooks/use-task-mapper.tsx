@@ -2,6 +2,14 @@
 import { TaskProps } from '@/components/tasks/types';
 import { formatTimeInTimezone } from '@/utils/timezone';
 
+// Define type for task data from database including recurring fields
+interface DbTaskWithRecurring extends Record<string, any> {
+  recurring_frequency?: string;
+  recurring_custom_days?: string[];
+  recurring_end_date?: string;
+  recurring_end_after?: number;
+}
+
 // Helper to convert times from database to 24-hour format for inputs
 const formatDbTimeFor24HourInput = (timeString: string | null): string | null => {
   if (!timeString) return null;
@@ -60,7 +68,7 @@ const formatDbTimeForDisplay = (timeString: string | null): string | null => {
 };
 
 // Convert database task to TaskProps
-export const mapDbTaskToTask = (dbTask: any): TaskProps => {
+export const mapDbTaskToTask = (dbTask: DbTaskWithRecurring): TaskProps => {
   // Process start and end times for UI display
   let startTime: string | null = null;
   let endTime: string | null = null;
