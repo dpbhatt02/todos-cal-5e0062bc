@@ -125,6 +125,14 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     return timeString;
   };
 
+  // Helper function to prepare time values for the time input field
+  const prepareTimeForInput = (timeString?: string | null): string => {
+    if (!timeString) return '';
+    
+    // Remove any AM/PM indicator and convert to 24-hour format
+    return convertTo24HourFormat(timeString);
+  };
+
   const handleTaskDelete = async (taskId: string) => {
     console.log("Delete task requested for:", taskId);
     // Use await to ensure the delete operation completes
@@ -191,8 +199,9 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
           initialData={{
             ...editingTask,
             dueDate: new Date(editingTask.dueDate).toISOString().split('T')[0],
-            startTime: editingTask.startTime || '',
-            endTime: editingTask.endTime || '',
+            // Convert time values to proper 24-hour format for the input field
+            startTime: prepareTimeForInput(editingTask.startTime),
+            endTime: prepareTimeForInput(editingTask.endTime),
             isAllDay: editingTask.isAllDay !== undefined ? editingTask.isAllDay : true,
             // Format recurring data for the form
             recurring: editingTask.recurring?.frequency || 'none',
