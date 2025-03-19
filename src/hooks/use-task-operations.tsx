@@ -119,7 +119,7 @@ export const useTaskOperations = (user: any) => {
       }
 
       // After creating the task, add recurring data if needed
-      if (taskData.recurring && taskData.recurring.frequency !== 'none') {
+      if (taskData.recurring && taskData.recurring.frequency) {
         console.log('Adding recurring data:', taskData.recurring);
         
         const recurringData = {
@@ -335,7 +335,7 @@ export const useTaskOperations = (user: any) => {
         console.log('Recurring data update:', recurringData, 'existing:', existingRecurring);
         
         // If we need to completely remove recurring settings
-        if (updates.recurring.frequency === 'none' || updates.recurring === undefined) {
+        if (!updates.recurring.frequency) {
           if (existingRecurring) {
             // Delete existing recurring settings
             const { error: deleteError } = await supabase

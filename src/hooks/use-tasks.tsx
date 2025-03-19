@@ -84,16 +84,20 @@ export function useTasks() {
 
         // Map data to TaskProps, processing the recurring information
         const mappedTasks = data.map(task => {
+          // Process the task with recurring information
+          const processedTask = { ...task };
+          
           // Extract recurring information if available
           if (task.recurring_tasks && task.recurring_tasks.length > 0) {
             const recurring = task.recurring_tasks[0];
-            // Add the recurring fields directly to the task for mapping
-            task.recurring_frequency = recurring.frequency;
-            task.recurring_custom_days = recurring.custom_days;
-            task.recurring_end_date = recurring.end_date;
-            task.recurring_end_after = recurring.end_after;
+            // Add the recurring fields directly to the processed task for mapping
+            processedTask.recurring_frequency = recurring.frequency;
+            processedTask.recurring_custom_days = recurring.custom_days;
+            processedTask.recurring_end_date = recurring.end_date;
+            processedTask.recurring_end_after = recurring.end_after;
           }
-          return mapDbTaskToTask(task);
+          
+          return mapDbTaskToTask(processedTask);
         });
         
         // If there are no tasks in the database, use mock data
@@ -164,15 +168,16 @@ export function useTasks() {
               }
               
               // Process recurring data
+              const processedTask = { ...taskWithRecurring };
               if (taskWithRecurring.recurring_tasks && taskWithRecurring.recurring_tasks.length > 0) {
                 const recurring = taskWithRecurring.recurring_tasks[0];
-                taskWithRecurring.recurring_frequency = recurring.frequency;
-                taskWithRecurring.recurring_custom_days = recurring.custom_days;
-                taskWithRecurring.recurring_end_date = recurring.end_date;
-                taskWithRecurring.recurring_end_after = recurring.end_after;
+                processedTask.recurring_frequency = recurring.frequency;
+                processedTask.recurring_custom_days = recurring.custom_days;
+                processedTask.recurring_end_date = recurring.end_date;
+                processedTask.recurring_end_after = recurring.end_after;
               }
               
-              const mappedTask = mapDbTaskToTask(taskWithRecurring);
+              const mappedTask = mapDbTaskToTask(processedTask);
               
               if (payload.eventType === 'INSERT') {
                 setTasks(prev => [...prev, mappedTask]);
