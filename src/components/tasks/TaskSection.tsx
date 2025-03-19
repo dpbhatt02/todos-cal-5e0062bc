@@ -56,9 +56,11 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     }
     
     if (!updatedTaskData.isAllDay && updatedTaskData.startTime) {
-      taskUpdates.startTime = updatedTaskData.startTime;
+      // Fix the time format - ensure it's in 24-hour format (HH:MM)
+      taskUpdates.startTime = convertTo24HourFormat(updatedTaskData.startTime);
+      
       if (updatedTaskData.endTime) {
-        taskUpdates.endTime = updatedTaskData.endTime;
+        taskUpdates.endTime = convertTo24HourFormat(updatedTaskData.endTime);
       }
     }
 
@@ -84,6 +86,43 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     
     setIsEditModalOpen(false);
     setEditingTask(null);
+  };
+
+  // Helper function to convert time to 24-hour format
+  const convertTo24HourFormat = (timeString: string): string => {
+    // If already in 24-hour format (e.g., "14:30"), return as is
+    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeString)) {
+      return timeString;
+    }
+
+    // Try to handle formats like "2:00 PM" or "8:00PM"
+    try {
+      // Remove any spaces
+      const cleanTimeString = timeString.replace(/\s/g, '');
+      
+      // Extract hours, minutes, and period
+      const match = cleanTimeString.match(/^(\d+):(\d+)(?::\d+)?(?:\s*)?(AM|PM|am|pm)?$/);
+      
+      if (match) {
+        let [_, hours, minutes, period] = match;
+        let hoursNum = parseInt(hours, 10);
+        
+        // Handle AM/PM conversion to 24-hour
+        if (period && (period.toUpperCase() === 'PM') && hoursNum < 12) {
+          hoursNum += 12;
+        } else if (period && (period.toUpperCase() === 'AM') && hoursNum === 12) {
+          hoursNum = 0;
+        }
+        
+        // Format back to HH:MM
+        return `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
+      }
+    } catch (error) {
+      console.error("Error converting time format:", error, timeString);
+    }
+    
+    // If we can't parse it, just return the original string
+    return timeString;
   };
 
   const handleTaskDelete = async (taskId: string) => {

@@ -312,7 +312,18 @@ export function useTasks() {
     error: error || null,
     createTask,
     updateTask,
-    deleteTask,
+    deleteTask: async (id: string) => {
+      // Wrap the deleteTask function to ensure proper state updating
+      const result = await deleteTask(id);
+      
+      // If successful, immediately update the local tasks state
+      // This ensures UI updates right away without waiting for subscription
+      if (result) {
+        setTasks(prev => prev.filter(task => task.id !== id));
+      }
+      
+      return result;
+    },
     operationLoading,
     syncing,
     syncTaskToCalendar,

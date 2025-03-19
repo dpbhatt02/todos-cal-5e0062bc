@@ -110,7 +110,7 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
             isCompleted && 'line-through text-muted-foreground'
           )}
         >
-          {task.title}
+          {isCompleted && !task.title.startsWith('✓ ') ? `✓ ${task.title}` : task.title}
         </h3>
       </div>
       
@@ -118,7 +118,7 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
         <p 
           className={cn(
             'text-sm text-muted-foreground mb-2 line-clamp-2', 
-            isCompleted && 'line-through'
+            isCompleted && 'line-through opacity-70'
           )}
         >
           {task.description}
@@ -127,7 +127,10 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
       
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {task.dueDate && (
-          <div className="flex items-center text-muted-foreground">
+          <div className={cn(
+            "flex items-center text-muted-foreground",
+            isCompleted && "line-through opacity-70"
+          )}>
             <Calendar className="h-3 w-3 mr-1" />
             <span>{formatDueDate(task.dueDate)}</span>
           </div>
@@ -135,7 +138,10 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
         
         {/* Display time duration if available and not all-day */}
         {!task.isAllDay && task.startTime && (
-          <div className="flex items-center text-muted-foreground">
+          <div className={cn(
+            "flex items-center text-muted-foreground",
+            isCompleted && "line-through opacity-70"
+          )}>
             <Clock className="h-3 w-3 mr-1" />
             <span>
               {formatTime(task.startTime)}
@@ -146,15 +152,24 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
         
         {/* Show "All day" indicator for all-day tasks */}
         {task.isAllDay && (
-          <div className="flex items-center text-muted-foreground">
+          <div className={cn(
+            "flex items-center text-muted-foreground",
+            isCompleted && "line-through opacity-70"
+          )}>
             <Clock className="h-3 w-3 mr-1" />
             <span>All day</span>
           </div>
         )}
         
         {task.recurring && (
-          <div className="flex items-center text-xs text-muted-foreground">
-            <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-blue-800">
+          <div className={cn(
+            "flex items-center text-xs",
+            isCompleted ? "text-blue-400 opacity-70" : "text-blue-600"
+          )}>
+            <span className={cn(
+              "inline-block rounded-full px-2 py-0.5",
+              isCompleted ? "bg-blue-50 text-blue-400 line-through" : "bg-blue-100 text-blue-800"
+            )}>
               {getRecurringLabel(task.recurring.frequency)}
             </span>
           </div>

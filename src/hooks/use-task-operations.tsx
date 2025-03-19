@@ -145,7 +145,7 @@ export const useTaskOperations = (user: any) => {
       // Get the task before updating to record in history
       const { data: existingTask } = await supabase
         .from('tasks')
-        .select('title, due_date')
+        .select('title, due_date, google_calendar_event_id, google_calendar_id')
         .eq('id', id)
         .single();
       
@@ -171,7 +171,23 @@ export const useTaskOperations = (user: any) => {
       
       // Convert to database format
       const dbUpdates: any = {};
-      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.title !== undefined) {
+        // For task completion, modify the title to add a checkmark in Google Calendar
+        if (updates.completed && existingTask?.google_calendar_event_id) {
+          // If marking as completed and there's a Google Calendar event, prepend a checkmark
+          dbUpdates.title = updates.title ? `✓ ${updates.title}` : (existingTask?.title ? `✓ ${existingTask.title}` : updates.title);
+        } else {
+          // Regular title update (or task is not completed)
+          dbUpdates.title = updates.title;
+        }
+      } else if (updates.completed !== undefined && updates.completed && existingTask?.title) {
+        // Only completion status changed - add checkmark if completed
+        dbUpdates.title = `✓ ${existingTask.title}`;
+      } else if (updates.completed !== undefined && !updates.completed && existingTask?.title) {
+        // If marking as not completed, remove the checkmark if it exists
+        dbUpdates.title = existingTask.title.startsWith('✓ ') ? existingTask.title.substring(2) : existingTask.title;
+      }
+      
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
       
@@ -267,6 +283,30 @@ export const useTaskOperations = (user: any) => {
       if (error) {
         console.error('Error updating task in database:', error);
         throw new Error(error.message);
+      }
+
+      // If this was a completion status change and the task has a Google Calendar event, update it
+      if (updates.completed !== undefined && existingTask?.google_calendar_event_id && existingTask?.google_calendar_id) {
+        try {
+          // Trigger update of Google Calendar event for completion status
+          const { data: syncResult, error: syncError } = await supabase.functions.invoke(
+            'sync-tasks-to-calendar',
+            {
+              body: {
+                userId: user.id,
+                taskId: id
+              }
+            }
+          );
+          
+          if (syncError) {
+            console.error('Error syncing task completion to calendar:', syncError);
+          } else {
+            console.log('Task completion synced to calendar:', syncResult);
+          }
+        } catch (syncErr) {
+          console.error('Exception syncing task completion to calendar:', syncErr);
+        }
       }
 
       // Generate appropriate details for task history entry
