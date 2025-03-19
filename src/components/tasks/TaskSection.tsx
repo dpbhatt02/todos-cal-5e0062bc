@@ -33,6 +33,7 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
 
   const handleEditTask = (task: TaskProps) => {
     console.log("Edit task requested for:", task.id);
+    console.log("Task data for editing:", task); // Log full task data to see time fields
     setEditingTask(task);
     setIsEditModalOpen(true);
   };
@@ -50,15 +51,15 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     };
 
     // Add time information if present
-    if (updatedTaskData.startTime) {
+    if (updatedTaskData.isAllDay !== undefined) {
+      taskUpdates.isAllDay = updatedTaskData.isAllDay;
+    }
+    
+    if (!updatedTaskData.isAllDay && updatedTaskData.startTime) {
       taskUpdates.startTime = updatedTaskData.startTime;
       if (updatedTaskData.endTime) {
         taskUpdates.endTime = updatedTaskData.endTime;
       }
-    }
-    
-    if (updatedTaskData.isAllDay !== undefined) {
-      taskUpdates.isAllDay = updatedTaskData.isAllDay;
     }
 
     // Handle recurring settings
@@ -87,7 +88,19 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
 
   const handleTaskDelete = async (taskId: string) => {
     console.log("Delete task requested for:", taskId);
-    await deleteTask(taskId);
+    // Use await to ensure the delete operation completes
+    const success = await deleteTask(taskId);
+    
+    if (success) {
+      console.log("Task deleted successfully, UI will update via real-time subscription");
+      // Close edit modal if the deleted task was being edited
+      if (editingTask && editingTask.id === taskId) {
+        setIsEditModalOpen(false);
+        setEditingTask(null);
+      }
+    } else {
+      console.error("Failed to delete task:", taskId);
+    }
   };
 
   const handleTaskComplete = async (taskId: string, completed: boolean) => {
@@ -139,6 +152,9 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
           initialData={{
             ...editingTask,
             dueDate: new Date(editingTask.dueDate).toISOString().split('T')[0],
+            startTime: editingTask.startTime || '',
+            endTime: editingTask.endTime || '',
+            isAllDay: editingTask.isAllDay !== undefined ? editingTask.isAllDay : true,
             // Format recurring data for the form
             recurring: editingTask.recurring?.frequency || 'none',
             selectedWeekdays: editingTask.recurring?.customDays || [],

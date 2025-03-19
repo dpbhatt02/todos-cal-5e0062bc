@@ -61,7 +61,7 @@ const TaskCardActions = ({
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          openModal();
+          onEdit(); // Call onEdit which will trigger the modal to open
         }}
       >
         <ArrowRight className={isMobile ? "h-3 w-3" : "h-4 w-4"} />
