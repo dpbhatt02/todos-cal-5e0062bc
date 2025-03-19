@@ -32,11 +32,10 @@ const TaskCard = ({
   const isMobile = useIsMobile();
 
   const handleEdit = () => {
-    
     if (onEdit) {
       // Explicitly pass the entire task object to trigger edit modal
       onEdit(task);
-      console.log("Edit handler called for task:", task.id); //console
+      console.log("Edit handler called for task:", task.id);
     }
   };
 

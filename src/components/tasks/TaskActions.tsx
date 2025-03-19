@@ -10,6 +10,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { addDays } from 'date-fns';
 import { useTasksContext } from '@/contexts/TasksContext';
+import { toast } from 'sonner';
 
 interface TaskActionsProps {
   id: string;
@@ -18,7 +19,7 @@ interface TaskActionsProps {
 }
 
 const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
-  const { updateTask, deleteTask } = useTasksContext();
+  const { deleteTask } = useTasksContext();
   
   const handleRescheduleToday = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -62,8 +63,16 @@ const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
     e.preventDefault(); // Prevent other events
     console.log("Delete button clicked for task:", id);
     
-    // Actually delete the task from the database
-    await deleteTask(id);
+    try {
+      // Delete the task from the database
+      const success = await deleteTask(id);
+      if (success) {
+        toast.success('Task deleted successfully');
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast.error('Failed to delete task');
+    }
   };
 
   return (
