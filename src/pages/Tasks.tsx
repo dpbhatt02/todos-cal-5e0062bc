@@ -198,7 +198,7 @@ const TasksContent = ({
       console.log('if startTime, start time:'+ taskData.startTime);
       // If only start time is provided, the backend will automatically set 
       // end time to start time + 30 minutes
-      if (taskData.endTime) {
+      if (taskData.endTime) { // startTime is selected and backend is not adding 30min for endTime
         formattedData.endTime = taskData.endTime;
         console.log('if endTime, start time:'+ taskData.startTime);
         console.log('if endTime, end time:'+ taskData.endTime);

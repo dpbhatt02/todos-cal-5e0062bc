@@ -50,8 +50,9 @@ export const useTaskOperations = (user: any) => {
         }
       }
       
-      console.log('Formatted due date:', dueDate);
-
+      console.log('Formatted due date:', dueDate); // executing till this
+      console.log('Formatted due date type:', typeof dueDate); //let's see if it is string or not
+      console.log('Formatted due date type:', typeof taskData.dueDate); //let's see if it is string or not
       // Process start and end times
       let startTime = null;
       let endTime = null;
