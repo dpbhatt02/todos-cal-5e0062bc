@@ -51,15 +51,15 @@ export const useTaskOperations = (user: any) => {
       }
       
       console.log('Formatted due date:', dueDate); // executing till this
-      console.log('Formatted due date type:', typeof dueDate); //let's see if it is string or not
-      console.log('Formatted due date type:', typeof taskData.dueDate); //let's see if it is string or not
+      console.log('Formatted due date type:', typeof dueDate); //it is string
+      //console.log('Formatted due date type:', typeof taskData.dueDate); //it's object
       // Process start and end times
       let startTime = null;
       let endTime = null;
       let isAllDay = taskData.isAllDay !== undefined ? taskData.isAllDay : true;
       
       // Only process time if it's explicitly not an all-day task
-      if (taskData.isAllDay === false && taskData.startTime && typeof taskData.dueDate === 'string') {
+      if (taskData.isAllDay === false && taskData.startTime && typeof dueDate === 'string') {
         console.log('Processing time for non-all-day task');
         
         // Extract date string in YYYY-MM-DD format
