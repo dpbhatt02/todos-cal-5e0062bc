@@ -97,6 +97,8 @@ export function useTasks() {
           throw new Error(error.message);
         }
 
+        console.log('Raw tasks data from DB:', data); // Add this debug log
+
         // Map data to TaskProps, processing the recurring information
         const mappedTasks = data.map(task => {
           // Process the task with recurring information
@@ -110,6 +112,14 @@ export function useTasks() {
             processedTask.recurring_custom_days = recurring.custom_days;
             processedTask.recurring_end_date = recurring.end_date;
             processedTask.recurring_end_after = recurring.end_after;
+            
+            console.log('Processed recurring task data:', {
+              id: processedTask.id,
+              frequency: processedTask.recurring_frequency,
+              customDays: processedTask.recurring_custom_days,
+              endDate: processedTask.recurring_end_date,
+              endAfter: processedTask.recurring_end_after
+            });
           }
           
           return mapDbTaskToTask(processedTask);
@@ -190,6 +200,12 @@ export function useTasks() {
                 processedTask.recurring_custom_days = recurring.custom_days;
                 processedTask.recurring_end_date = recurring.end_date;
                 processedTask.recurring_end_after = recurring.end_after;
+                
+                console.log('Real-time update - processed recurring task:', {
+                  id: processedTask.id,
+                  frequency: processedTask.recurring_frequency,
+                  customDays: processedTask.recurring_custom_days
+                });
               }
               
               const mappedTask = mapDbTaskToTask(processedTask);

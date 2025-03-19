@@ -33,13 +33,16 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
 
   const handleEditTask = (task: TaskProps) => {
     console.log("Edit task requested for:", task.id);
-    console.log("Task data for editing:", task); // Log full task data to see time fields
+    console.log("Task data for editing:", task); // Log full task data to see recurring fields
     setEditingTask(task);
     setIsEditModalOpen(true);
   };
 
   const handleTaskUpdate = async (updatedTaskData: any) => {
     if (!editingTask) return;
+    
+    console.log("Original task data:", editingTask);
+    console.log("Form submitted data:", updatedTaskData);
     
     // Prepare the data for the updateTask function
     const taskUpdates: Partial<TaskProps> = {
@@ -76,9 +79,12 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
       } else if (updatedTaskData.recurrenceEndType === 'after' && updatedTaskData.recurrenceCount) {
         taskUpdates.recurring.endAfter = updatedTaskData.recurrenceCount;
       }
+      
+      console.log("Setting recurring with:", taskUpdates.recurring);
     } else {
       // If recurring is set to none, remove recurring settings
       taskUpdates.recurring = undefined;
+      console.log("Removing recurring settings (set to none)");
     }
 
     console.log("Updating task with data:", taskUpdates);

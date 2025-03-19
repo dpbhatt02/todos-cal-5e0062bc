@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Calendar, Clock, Flag } from 'lucide-react';
+import { Calendar, Clock, RefreshCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { TaskProps, priorityClasses } from './types';
@@ -167,9 +167,10 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
             isCompleted ? "text-blue-400 opacity-70" : "text-blue-600"
           )}>
             <span className={cn(
-              "inline-block rounded-full px-2 py-0.5",
+              "inline-flex items-center rounded-full px-2 py-0.5",
               isCompleted ? "bg-blue-50 text-blue-400 line-through" : "bg-blue-100 text-blue-800"
             )}>
+              <RefreshCcw className="h-3 w-3 mr-1" />
               {getRecurringLabel(task.recurring.frequency)}
             </span>
           </div>
