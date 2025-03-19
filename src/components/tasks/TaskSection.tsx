@@ -2,7 +2,6 @@
 import React from 'react';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
-import { formatStringToDate } from './utils';
 import { useTasksContext } from '@/contexts/TasksContext';
 import { useState } from 'react';
 import CreateTaskModal from './CreateTaskModal';
@@ -139,7 +138,7 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
           editMode={true}
           initialData={{
             ...editingTask,
-            dueDate: formatStringToDate(editingTask.dueDate).toISOString().split('T')[0],
+            dueDate: new Date(editingTask.dueDate).toISOString().split('T')[0],
             // Format recurring data for the form
             recurring: editingTask.recurring?.frequency || 'none',
             selectedWeekdays: editingTask.recurring?.customDays || [],
@@ -149,7 +148,7 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
                 ? 'after' 
                 : 'never',
             recurrenceEndDate: editingTask.recurring?.endDate 
-              ? formatStringToDate(editingTask.recurring.endDate).toISOString().split('T')[0]
+              ? new Date(editingTask.recurring.endDate).toISOString().split('T')[0]
               : '',
             recurrenceCount: editingTask.recurring?.endAfter || 5,
           }}
