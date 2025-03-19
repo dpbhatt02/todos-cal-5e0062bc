@@ -195,13 +195,13 @@ const TasksContent = ({
     // Add time information if present - ensuring correct time formats with timezone handling
     if (taskData.startTime) {
       formattedData.startTime = taskData.startTime;
-      console.log('start time:'+ taskData.startTime);
+      console.log('if startTime, start time:'+ taskData.startTime);
       // If only start time is provided, the backend will automatically set 
       // end time to start time + 30 minutes
       if (taskData.endTime) {
         formattedData.endTime = taskData.endTime;
-        console.log('start time:'+ taskData.startTime);
-        console.log('end time:'+ taskData.endTime);
+        console.log('if endTime, start time:'+ taskData.startTime);
+        console.log('if endTime, end time:'+ taskData.endTime);
       }
     }
     
