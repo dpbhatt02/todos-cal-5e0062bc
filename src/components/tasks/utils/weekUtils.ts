@@ -11,19 +11,21 @@ export const getWeekDays = (currentDate: Date, selectedDate: Date, tasks: TaskPr
 
   for (let i = 0; i < 7; i++) {
     const date = addDays(start, i);
+    const hasTask = tasks.some(task => {
+      // Ensure we handle both Date objects and string dates
+      const taskDate = task.dueDate instanceof Date 
+        ? task.dueDate 
+        : new Date(task.dueDate);
+      return isSameDay(taskDate, date);
+    });
+    
     days.push({
       date,
       day: format(date, 'd'),
       weekday: isMobile ? format(date, 'EEEEE') : format(date, 'EEE'), // Single letter for mobile, 3 letters otherwise
       isToday: isSameDay(date, today),
       isSelected: isSameDay(date, selectedDate),
-      hasTask: tasks.some(task => {
-        // Ensure we handle both Date objects and string dates
-        const taskDate = task.dueDate instanceof Date 
-          ? task.dueDate 
-          : new Date(task.dueDate);
-        return isSameDay(taskDate, date);
-      })
+      hasTask
     });
   }
   

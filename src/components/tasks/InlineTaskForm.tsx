@@ -13,6 +13,7 @@ import { TaskProps } from './types';
 
 interface InlineTaskFormProps {
   date: Date;
+  onCreateTask?: () => void;
 }
 
 const formSchema = z.object({
@@ -22,7 +23,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
+const InlineTaskForm = ({ date, onCreateTask }: InlineTaskFormProps) => {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const { createTask } = useTasksContext();
 
@@ -47,6 +48,10 @@ const InlineTaskForm = ({ date }: InlineTaskFormProps) => {
     await createTask(taskData);
     form.reset();
     setIsFormVisible(false);
+    
+    if (onCreateTask) {
+      onCreateTask();
+    }
   };
 
   if (!isFormVisible) {

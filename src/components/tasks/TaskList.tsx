@@ -9,6 +9,7 @@ import { useTasksContext } from '@/contexts/TasksContext';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
 import { useAuth } from '@/contexts/AuthContext';
+import InlineTaskForm from './InlineTaskForm';
 
 interface TaskListProps {
   onTaskEdited?: () => void;
@@ -72,6 +73,15 @@ const TaskList = ({
       </div>
     );
   }
+  
+  // Set up "quick add task" handler that opens the task creation modal
+  // with the selected date pre-filled
+  const handleQuickAddTask = (date: Date) => {
+    // Set selected date to ensure the modal has the right date
+    setSelectedDate(date);
+    // Call the parent handler to open the modal
+    onCreateTask();
+  };
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -113,25 +123,41 @@ const TaskList = ({
             sortOption={sortOption}
           />
           
-          <TaskSection 
-            title="Today"
-            tasks={todayTasks}
-            sortOption={sortOption}
-            selectedDate={selectedDate}
-          />
+          {/* Today's Tasks Section with Quick Add Form */}
+          <div>
+            <TaskSection 
+              title="Today"
+              tasks={todayTasks}
+              sortOption={sortOption}
+              selectedDate={selectedDate}
+            />
+            <div className="mt-2 pl-4">
+              <InlineTaskForm 
+                date={new Date()} 
+                onCreateTask={onTaskEdited}
+              />
+            </div>
+          </div>
           
-          {/* Upcoming Tasks grouped by date */}
+          {/* Future Tasks Sections with Quick Add Form for each day */}
           {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
             const date = new Date(dateString);
             
             return (
-              <TaskSection
-                key={dateString}
-                title={formatFullDate(date)}
-                tasks={tasks}
-                sortOption={sortOption}
-                selectedDate={date}
-              />
+              <div key={dateString}>
+                <TaskSection
+                  title={formatFullDate(date)}
+                  tasks={tasks}
+                  sortOption={sortOption}
+                  selectedDate={date}
+                />
+                <div className="mt-2 pl-4">
+                  <InlineTaskForm 
+                    date={date} 
+                    onCreateTask={onTaskEdited}
+                  />
+                </div>
+              </div>
             );
           })}
         </div>
