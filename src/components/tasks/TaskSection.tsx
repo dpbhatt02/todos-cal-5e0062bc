@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
@@ -122,7 +121,15 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     const nextTask = await scheduleNextOccurrence(task);
     if (nextTask) {
       console.log('Creating next occurrence for task:', taskId);
-      await updateTask(taskId, nextTask);
+      // Ensure we explicitly pass all time-related fields when updating
+      await updateTask(taskId, {
+        ...nextTask,
+        dueDate: nextTask.dueDate,
+        startTime: nextTask.startTime || null,
+        endTime: nextTask.endTime || null,
+        isAllDay: nextTask.isAllDay,
+        completed: false
+      });
     } else {
       console.log('No more occurrences for recurring task:', taskId);
       // This was the last occurrence, nothing more to do

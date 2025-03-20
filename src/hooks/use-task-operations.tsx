@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskProps } from '@/components/tasks/types';
@@ -171,7 +170,7 @@ export const useTaskOperations = (user: any) => {
       // Get the task before updating to record in history
       const { data: existingTask } = await supabase
         .from('tasks')
-        .select('title, due_date, google_calendar_event_id, google_calendar_id')
+        .select('title, due_date, google_calendar_event_id, google_calendar_id, start_time, end_time, is_all_day')
         .eq('id', id)
         .single();
       
@@ -244,7 +243,7 @@ export const useTaskOperations = (user: any) => {
         }
       }
       
-      // Handle all-day flag
+      // Handle all-day flag - CRITICAL for recurring tasks
       if (updates.isAllDay !== undefined) {
         dbUpdates.is_all_day = updates.isAllDay;
         
@@ -255,38 +254,105 @@ export const useTaskOperations = (user: any) => {
         }
       }
       
-      // Special handling for time fields
-      if (updates.isAllDay === false && updates.startTime) {
-        let dateStr;
-        if (typeof updates.dueDate === 'string') {
-          // If dueDate is provided in the updates, use it
-          if (/^\d{4}-\d{2}-\d{2}$/.test(updates.dueDate)) {
-            dateStr = updates.dueDate;
-          } else {
-            const date = new Date(updates.dueDate);
+      // Handle time-related fields for next occurrences
+      // This is critical for recurring tasks to maintain their time settings
+      if (updates.startTime !== undefined) {
+        // If we have a direct startTime value from a recurring task
+        if (updates.startTime === null) {
+          dbUpdates.start_time = null;
+        } else {
+          let dateStr;
+          
+          // Determine the date to use with the time
+          if (updates.dueDate) {
+            if (typeof updates.dueDate === 'string') {
+              if (/^\d{4}-\d{2}-\d{2}$/.test(updates.dueDate)) {
+                dateStr = updates.dueDate;
+              } else {
+                const date = new Date(updates.dueDate);
+                dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+              }
+            } else {
+              // Handle Date object
+              dateStr = `${updates.dueDate.getFullYear()}-${String(updates.dueDate.getMonth() + 1).padStart(2, '0')}-${String(updates.dueDate.getDate()).padStart(2, '0')}`;
+            }
+          } else if (existingTask?.due_date) {
+            // Fall back to existing due date if no new one provided
+            const date = new Date(existingTask.due_date);
             dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
           }
-        } else if (existingTask.due_date) {
-          // Otherwise use the existing due_date
-          const date = new Date(existingTask.due_date);
-          dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+          
+          if (dateStr) {
+            console.log('Converting to ISO with timezone for update:', dateStr, updates.startTime);
+            dbUpdates.start_time = dateAndTimeToISOWithTimezone(dateStr, updates.startTime);
+            console.log('Updated start time:', dbUpdates.start_time);
+          }
         }
-        
-        if (dateStr) {
-          console.log('Converting to ISO with timezone for update:', dateStr, updates.startTime);
+      }
+      
+      // Similar handling for endTime
+      if (updates.endTime !== undefined) {
+        if (updates.endTime === null) {
+          dbUpdates.end_time = null;
+        } else {
+          let dateStr;
           
-          dbUpdates.start_time = dateAndTimeToISOWithTimezone(dateStr, updates.startTime);
-          console.log('Updated start time:', dbUpdates.start_time);
+          if (updates.dueDate) {
+            if (typeof updates.dueDate === 'string') {
+              if (/^\d{4}-\d{2}-\d{2}$/.test(updates.dueDate)) {
+                dateStr = updates.dueDate;
+              } else {
+                const date = new Date(updates.dueDate);
+                dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+              }
+            } else {
+              dateStr = `${updates.dueDate.getFullYear()}-${String(updates.dueDate.getMonth() + 1).padStart(2, '0')}-${String(updates.dueDate.getDate()).padStart(2, '0')}`;
+            }
+          } else if (existingTask?.due_date) {
+            const date = new Date(existingTask.due_date);
+            dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+          }
           
-          if (updates.endTime) {
+          if (dateStr) {
+            console.log('Converting to ISO with timezone for update:', dateStr, updates.endTime);
             dbUpdates.end_time = dateAndTimeToISOWithTimezone(dateStr, updates.endTime);
             console.log('Updated end time:', dbUpdates.end_time);
-          } else if (dbUpdates.start_time) {
-            // Auto-generate end time (start + 30 min) if not provided
-            const startDateTime = new Date(dbUpdates.start_time);
-            const endDateTime = addMinutes(startDateTime, 30);
-            dbUpdates.end_time = endDateTime.toISOString();
-            console.log('Generated end time (+30 mins):', dbUpdates.end_time);
+          }
+        }
+      }
+      
+      // Handle special case for recurring task next occurrences
+      if (updates.isAllDay === false && !dbUpdates.start_time && updates.startTime) {
+        let dateStr;
+        
+        if (updates.dueDate) {
+          if (typeof updates.dueDate === 'string') {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(updates.dueDate)) {
+              dateStr = updates.dueDate;
+            } else {
+              const date = new Date(updates.dueDate);
+              dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            }
+          } else {
+            dateStr = `${updates.dueDate.getFullYear()}-${String(updates.dueDate.getMonth() + 1).padStart(2, '0')}-${String(updates.dueDate.getDate()).padStart(2, '0')}`;
+          }
+          
+          if (dateStr) {
+            console.log('Converting to ISO with timezone for recurring update:', dateStr, updates.startTime);
+            
+            dbUpdates.start_time = dateAndTimeToISOWithTimezone(dateStr, updates.startTime);
+            console.log('Recurring updated start time:', dbUpdates.start_time);
+            
+            if (updates.endTime) {
+              dbUpdates.end_time = dateAndTimeToISOWithTimezone(dateStr, updates.endTime);
+              console.log('Recurring updated end time:', dbUpdates.end_time);
+            } else if (dbUpdates.start_time) {
+              // Auto-generate end time (start + 30 min) if not provided
+              const startDateTime = new Date(dbUpdates.start_time);
+              const endDateTime = addMinutes(startDateTime, 30);
+              dbUpdates.end_time = endDateTime.toISOString();
+              console.log('Generated recurring end time (+30 mins):', dbUpdates.end_time);
+            }
           }
         }
       }

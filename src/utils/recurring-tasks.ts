@@ -1,4 +1,3 @@
-
 import { addDays, format } from 'date-fns';
 import { TaskProps } from '@/components/tasks/types';
 
@@ -55,25 +54,17 @@ export const scheduleNextOccurrence = async (task: TaskProps) => {
   }
   
   // Create a new task object for the next occurrence
-  // Important: We need to create a new partial TaskProps with the correct structure
-  const updatedTask: Partial<TaskProps> = {
+  // Important: We need to create a complete TaskProps with all necessary fields
+  const updatedTask = {
     ...task,
     id: task.id, // Keep the same ID
     dueDate: nextDate,
     completed: false, // Reset completed status
+    // IMPORTANT: Preserve exact time settings
+    startTime: task.startTime,
+    endTime: task.endTime,
+    isAllDay: task.isAllDay !== undefined ? task.isAllDay : true
   };
-  
-  // Explicitly preserve the time settings from the original task
-  if (task.startTime) {
-    updatedTask.startTime = task.startTime;
-  }
-  
-  if (task.endTime) {
-    updatedTask.endTime = task.endTime;
-  }
-  
-  // Explicitly set isAllDay property
-  updatedTask.isAllDay = task.isAllDay !== undefined ? task.isAllDay : true;
   
   console.log('Next occurrence time settings:', {
     startTime: updatedTask.startTime,
