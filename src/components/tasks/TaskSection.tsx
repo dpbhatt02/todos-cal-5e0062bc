@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
 import { useTasksContext } from '@/contexts/TasksContext';
 import { useState } from 'react';
 import CreateTaskModal from './CreateTaskModal';
+import { addDays, format } from 'date-fns';
 
 interface TaskSectionProps {
   title: string;
@@ -94,6 +94,119 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     setEditingTask(null);
   };
 
+  // Helper function to schedule next occurrence
+  const scheduleNextOccurrence = async (task: TaskProps) => {
+    if (!task.recurring || !task.recurring.frequency) {
+      console.warn('Attempted to schedule next occurrence for non-recurring task');
+      return null;
+    }
+    
+    console.log('Scheduling next occurrence for task:', task.id, 'with frequency:', task.recurring.frequency);
+    
+    let nextDate = new Date(task.dueDate);
+    
+    // Calculate next occurrence date based on frequency
+    switch (task.recurring.frequency) {
+      case 'daily':
+        nextDate = addDays(nextDate, 1);
+        break;
+      case 'weekly':
+        nextDate = addDays(nextDate, 7);
+        break;
+      case 'monthly':
+        // Add one month (approximately)
+        nextDate = new Date(
+          nextDate.getFullYear(),
+          nextDate.getMonth() + 1,
+          nextDate.getDate()
+        );
+        break;
+      case 'custom':
+        // For custom frequency, add minimum days (e.g., 1 day)
+        // This is a simplification - in a real app, you'd implement more complex logic
+        nextDate = addDays(nextDate, 1);
+        break;
+      default:
+        console.warn('Unknown recurring frequency:', task.recurring.frequency);
+        nextDate = addDays(nextDate, 1);
+    }
+    
+    console.log('Next occurrence date calculated:', format(nextDate, 'yyyy-MM-dd'));
+    
+    // Check if we've reached the end date or max occurrences
+    if (task.recurring.endDate && nextDate > new Date(task.recurring.endDate)) {
+      console.log('Reached end date for recurring task:', task.id);
+      return null; // No more occurrences
+    }
+    
+    // If we have a valid next date, create an updated task with the new date
+    const updatedTask: Partial<TaskProps> = {
+      ...task,
+      id: task.id, // Keep the same ID
+      dueDate: nextDate,
+      completed: false, // Reset completed status
+    };
+    
+    console.log('Rescheduling task to:', updatedTask);
+    return updatedTask;
+  };
+
+  const handleTaskComplete = async (taskId: string, completed: boolean, completeForever: boolean = false) => {
+    console.log("Complete task requested for:", taskId, "completed:", completed, "completeForever:", completeForever);
+    
+    // Find the task in the tasks array
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+      console.error('Task not found:', taskId);
+      return;
+    }
+    
+    // If it's not a recurring task or we're unchecking or completing forever, just update normally
+    if (!task.recurring || !completed || completeForever) {
+      await updateTask(taskId, { completed });
+      return;
+    }
+    
+    // For recurring tasks being completed (but not forever), we need to:
+    // 1. Mark the current occurrence as completed
+    // 2. Schedule the next occurrence
+    
+    // First, mark current as completed
+    await updateTask(taskId, { completed: true });
+    
+    // Then schedule next occurrence
+    const nextTask = await scheduleNextOccurrence(task);
+    if (nextTask) {
+      console.log('Creating next occurrence for task:', taskId);
+      await updateTask(taskId, nextTask);
+    } else {
+      console.log('No more occurrences for recurring task:', taskId);
+      // This was the last occurrence, nothing more to do
+    }
+  };
+
+  const handleTaskDelete = async (taskId: string) => {
+    console.log("Delete task requested for:", taskId);
+    // Use await to ensure the delete operation completes
+    const success = await deleteTask(taskId);
+    
+    if (success) {
+      console.log("Task deleted successfully, UI will update via real-time subscription");
+      // Close edit modal if the deleted task was being edited
+      if (editingTask && editingTask.id === taskId) {
+        setIsEditModalOpen(false);
+        setEditingTask(null);
+      }
+    } else {
+      console.error("Failed to delete task:", taskId);
+    }
+  };
+
+  const handleTaskReschedule = async (taskId: string, newDate: Date) => {
+    console.log("Reschedule task requested for:", taskId, "to date:", newDate);
+    await updateTask(taskId, { dueDate: newDate });
+  };
+
   // Helper function to convert time to 24-hour format
   const convertTo24HourFormat = (timeString: string): string => {
     // If already in 24-hour format (e.g., "14:30"), return as is
@@ -137,33 +250,6 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     
     // Remove any AM/PM indicator and convert to 24-hour format
     return convertTo24HourFormat(timeString);
-  };
-
-  const handleTaskDelete = async (taskId: string) => {
-    console.log("Delete task requested for:", taskId);
-    // Use await to ensure the delete operation completes
-    const success = await deleteTask(taskId);
-    
-    if (success) {
-      console.log("Task deleted successfully, UI will update via real-time subscription");
-      // Close edit modal if the deleted task was being edited
-      if (editingTask && editingTask.id === taskId) {
-        setIsEditModalOpen(false);
-        setEditingTask(null);
-      }
-    } else {
-      console.error("Failed to delete task:", taskId);
-    }
-  };
-
-  const handleTaskComplete = async (taskId: string, completed: boolean) => {
-    console.log("Complete task requested for:", taskId, "completed:", completed);
-    await updateTask(taskId, { completed });
-  };
-
-  const handleTaskReschedule = async (taskId: string, newDate: Date) => {
-    console.log("Reschedule task requested for:", taskId, "to date:", newDate);
-    await updateTask(taskId, { dueDate: newDate });
   };
 
   return (

@@ -16,7 +16,7 @@ interface TaskCardProps {
   onEdit?: (task: TaskProps) => void;
   onDelete?: (taskId: string) => void;
   onReschedule?: (taskId: string, newDate: Date) => void;
-  onComplete?: (taskId: string, completed: boolean) => void;
+  onComplete?: (taskId: string, completed: boolean, completeForever?: boolean) => void;
 }
 
 const TaskCard = ({
@@ -57,12 +57,12 @@ const TaskCard = ({
     }
   };
 
-  const handleComplete = (completed: boolean) => {
+  const handleComplete = (completed: boolean, completeForever?: boolean) => {
     if (onComplete) {
-      onComplete(task.id, completed);
+      onComplete(task.id, completed, completeForever);
     } else {
       // If no callback is provided, this is likely a mock card
-      console.log('Task completed:', task.id, completed);
+      console.log('Task completed:', task.id, completed, completeForever ? 'forever' : 'once');
     }
   };
 
@@ -74,34 +74,35 @@ const TaskCard = ({
     preventScroll: true
   });
 
-  // Transform style for card when swiping
+  // Transform style for card when seping
   const transformStyle = {
-    transform: `translateX(${swipePosition}px)`,
-    transition: swipePosition === 0 ? 'transform 0.3s ease' : 'none',
+    transform: `translateX(${swePosition}px)`,
+    transition: swePosition === 0 ? 'transform 0.3s ease' : 'none',
   };
 
   return (
     <div 
       className="relative"
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => setIsHoved(false)}
     >
       {/* Swipe indicators - only shown on mobile */}
       {isMobile && (
         <>
-          <TaskCardSwipeIndicator 
+          <TaskCardswipeIndicator 
             swiping={isSwipingLeft}
             swipeOffset={swipePosition}
             isCompleted={task.completed}
             isMobile={isMobile}
           />
-          <TaskCardSwipeIndicator 
+          <TaskCardswipeIndicator 
             swiping={isSwipingRight}
             swipeOffset={swipePosition}
             isCompleted={task.completed}
             isMobile={isMobile}
-          />
+  />
         </>
+  
       )}
       
       {/* Task card */}
@@ -117,8 +118,9 @@ const TaskCard = ({
       >
         <div className="p-4 flex gap-4">
           <TaskCardCheckbox 
+            task={task}
             isCompleted={task.completed} 
-            onChange={(completed) => handleComplete(completed as boolean)}
+            onChange={(completed, completeForever) => handleComplete(completed, completeForever)}
             isMobile={isMobile}
           />
 
