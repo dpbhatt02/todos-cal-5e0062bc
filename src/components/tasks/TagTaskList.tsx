@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import TaskListFilters from './TaskListFilters';
 import OverdueTasksSection from './OverdueTasksSection';
@@ -124,6 +125,7 @@ const TaskList = ({
             <div className="mt-2 pl-4">
               <InlineTaskForm 
                 date={new Date()} 
+                onCreateTask={onTaskEdited}
               />
             </div>
           </div>
@@ -143,6 +145,7 @@ const TaskList = ({
                 <div className="mt-2 pl-4">
                   <InlineTaskForm 
                     date={date} 
+                    onCreateTask={onTaskEdited}
                   />
                 </div>
               </div>
