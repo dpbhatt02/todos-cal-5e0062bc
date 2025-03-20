@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import TaskListFilters from './TaskListFilters';
@@ -76,6 +77,11 @@ const TaskList = ({
   
   // Handler for clicking the "Add Task" button for a specific date
   const handleAddTaskForDate = (date: Date) => {
+    // Add debug logs to see what date is being passed
+    console.log('Add task clicked for date:', date);
+    console.log('Date string format:', date.toISOString());
+    console.log('Date local string:', date.toLocaleDateString());
+    
     // Call the parent handler to open the modal with the selected date
     onCreateTask(date);
   };

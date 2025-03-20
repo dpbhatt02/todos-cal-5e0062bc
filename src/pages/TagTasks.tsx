@@ -5,6 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { TasksProvider } from '@/contexts/TasksContext';
 import { useTasksContext } from '@/contexts/TasksContext';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
+import { format } from 'date-fns';
 
 const TagTasks = () => {
   const isMobile = useIsMobile();
@@ -15,6 +16,11 @@ const TagTasks = () => {
 
   // Handler for creating a new task
   const handleCreateTask = (date?: Date) => {
+    console.log('Creating task with date:', date);
+    if (date) {
+      console.log('Date ISO string:', date.toISOString());
+      console.log('Formatted date:', formatDate(date));
+    }
     setSelectedDate(date); // Store the selected date
     setIsCreateModalOpen(true);
   };
@@ -68,10 +74,10 @@ const TagTasks = () => {
 
 // Helper function to format date to YYYY-MM-DD
 function formatDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  console.log('Formatting date in TagTasks:', date);
+  const formatted = format(date, 'yyyy-MM-dd');
+  console.log('Formatted result in TagTasks:', formatted);
+  return formatted;
 }
 
 export default TagTasks;

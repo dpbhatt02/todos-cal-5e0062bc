@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -231,6 +230,11 @@ const TasksContent = ({
 
   // Updated to accept a date parameter and store it
   const openCreateTaskModal = (date?: Date) => {
+    console.log('Opening create task modal with date:', date);
+    if (date) {
+      console.log('Date ISO string:', date.toISOString());
+      console.log('Formatted date:', formatDate(date));
+    }
     setSelectedTaskDate(date);
     setIsCreateModalOpen(true);
   };
@@ -264,7 +268,10 @@ const TasksContent = ({
 
 // Helper function to format date to YYYY-MM-DD
 function formatDate(date: Date) {
-  return format(date, 'yyyy-MM-dd');
+  console.log('Formatting date:', date);
+  const formatted = format(date, 'yyyy-MM-dd');
+  console.log('Formatted result:', formatted);
+  return formatted;
 }
 
 export default Tasks;

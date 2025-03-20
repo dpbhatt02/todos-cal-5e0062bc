@@ -28,10 +28,10 @@ const WeekNavigator = ({
   onSelectDay
 }: WeekNavigatorProps) => {
   return (
-    <div className={`flex justify-between items-center ${useCompactView ? 'mb-1' : 'mb-3'}`}>
+    <div className={`flex justify-between items-center ${useCompactView ? 'mb-1' : 'mb-2'}`}>
       <div className="flex items-center space-x-2">
         {/* Title is hidden in compact mode */}
-        {!useCompactView && !isMobile && <h2 className="text-xl font-medium">Upcoming</h2>}
+        {!useCompactView && !isMobile && <h2 className="text-lg font-medium">Upcoming</h2>}
         <Popover>
           <PopoverTrigger asChild>
             <ButtonCustom 
@@ -41,7 +41,7 @@ const WeekNavigator = ({
                   ? 'text-xs font-medium' 
                   : useCompactView 
                     ? 'text-sm font-medium' 
-                    : 'text-md font-semibold'
+                    : 'text-base font-semibold'
               }`}
             >
               {isMobile ? format(currentDate, 'MMM yyyy') : format(currentDate, 'MMMM yyyy')}
