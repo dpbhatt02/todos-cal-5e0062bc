@@ -13,9 +13,20 @@ import { useAuth } from '@/contexts/AuthContext';
 interface TaskListProps {
   onTaskEdited?: () => void;
   onTaskDeleted?: () => void;
+  onCreateTask: () => void;
+  onSyncCalendar: () => void;
+  syncing: boolean;
+  isCalendarConnected: boolean;
 }
 
-const TaskList = ({ onTaskEdited, onTaskDeleted }: TaskListProps) => {
+const TaskList = ({ 
+  onTaskEdited, 
+  onTaskDeleted, 
+  onCreateTask, 
+  onSyncCalendar, 
+  syncing, 
+  isCalendarConnected 
+}: TaskListProps) => {
   const [viewOption, setViewOption] = useState('active');
   const [sortOption, setSortOption] = useState('date');
   const { user } = useAuth();
@@ -69,6 +80,10 @@ const TaskList = ({ onTaskEdited, onTaskDeleted }: TaskListProps) => {
         sortOption={sortOption}
         setViewOption={setViewOption}
         setSortOption={setSortOption}
+        onCreateTask={onCreateTask}
+        onSyncCalendar={onSyncCalendar}
+        syncing={syncing}
+        isCalendarConnected={isCalendarConnected}
       />
       
       <div className={`sticky top-0 bg-background z-10 transition-all duration-200 ${isScrolled ? 'pb-1 shadow-sm' : 'pb-3'}`}>

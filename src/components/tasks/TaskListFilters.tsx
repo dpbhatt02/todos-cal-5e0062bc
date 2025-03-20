@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Filter, ChevronDown, ArrowDownAZ, ArrowUpAZ, Move } from 'lucide-react';
+import { Filter, ChevronDown, ArrowDownAZ, ArrowUpAZ, Move, RefreshCw, Plus } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -9,19 +9,28 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TaskListFiltersProps {
   viewOption: string;
   sortOption: string;
   setViewOption: (option: string) => void;
   setSortOption: (option: string) => void;
+  onCreateTask: () => void;
+  onSyncCalendar: () => void;
+  syncing: boolean;
+  isCalendarConnected: boolean;
 }
 
 const TaskListFilters = ({ 
   viewOption, 
   sortOption, 
   setViewOption, 
-  setSortOption 
+  setSortOption,
+  onCreateTask,
+  onSyncCalendar,
+  syncing,
+  isCalendarConnected
 }: TaskListFiltersProps) => {
   const isMobile = useIsMobile();
 
@@ -38,10 +47,10 @@ const TaskListFilters = ({
   };
 
   return (
-    <div className="mb-6 flex justify-between items-center">
+    <div className="mb-6 flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
       <h1 className="text-2xl font-semibold">Tasks</h1>
       
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 justify-between sm:justify-end">
         {/* Filter Dropdown Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -114,6 +123,38 @@ const TaskListFilters = ({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Sync Calendar Button - Only show if calendar is connected */}
+        {isCalendarConnected && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <ButtonCustom
+                  variant="outline"
+                  size="sm"
+                  icon={<RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />}
+                  onClick={onSyncCalendar}
+                  disabled={syncing}
+                >
+                  {isMobile ? "" : "Sync Calendar"}
+                </ButtonCustom>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Sync with Google Calendar</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+
+        {/* New Task Button */}
+        <ButtonCustom
+          variant="primary"
+          size="sm"
+          icon={<Plus className="h-4 w-4" />}
+          onClick={onCreateTask}
+        >
+          New Task
+        </ButtonCustom>
       </div>
     </div>
   );

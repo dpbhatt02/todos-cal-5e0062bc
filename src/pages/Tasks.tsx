@@ -1,17 +1,14 @@
+
 import { useState, useEffect, useRef } from 'react';
 import TaskList from '@/components/tasks/TaskList';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
 import { useTasksContext } from '@/contexts/TasksContext';
-import { ButtonCustom } from '@/components/ui/button-custom';
-import { Plus, RefreshCw } from 'lucide-react';
 import { TaskProps } from '@/components/tasks/types';
 import { TasksProvider } from '@/contexts/TasksContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
-import { addMinutes, parseISO, format } from 'date-fns';
 
 // Define a simple interface for sync settings
 interface CalendarSyncSettings {
@@ -28,27 +25,18 @@ const Tasks = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // We'll implement the handleCreateTask separately to avoid 
-  // using useTasksContext outside of the TasksProvider
-  const handleCreateTask = async (taskData: any) => {
-    // For now, just a stub - the actual implementation will be inside
-    // the component inside TasksProvider
-    console.log('Task data received:', taskData);
-  };
-
   if (!user) {
     return (
       <div className="container">
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-4">Please Log In</h2>
           <p className="text-muted-foreground">You need to be logged in to view your tasks.</p>
-          <ButtonCustom
-            variant="primary"
-            className="mt-4"
+          <button
+            className="btn btn-primary mt-4"
             onClick={() => navigate('/auth')}
           >
             Go to Login
-          </ButtonCustom>
+          </button>
         </div>
       </div>
     );
@@ -195,14 +183,11 @@ const TasksContent = ({
     // Add time information if present - ensuring correct time formats
     if (taskData.startTime) {
       formattedData.startTime = taskData.startTime; // Time already converted in CreateTaskModal
-      console.log('if startTime, start time:'+ taskData.startTime);
       
       // If only start time is provided, the backend will automatically set 
       // end time to start time + 30 minutes
       if (taskData.endTime) { // Both start and end time provided
         formattedData.endTime = taskData.endTime; // Time already converted in CreateTaskModal
-        console.log('if endTime, start time:'+ taskData.startTime);
-        console.log('if endTime, end time:'+ taskData.endTime);
       }
     }
     
@@ -224,8 +209,7 @@ const TasksContent = ({
         formattedData.recurring.endAfter = taskData.recurrenceCount;
       }
     }
-      console.log('start time:'+ taskData.startTime);
-        console.log('end time:'+ taskData.endTime);
+
     console.log('Formatted task data:', formattedData);
     
     const newTask = await createTask(formattedData as Omit<TaskProps, 'id'>);
@@ -237,47 +221,20 @@ const TasksContent = ({
     }
   };
 
+  const handleSyncCalendar = () => {
+    console.log('Manual sync button clicked');
+    synchronizeWithCalendar();
+  };
+
   return (
     <div className={`container ${isMobile ? 'px-2 sm:px-4' : 'py-6'}`}>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Tasks</h1>
-        <div className="flex gap-2">
-          {isCalendarConnected && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <ButtonCustom
-                    variant="outline"
-                    size="sm"
-                    icon={<RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />}
-                    onClick={() => {
-                      console.log('Manual sync button clicked');
-                      synchronizeWithCalendar();
-                    }}
-                    disabled={syncing}
-                  >
-                    {isMobile ? "" : "Sync Calendar"}
-                  </ButtonCustom>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Sync with Google Calendar</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          <ButtonCustom
-            variant="primary"
-            size="sm"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            New Task
-          </ButtonCustom>
-        </div>
-      </div>
       <TaskList 
         onTaskEdited={() => setLastOperation('edit')}
         onTaskDeleted={() => setLastOperation('delete')}
+        onCreateTask={() => setIsCreateModalOpen(true)}
+        onSyncCalendar={handleSyncCalendar}
+        syncing={syncing}
+        isCalendarConnected={isCalendarConnected}
       />
       <CreateTaskModal
         isOpen={isCreateModalOpen}
