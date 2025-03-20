@@ -4,6 +4,7 @@ import { Calendar, Clock, RefreshCcw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { TaskProps, priorityClasses } from './types';
+import { convertTo24HourFormat } from '@/utils/recurring-tasks';
 
 export interface TaskCardContentProps {
   task: TaskProps;
@@ -61,6 +62,9 @@ const TaskCardContent = ({ task, isCompleted, isMobile }: TaskCardContentProps) 
           // Validate time string format (HH:MM)
           if (!/^\d{1,2}:\d{2}$/.test(timeString)) {
             console.warn('Invalid time string format:', timeString);
+            //calling convertTo24HourFormat
+            timeString = convertTo24HourFormat(timeString);
+            console.log('manual conversion db timestring:',timeString);
             return timeString;
           }
           
