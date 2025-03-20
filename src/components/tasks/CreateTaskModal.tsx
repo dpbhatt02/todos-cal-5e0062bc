@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from 'date-fns';
+import { convertTo24HourFormat } from '@/utils/recurring-tasks';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -60,42 +61,8 @@ function formatDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-// Add helper function to convert time to 24-hour format
-const convertTo24HourFormat = (timeString: string): string => {
-  // If already in 24-hour format (e.g., "14:30"), return as is
-  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeString)) {
-    return timeString;
-  }
-
-  // Try to handle formats like "2:00 PM" or "8:00PM"
-  try {
-    // Remove any spaces
-    const cleanTimeString = timeString.replace(/\s/g, '');
-    
-    // Extract hours, minutes, and period
-    const match = cleanTimeString.match(/^(\d+):(\d+)(?::\d+)?(?:\s*)?(AM|PM|am|pm)?$/);
-    
-    if (match) {
-      let [_, hours, minutes, period] = match;
-      let hoursNum = parseInt(hours, 10);
-      
-      // Handle AM/PM conversion to 24-hour
-      if (period && (period.toUpperCase() === 'PM') && hoursNum < 12) {
-        hoursNum += 12;
-      } else if (period && (period.toUpperCase() === 'AM') && hoursNum === 12) {
-        hoursNum = 0;
-      }
-      
-      // Format back to HH:MM
-      return `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
-    }
-  } catch (error) {
-    console.error("Error converting time format:", error, timeString);
-  }
-  
-  // If we can't parse it, just return the original string
-  return timeString;
-};
+// Use the imported convertTo24HourFormat instead of the local one
+// Removing the duplicate function in this file
 
 const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialData = {} }: CreateTaskModalProps) => {
   const [taskData, setTaskData] = useState(() => ({
@@ -179,7 +146,7 @@ const CreateTaskModal = ({ isOpen, onClose, onSubmit, editMode = false, initialD
       // If start time is provided, ensure it's properly formatted
       submissionData.isAllDay = false;
       
-      // Ensure startTime is in 24-hour format
+      // Ensure startTime is in 24-hour format using the improved converter
       submissionData.startTime = convertTo24HourFormat(submissionData.startTime);
       console.log('submitting start time:'+ submissionData.startTime);
       

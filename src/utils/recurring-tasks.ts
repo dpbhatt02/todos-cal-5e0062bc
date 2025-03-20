@@ -1,3 +1,4 @@
+
 import { addDays, format } from 'date-fns';
 import { TaskProps } from '@/components/tasks/types';
 
@@ -78,41 +79,68 @@ export const scheduleNextOccurrence = async (task: TaskProps) => {
 
 /**
  * Helper function to convert time to 24-hour format
+ * Improved to handle more formats including "1:30PM" style times
  */
 export const convertTo24HourFormat = (timeString: string): string => {
+  if (!timeString) return '';
+  
   // If already in 24-hour format (e.g., "14:30"), return as is
   if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeString)) {
     return timeString;
   }
 
-  // Try to handle formats like "2:00 PM" or "8:00PM"
   try {
-    // Remove any spaces
+    // Handle AM/PM formats like "1:30PM", "2:00 PM", etc.
+    // First, clean up by removing spaces
     const cleanTimeString = timeString.replace(/\s/g, '');
     
-    // Extract hours, minutes, and period
-    const match = cleanTimeString.match(/^(\d+):(\d+)(?::\d+)?(?:\s*)?(AM|PM|am|pm)?$/);
+    // Extract hours, minutes, and AM/PM indicator with regex
+    // This pattern matches formats like "1:30PM", "2:00AM", "9:45pm"
+    const amPmMatch = cleanTimeString.match(/^(\d+):(\d+)(?::\d+)?(?:\s*)?(AM|PM|am|pm)$/i);
     
-    if (match) {
-      let [_, hours, minutes, period] = match;
+    if (amPmMatch) {
+      let [_, hours, minutes, period] = amPmMatch;
       let hoursNum = parseInt(hours, 10);
       
-      // Handle AM/PM conversion to 24-hour
-      if (period && (period.toUpperCase() === 'PM') && hoursNum < 12) {
+      // Convert hours based on AM/PM
+      if (period.toUpperCase() === 'PM' && hoursNum < 12) {
         hoursNum += 12;
-      } else if (period && (period.toUpperCase() === 'AM') && hoursNum === 12) {
+      } else if (period.toUpperCase() === 'AM' && hoursNum === 12) {
         hoursNum = 0;
       }
       
-      // Format back to HH:MM
+      // Format as HH:MM
       return `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
+    }
+    
+    // If the first pattern didn't match, try a more lenient approach
+    // Extract numeric parts and assume AM/PM suffix
+    const genericMatch = cleanTimeString.match(/^(\d+)[:\.]?(\d*)(?:\s*)?(AM|PM|am|pm)?$/i);
+    
+    if (genericMatch) {
+      let [_, hours, minutes, period] = genericMatch;
+      let hoursNum = parseInt(hours, 10);
+      const minutesNum = minutes ? parseInt(minutes, 10) : 0;
+      
+      // Default to 00 minutes if not provided
+      const formattedMinutes = minutes ? minutes.padStart(2, '0') : '00';
+      
+      // Handle AM/PM conversion
+      if (period && period.toUpperCase() === 'PM' && hoursNum < 12) {
+        hoursNum += 12;
+      } else if (period && period.toUpperCase() === 'AM' && hoursNum === 12) {
+        hoursNum = 0;
+      }
+      
+      return `${hoursNum.toString().padStart(2, '0')}:${formattedMinutes}`;
     }
   } catch (error) {
     console.error("Error converting time format:", error, timeString);
   }
   
-  // If we can't parse it, just return the original string
-  return timeString;
+  // If we can't parse it, log a warning and return a default value
+  console.warn(`Could not parse time string: "${timeString}". Returning default.`);
+  return '09:00'; // Return a safe default rather than the original unparseable string
 };
 
 /**

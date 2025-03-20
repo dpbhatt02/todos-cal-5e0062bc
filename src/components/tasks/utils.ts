@@ -1,3 +1,4 @@
+
 import { format } from 'date-fns';
 import { 
   formatDateInTimezone, 
@@ -5,6 +6,7 @@ import {
   getLocalTimezone,
   dateAndTimeToISOWithTimezone
 } from '@/utils/timezone';
+import { convertTo24HourFormat } from '@/utils/recurring-tasks';
 
 export const formatDate = (date: Date | string) => {
   if (!date) return '';
@@ -80,17 +82,21 @@ export const formatTime = (timeString: string): string => {
       }).replace(/\s/g, '');
     }
     
-    // Otherwise it's just a time string, construct a full date to format
-    const [hours, minutes] = timeString.split(':').map(Number);
+    // First convert to 24-hour format
+    const time24h = convertTo24HourFormat(timeString);
+    
+    // Then convert to a Date object and format consistently
+    const [hours, minutes] = time24h.split(':').map(Number);
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);
+    
     return date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     }).replace(/\s/g, '');
   } catch (err) {
-    console.error('Error formatting time:', err);
+    console.error('Error formatting time:', err, timeString);
     return timeString;
   }
 };
@@ -127,5 +133,8 @@ export const getCurrentTimezone = (): { name: string, offset: string } => {
 export const formDateTimeToISO = (dateStr: string, timeStr: string | null): string | null => {
   if (!dateStr) return null;
   
-  return dateAndTimeToISOWithTimezone(dateStr, timeStr);
+  // Ensure time is in 24-hour format before passing to timezone utility
+  const formattedTimeStr = timeStr ? convertTo24HourFormat(timeStr) : null;
+  
+  return dateAndTimeToISOWithTimezone(dateStr, formattedTimeStr);
 };

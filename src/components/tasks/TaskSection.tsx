@@ -65,6 +65,10 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
       if (updatedTaskData.endTime) {
         taskUpdates.endTime = convertTo24HourFormat(updatedTaskData.endTime);
       }
+    } else {
+      // Explicitly set to null if all-day task to avoid keeping old values
+      taskUpdates.startTime = null;
+      taskUpdates.endTime = null;
     }
 
     // Handle recurring settings
@@ -127,7 +131,7 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
         dueDate: nextTask.dueDate,
         startTime: nextTask.startTime || null,
         endTime: nextTask.endTime || null,
-        isAllDay: nextTask.isAllDay,
+        isAllDay: nextTask.isAllDay !== undefined ? nextTask.isAllDay : true,
         completed: false
       });
     } else {
