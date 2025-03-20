@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import TaskListFilters from './TaskListFilters';
@@ -15,7 +14,7 @@ import { Button } from '@/components/ui/button';
 interface TaskListProps {
   onTaskEdited?: () => void;
   onTaskDeleted?: () => void;
-  onCreateTask: () => void;
+  onCreateTask: (date?: Date) => void; // Updated to accept a date parameter
   onSyncCalendar: () => void;
   syncing: boolean;
   isCalendarConnected: boolean;
@@ -77,10 +76,8 @@ const TaskList = ({
   
   // Handler for clicking the "Add Task" button for a specific date
   const handleAddTaskForDate = (date: Date) => {
-    // Set selected date to ensure the modal has the right date
-    setSelectedDate(date);
-    // Call the parent handler to open the modal
-    onCreateTask();
+    // Call the parent handler to open the modal with the selected date
+    onCreateTask(date);
   };
 
   return (
@@ -90,7 +87,7 @@ const TaskList = ({
         sortOption={sortOption}
         setViewOption={setViewOption}
         setSortOption={setSortOption}
-        onCreateTask={onCreateTask}
+        onCreateTask={() => onCreateTask()} // Pass undefined to use default date
         onSyncCalendar={onSyncCalendar}
         syncing={syncing}
         isCalendarConnected={isCalendarConnected}

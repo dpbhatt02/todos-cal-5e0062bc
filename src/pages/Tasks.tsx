@@ -9,6 +9,7 @@ import { TasksProvider } from '@/contexts/TasksContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 // Define a simple interface for sync settings
 interface CalendarSyncSettings {
@@ -74,6 +75,7 @@ const TasksContent = ({
   const [lastOperation, setLastOperation] = useState<string | null>(null);
   const syncTimeoutRef = useRef<number | null>(null);
   const initialSyncRef = useRef(false);
+  const [selectedTaskDate, setSelectedTaskDate] = useState<Date | undefined>(undefined);
   
   // Check for auto-sync settings and set up periodic sync if enabled
   useEffect(() => {
@@ -226,12 +228,18 @@ const TasksContent = ({
     synchronizeWithCalendar();
   };
 
+  // Updated to accept a date parameter and store it
+  const openCreateTaskModal = (date?: Date) => {
+    setSelectedTaskDate(date);
+    setIsCreateModalOpen(true);
+  };
+
   return (
     <div className={`container ${isMobile ? 'px-2 sm:px-4' : 'py-6'}`}>
       <TaskList 
         onTaskEdited={() => setLastOperation('edit')}
         onTaskDeleted={() => setLastOperation('delete')}
-        onCreateTask={() => setIsCreateModalOpen(true)}
+        onCreateTask={openCreateTaskModal}
         onSyncCalendar={handleSyncCalendar}
         syncing={syncing}
         isCalendarConnected={isCalendarConnected}
@@ -240,9 +248,15 @@ const TasksContent = ({
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateTask}
+        initialData={selectedTaskDate ? { dueDate: formatDate(selectedTaskDate) } : {}}
       />
     </div>
   );
 };
+
+// Helper function to format date to YYYY-MM-DD
+function formatDate(date: Date) {
+  return format(date, 'yyyy-MM-dd');
+}
 
 export default Tasks;
