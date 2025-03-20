@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import TaskListFilters from './TaskListFilters';
 import OverdueTasksSection from './OverdueTasksSection';
 import TaskSection from './TaskSection';
@@ -9,7 +10,7 @@ import { useTasksContext } from '@/contexts/TasksContext';
 import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
 import { useAuth } from '@/contexts/AuthContext';
-import InlineTaskForm from './InlineTaskForm';
+import { Button } from '@/components/ui/button';
 
 interface TaskListProps {
   onTaskEdited?: () => void;
@@ -74,9 +75,8 @@ const TaskList = ({
     );
   }
   
-  // Set up "quick add task" handler that opens the task creation modal
-  // with the selected date pre-filled
-  const handleQuickAddTask = (date: Date) => {
+  // Handler for clicking the "Add Task" button for a specific date
+  const handleAddTaskForDate = (date: Date) => {
     // Set selected date to ensure the modal has the right date
     setSelectedDate(date);
     // Call the parent handler to open the modal
@@ -123,7 +123,7 @@ const TaskList = ({
             sortOption={sortOption}
           />
           
-          {/* Today's Tasks Section with Quick Add Form */}
+          {/* Today's Tasks Section with Add Task Button */}
           <div>
             <TaskSection 
               title="Today"
@@ -132,14 +132,18 @@ const TaskList = ({
               selectedDate={selectedDate}
             />
             <div className="mt-2 pl-4">
-              <InlineTaskForm 
-                date={new Date()} 
-                onCreateTask={onTaskEdited}
-              />
+              <Button 
+                variant="ghost" 
+                className="h-8 px-2 text-xs flex items-center text-muted-foreground hover:text-foreground"
+                onClick={() => handleAddTaskForDate(new Date())}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add task
+              </Button>
             </div>
           </div>
           
-          {/* Future Tasks Sections with Quick Add Form for each day */}
+          {/* Future Tasks Sections with Add Task Button for each day */}
           {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
             const date = new Date(dateString);
             
@@ -152,10 +156,14 @@ const TaskList = ({
                   selectedDate={date}
                 />
                 <div className="mt-2 pl-4">
-                  <InlineTaskForm 
-                    date={date} 
-                    onCreateTask={onTaskEdited}
-                  />
+                  <Button 
+                    variant="ghost" 
+                    className="h-8 px-2 text-xs flex items-center text-muted-foreground hover:text-foreground"
+                    onClick={() => handleAddTaskForDate(date)}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Add task
+                  </Button>
                 </div>
               </div>
             );

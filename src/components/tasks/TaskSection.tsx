@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
@@ -27,10 +28,8 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
   const [editingTask, setEditingTask] = useState<TaskProps | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  if (tasks.length === 0) {
-    return null;
-  }
-
+  // Always render the section, even if there are no tasks
+  
   const handleEditTask = (task: TaskProps) => {
     console.log("Edit task requested for:", task.id);
     console.log("Task data for editing:", task); // Log full task data to see recurring fields
@@ -166,27 +165,33 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     <div className="space-y-2">
       <h2 className="text-lg font-medium">{title}</h2>
       
-      <div className="space-y-2">
-        {tasks.map((task) => (
-          <div
-            key={task.id}
-            draggable={sortOption === 'custom'}
-            onDragStart={(e) => handleDragStart(e, task.id)}
-            onDragOver={(e) => handleDragOver(e)}
-            onDragLeave={(e) => handleDragLeave(e)}
-            onDrop={(e) => handleDrop(e, task.id)}
-            onDragEnd={handleDragEnd}
-          >
-            <TaskCard
-              task={task}
-              onEdit={handleEditTask}
-              onDelete={handleTaskDelete}
-              onComplete={handleTaskComplete}
-              onReschedule={handleTaskReschedule}
-            />
-          </div>
-        ))}
-      </div>
+      {tasks.length > 0 ? (
+        <div className="space-y-2">
+          {tasks.map((task) => (
+            <div
+              key={task.id}
+              draggable={sortOption === 'custom'}
+              onDragStart={(e) => handleDragStart(e, task.id)}
+              onDragOver={(e) => handleDragOver(e)}
+              onDragLeave={(e) => handleDragLeave(e)}
+              onDrop={(e) => handleDrop(e, task.id)}
+              onDragEnd={handleDragEnd}
+            >
+              <TaskCard
+                task={task}
+                onEdit={handleEditTask}
+                onDelete={handleTaskDelete}
+                onComplete={handleTaskComplete}
+                onReschedule={handleTaskReschedule}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-muted-foreground text-sm py-2 pl-2">
+          No tasks for this day
+        </div>
+      )}
       
       {/* Edit Task Modal */}
       {editingTask && (
