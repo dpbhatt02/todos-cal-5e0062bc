@@ -120,13 +120,16 @@ const TaskList = ({
         </div>
       ) : (
         <div className="space-y-6">
-          <OverdueTasksSection 
-            tasks={overdueTasks}
-            isOpen={isOverdueOpen}
-            onOpenChange={setIsOverdueOpen}
-            selectedDate={selectedDate}
-            sortOption={sortOption}
-          />
+          {/* Only show overdue tasks when the selected date is today */}
+          {isSelectedDateToday && (
+            <OverdueTasksSection 
+              tasks={overdueTasks}
+              isOpen={isOverdueOpen}
+              onOpenChange={setIsOverdueOpen}
+              selectedDate={selectedDate}
+              sortOption={sortOption}
+            />
+          )}
           
           {/* Today's Tasks Section with Add Task Button - Only show if selected date is today */}
           {isSelectedDateToday && (
@@ -142,6 +145,28 @@ const TaskList = ({
                   variant="ghost" 
                   className="h-8 px-2 text-xs flex items-center text-muted-foreground hover:text-foreground"
                   onClick={() => handleAddTaskForDate(new Date())}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add task
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Selected Date Tasks - Only show if selected date is not today */}
+          {!isSelectedDateToday && (
+            <div>
+              <TaskSection 
+                title={formatFullDate(selectedDate)}
+                tasks={todayTasks}
+                sortOption={sortOption}
+                selectedDate={selectedDate}
+              />
+              <div className="mt-2 pl-4">
+                <Button 
+                  variant="ghost" 
+                  className="h-8 px-2 text-xs flex items-center text-muted-foreground hover:text-foreground"
+                  onClick={() => handleAddTaskForDate(selectedDate)}
                 >
                   <Plus className="h-3.5 w-3.5 mr-1" />
                   Add task

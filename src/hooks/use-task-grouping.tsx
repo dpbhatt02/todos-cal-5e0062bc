@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { format, addDays, isSameDay, differenceInDays } from 'date-fns';
+import { format, addDays, isSameDay, differenceInDays, isBefore, startOfDay } from 'date-fns';
 import { TaskProps } from '@/components/tasks/types';
 
 export const useTaskGrouping = (
@@ -11,6 +11,8 @@ export const useTaskGrouping = (
   const groupTasks = useCallback(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    
+    const selectedDateStart = startOfDay(selectedDate);
     
     // Find overdue and today's tasks
     const groupedTasks = {
@@ -34,15 +36,19 @@ export const useTaskGrouping = (
       ? new Date(Math.max(...taskDates.map(date => date.getTime())))
       : addDays(today, 60);
     
-    // Always show at least 60 days
-    const daysToShow = Math.max(60, differenceInDays(latestTaskDate, today) + 1);
+    // Always show at least 60 days from the selected date
+    const daysToShow = Math.max(60, differenceInDays(latestTaskDate, selectedDateStart) + 1);
 
     // Create empty arrays for dates with no tasks
     const futureDatesGrouped: { [key: string]: TaskProps[] } = {};
     
-    // Initialize with empty arrays for all future dates up to daysToShow
-    for (let i = 1; i < daysToShow; i++) { // Start from 1 to skip today
-      const date = addDays(today, i);
+    // Initialize with empty arrays for all future dates starting from the selected date
+    for (let i = 0; i < daysToShow; i++) {
+      const date = addDays(selectedDateStart, i);
+      
+      // Skip today's date as it's handled separately
+      if (isSameDay(date, selectedDateStart)) continue;
+      
       const dateString = format(date, 'yyyy-MM-dd');
       futureDatesGrouped[dateString] = [];
     }
@@ -52,8 +58,11 @@ export const useTaskGrouping = (
       const taskDate = new Date(task.dueDate);
       taskDate.setHours(0, 0, 0, 0);
       
-      // Skip if it's today or before (handled separately)
-      if (taskDate <= today) return;
+      // Skip if the task date is today (handled separately)
+      if (isSameDay(taskDate, selectedDateStart)) return;
+      
+      // Skip if task date is before the selected date
+      if (isBefore(taskDate, selectedDateStart)) return;
       
       const dateString = format(taskDate, 'yyyy-MM-dd');
       if (futureDatesGrouped[dateString]) {
