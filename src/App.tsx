@@ -1,10 +1,10 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { TasksProvider } from "@/contexts/TasksContext";
 import { useEffect } from "react";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
@@ -41,7 +41,7 @@ const initializeTheme = () => {
   }
 };
 
-// Protected route component
+// Protected route component that wraps content with TasksProvider
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
@@ -55,8 +55,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
   
-  // User is logged in, render the children
-  return <>{children}</>;
+  // User is logged in, render the children with TasksProvider
+  return <TasksProvider>{children}</TasksProvider>;
 };
 
 // Auth route component (redirects to dashboard if already logged in)
@@ -80,6 +80,7 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+    <Route path="/api/google-calendar-callback" element={<GoogleCalendarCallback />} />
     <Route path="/" element={<Navigate to="/tasks" replace />} />
     <Route path="/tasks" element={<ProtectedRoute><Layout><Tasks /></Layout></ProtectedRoute>} />
     <Route path="/tag/:tagId" element={<ProtectedRoute><Layout><TagTasks /></Layout></ProtectedRoute>} />
@@ -87,7 +88,6 @@ const AppRoutes = () => (
     <Route path="/history" element={<ProtectedRoute><Layout><History /></Layout></ProtectedRoute>} />
     <Route path="/kanban" element={<ProtectedRoute><Layout><Kanban /></Layout></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-    <Route path="/api/google-calendar-callback" element={<GoogleCalendarCallback />} />
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
     <Route path="*" element={<NotFound />} />
   </Routes>
