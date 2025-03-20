@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, subMinutes } from 'date-fns';
 import {
   Popover,
   PopoverContent,
@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ButtonCustom } from "@/components/ui/button-custom";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useTasksContext } from '@/contexts/TasksContext';
 
 export interface Notification {
   id: string;
@@ -27,36 +28,47 @@ interface NotificationsPopoverProps {
 }
 
 const NotificationsPopover = ({ isSidebarOpen }: NotificationsPopoverProps) => {
-  // In a real app, this would come from a notifications context or API
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'Task reminder',
-      description: 'Complete project proposal is due soon',
-      time: new Date(Date.now() - 10 * 60000), // 10 minutes ago
-      read: false,
-      taskId: 'task-1'
-    },
-    {
-      id: '2',
-      title: 'Task reminder',
-      description: 'Weekly team meeting starting soon',
-      time: new Date(Date.now() - 25 * 60000), // 25 minutes ago
-      read: false,
-      taskId: 'task-2'
-    },
-    {
-      id: '3',
-      title: 'Task reminder',
-      description: 'Review client feedback deadline approaching',
-      time: new Date(Date.now() - 60 * 60000), // 1 hour ago
-      read: true,
-      taskId: 'task-3'
-    },
-  ]);
-  
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const { tasks } = useTasksContext();
+
+  // Generate notifications based on tasks
+  useEffect(() => {
+    if (!tasks) return;
+    
+    const now = new Date();
+    const newNotifications: Notification[] = [];
+    
+    tasks.forEach(task => {
+      if (task.completed) return;
+      
+      const taskDate = new Date(task.dueDate);
+      const isAllDay = !task.startTime || !task.endTime;
+      
+      // For all-day tasks, notify on the due date
+      // For timed tasks, notify 30 minutes before start time
+      const notificationTime = isAllDay 
+        ? taskDate 
+        : subMinutes(new Date(`${task.dueDate}T${task.startTime}`), 30);
+      
+      // Only create notification if the time is within +/- 1 hour of now
+      // In a real app, this would be more sophisticated and persistent
+      const timeDiff = Math.abs(now.getTime() - notificationTime.getTime());
+      if (timeDiff <= 60 * 60 * 1000) { // 1 hour in milliseconds
+        newNotifications.push({
+          id: `task-notification-${task.id}`,
+          title: `Task reminder${isAllDay ? '' : ' (starting soon)'}`,
+          description: task.title,
+          time: notificationTime,
+          read: false,
+          taskId: task.id
+        });
+      }
+    });
+    
+    setNotifications(newNotifications);
+  }, [tasks]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
   

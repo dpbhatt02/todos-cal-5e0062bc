@@ -18,7 +18,16 @@ import TagTasks from "./pages/TagTasks";
 import History from "./pages/History";
 import GoogleCalendarCallback from "./pages/api/GoogleCalendarCallback";
 
-const queryClient = new QueryClient();
+// Create QueryClient with optimized settings
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Initialize theme based on local storage or system preference
 const initializeTheme = () => {
@@ -88,6 +97,9 @@ const App = () => {
   // Initialize theme on app load
   useEffect(() => {
     initializeTheme();
+    
+    // Add page title based on the new app name
+    document.title = "Taskendar";
   }, []);
 
   return (
