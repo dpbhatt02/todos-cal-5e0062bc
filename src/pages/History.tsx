@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,6 +100,11 @@ const History = () => {
     }
   };
 
+  const handleTaskClick = (taskId: string) => {
+    // Navigate to Tasks page with the specific task ID as a query parameter
+    navigate(`/tasks?id=${taskId}`);
+  };
+
   if (!user) {
     return (
       <div className="container">
@@ -161,12 +165,17 @@ const History = () => {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <span className="truncate max-w-64">{item.taskTitle}</span>
+                    <button
+                      onClick={() => handleTaskClick(item.taskId)}
+                      className="text-left hover:text-primary hover:underline truncate max-w-64 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded px-1"
+                    >
+                      {item.taskTitle}
+                    </button>
                     <ButtonCustom
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      onClick={() => navigate(`/tasks?id=${item.taskId}`)}
+                      onClick={() => handleTaskClick(item.taskId)}
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       <span className="sr-only">View Task</span>
