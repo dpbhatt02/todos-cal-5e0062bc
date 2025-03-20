@@ -3,6 +3,8 @@
  * Simplified timezone utility functions for consistent date/time handling across the app
  */
 
+import { convertTo24HourFormat } from '@/utils/recurring-tasks';
+
 // Get the user's timezone from browser
 export const getLocalTimezone = (): string => {
   try {
@@ -97,6 +99,9 @@ export const dateAndTimeToISOWithTimezone = (
       return date.toISOString();
     }
     
+    timeString = convertTo24HourFormat(timeString);
+    console.log('manual conversion db tz timestring:',timeString);
+
     // Parse the time string (HH:mm)
     const [hours, minutes] = timeString.split(':').map(Number);
     
