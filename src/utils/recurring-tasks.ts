@@ -82,10 +82,12 @@ export const scheduleNextOccurrence = async (task: TaskProps) => {
  * Improved to handle more formats including "1:30PM" style times
  */
 export const convertTo24HourFormat = (timeString: string): string => {
+  console.log('convert to 24 hours format function called, timestring:',timeString);
   if (!timeString) return '';
   
   // If already in 24-hour format (e.g., "14:30"), return as is
   if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeString)) {
+    console.log('Already in 24h format condition.');
     return timeString;
   }
 
