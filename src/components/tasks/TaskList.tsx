@@ -11,6 +11,7 @@ import { useTaskDateGroups } from '@/hooks/use-task-date-groups';
 import { useWeekController } from '@/hooks/use-week-controller';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { isSameDay } from 'date-fns';
 
 interface TaskListProps {
   onTaskEdited?: () => void;
@@ -42,7 +43,8 @@ const TaskList = ({
     setSelectedDate,
     previousWeek,
     nextWeek,
-    goToToday
+    goToToday,
+    isSelectedDateToday
   } = useWeekController();
   
   const {
@@ -126,25 +128,27 @@ const TaskList = ({
             sortOption={sortOption}
           />
           
-          {/* Today's Tasks Section with Add Task Button */}
-          <div>
-            <TaskSection 
-              title="Today"
-              tasks={todayTasks}
-              sortOption={sortOption}
-              selectedDate={selectedDate}
-            />
-            <div className="mt-2 pl-4">
-              <Button 
-                variant="ghost" 
-                className="h-8 px-2 text-xs flex items-center text-muted-foreground hover:text-foreground"
-                onClick={() => handleAddTaskForDate(new Date())}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add task
-              </Button>
+          {/* Today's Tasks Section with Add Task Button - Only show if selected date is today */}
+          {isSelectedDateToday && (
+            <div>
+              <TaskSection 
+                title="Today"
+                tasks={todayTasks}
+                sortOption={sortOption}
+                selectedDate={selectedDate}
+              />
+              <div className="mt-2 pl-4">
+                <Button 
+                  variant="ghost" 
+                  className="h-8 px-2 text-xs flex items-center text-muted-foreground hover:text-foreground"
+                  onClick={() => handleAddTaskForDate(new Date())}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add task
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Future Tasks Sections with Add Task Button for each day */}
           {Object.entries(futureDatesGrouped).map(([dateString, tasks]) => {
