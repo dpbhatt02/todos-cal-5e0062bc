@@ -216,6 +216,7 @@ const TasksContent = ({
     
     const newTask = await createTask(formattedData as Omit<TaskProps, 'id'>);
     setIsCreateModalOpen(false);
+    setSelectedTaskDate(undefined); // Reset selected date after task creation
     
     // Set last operation to trigger sync
     if (newTask) {
@@ -234,6 +235,12 @@ const TasksContent = ({
     setIsCreateModalOpen(true);
   };
 
+  // Handler for closing the modal (also reset selected date)
+  const handleCloseModal = () => {
+    setIsCreateModalOpen(false);
+    setSelectedTaskDate(undefined); // Reset date when closing modal
+  };
+
   return (
     <div className={`container ${isMobile ? 'px-2 sm:px-4' : 'py-6'}`}>
       <TaskList 
@@ -246,9 +253,10 @@ const TasksContent = ({
       />
       <CreateTaskModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={handleCloseModal}
         onSubmit={handleCreateTask}
         initialData={selectedTaskDate ? { dueDate: formatDate(selectedTaskDate) } : {}}
+        key={selectedTaskDate ? selectedTaskDate.toISOString() : 'default'} // Add key to force re-render with fresh state
       />
     </div>
   );

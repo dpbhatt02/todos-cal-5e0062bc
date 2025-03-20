@@ -23,6 +23,7 @@ const TagTasks = () => {
   const handleTaskSubmit = (taskData: any) => {
     console.log('Create task with data:', taskData);
     setIsCreateModalOpen(false);
+    setSelectedDate(undefined); // Reset the selected date after task is created
     // Implement actual task creation logic here
   };
 
@@ -40,6 +41,12 @@ const TagTasks = () => {
     }
   };
 
+  // Handler for closing the modal (also reset selected date)
+  const handleCloseModal = () => {
+    setIsCreateModalOpen(false);
+    setSelectedDate(undefined); // Reset date when closing modal
+  };
+
   return (
     <div className={`container ${isMobile ? 'px-2 sm:px-4' : 'py-6'}`}>
       <TagTaskListWrapper 
@@ -50,9 +57,10 @@ const TagTasks = () => {
       />
       <CreateTaskModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={handleCloseModal}
         onSubmit={handleTaskSubmit}
         initialData={selectedDate ? { dueDate: formatDate(selectedDate) } : {}}
+        key={selectedDate ? selectedDate.toISOString() : 'default'} // Add key to force re-render with fresh state
       />
     </div>
   );
