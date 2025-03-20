@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
@@ -145,6 +146,10 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
       id: task.id, // Keep the same ID
       dueDate: nextDate,
       completed: false, // Reset completed status
+      // Preserve time settings from the original task
+      startTime: task.startTime,
+      endTime: task.endTime,
+      isAllDay: task.isAllDay
     };
     
     console.log('Rescheduling task to:', updatedTask);
