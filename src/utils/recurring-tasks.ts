@@ -93,11 +93,11 @@ export const convertTo24HourFormat = (timeString: string): string => {
     // Handle AM/PM formats like "1:30PM", "2:00 PM", etc.
     // First, clean up by removing spaces
     const cleanTimeString = timeString.replace(/\s/g, '');
-    
+    console.log('clean time string',cleanTimeString);
     // Extract hours, minutes, and AM/PM indicator with regex
     // This pattern matches formats like "1:30PM", "2:00AM", "9:45pm"
     const amPmMatch = cleanTimeString.match(/^(\d+):(\d+)(?::\d+)?(?:\s*)?(AM|PM|am|pm)$/i);
-    
+    console.log('am pm match: ',amPmMatch);
     if (amPmMatch) {
       let [_, hours, minutes, period] = amPmMatch;
       let hoursNum = parseInt(hours, 10);
@@ -105,8 +105,10 @@ export const convertTo24HourFormat = (timeString: string): string => {
       // Convert hours based on AM/PM
       if (period.toUpperCase() === 'PM' && hoursNum < 12) {
         hoursNum += 12;
+        console.log('pm hour num:',hoursNum);
       } else if (period.toUpperCase() === 'AM' && hoursNum === 12) {
         hoursNum = 0;
+        console.log('am hour num:',hoursNum);
       }
       
       // Format as HH:MM
