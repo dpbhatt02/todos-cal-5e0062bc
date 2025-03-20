@@ -12,6 +12,11 @@ export const scheduleNextOccurrence = async (task: TaskProps) => {
   }
   
   console.log('Scheduling next occurrence for task:', task.id, 'with frequency:', task.recurring.frequency);
+  console.log('Original task time settings:', {
+    startTime: task.startTime,
+    endTime: task.endTime,
+    isAllDay: task.isAllDay
+  });
   
   let nextDate = new Date(task.dueDate);
   
@@ -49,17 +54,32 @@ export const scheduleNextOccurrence = async (task: TaskProps) => {
     return null; // No more occurrences
   }
   
-  // If we have a valid next date, create an updated task with the new date
+  // Create a new task object for the next occurrence
+  // Important: We need to create a new partial TaskProps with the correct structure
   const updatedTask: Partial<TaskProps> = {
     ...task,
     id: task.id, // Keep the same ID
     dueDate: nextDate,
     completed: false, // Reset completed status
-    // Preserve time settings from the original task
-    startTime: task.startTime,
-    endTime: task.endTime,
-    isAllDay: task.isAllDay !== undefined ? task.isAllDay : true
   };
+  
+  // Explicitly preserve the time settings from the original task
+  if (task.startTime) {
+    updatedTask.startTime = task.startTime;
+  }
+  
+  if (task.endTime) {
+    updatedTask.endTime = task.endTime;
+  }
+  
+  // Explicitly set isAllDay property
+  updatedTask.isAllDay = task.isAllDay !== undefined ? task.isAllDay : true;
+  
+  console.log('Next occurrence time settings:', {
+    startTime: updatedTask.startTime,
+    endTime: updatedTask.endTime,
+    isAllDay: updatedTask.isAllDay
+  });
   
   console.log('Rescheduling task to:', updatedTask);
   return updatedTask;
