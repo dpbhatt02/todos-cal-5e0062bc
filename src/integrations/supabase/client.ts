@@ -29,3 +29,61 @@ export const invokeSyncFunction = async (functionName: string, payload: any) => 
     return { error: err instanceof Error ? err.message : 'Unknown error' };
   }
 };
+
+// Helper function to clean up the database by truncating task-related tables
+export const cleanupTaskDatabase = async () => {
+  try {
+    console.log('Starting database cleanup...');
+    
+    // Delete records in correct order to respect foreign key constraints
+    // First delete from task_tags as it references both tasks and tags
+    const { error: taskTagsError } = await supabase
+      .from('task_tags')
+      .delete()
+      .not('id', 'is', null);
+    
+    if (taskTagsError) {
+      console.error('Error clearing task_tags:', taskTagsError);
+      return { error: taskTagsError.message };
+    }
+    
+    // Then delete from recurring_tasks as it references tasks
+    const { error: recurringTasksError } = await supabase
+      .from('recurring_tasks')
+      .delete()
+      .not('id', 'is', null);
+    
+    if (recurringTasksError) {
+      console.error('Error clearing recurring_tasks:', recurringTasksError);
+      return { error: recurringTasksError.message };
+    }
+    
+    // Then delete from task_history as it references tasks
+    const { error: taskHistoryError } = await supabase
+      .from('task_history')
+      .delete()
+      .not('id', 'is', null);
+    
+    if (taskHistoryError) {
+      console.error('Error clearing task_history:', taskHistoryError);
+      return { error: taskHistoryError.message };
+    }
+    
+    // Finally delete from tasks table
+    const { error: tasksError } = await supabase
+      .from('tasks')
+      .delete()
+      .not('id', 'is', null);
+    
+    if (tasksError) {
+      console.error('Error clearing tasks:', tasksError);
+      return { error: tasksError.message };
+    }
+    
+    console.log('Database cleanup completed successfully');
+    return { success: true };
+  } catch (err) {
+    console.error('Exception during database cleanup:', err);
+    return { error: err instanceof Error ? err.message : 'Unknown error during cleanup' };
+  }
+};
