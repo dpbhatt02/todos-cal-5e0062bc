@@ -74,33 +74,33 @@ const TaskCard = ({
     preventScroll: true
   });
 
-  // Transform style for card when seping
+  // Transform style for card when swiping
   const transformStyle = {
-    transform: `translateX(${swePosition}px)`,
-    transition: swePosition === 0 ? 'transform 0.3s ease' : 'none',
+    transform: `translateX(${swipePosition}px)`,
+    transition: swipePosition === 0 ? 'transform 0.3s ease' : 'none',
   };
 
   return (
     <div 
       className="relative"
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHoved(false)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Swipe indicators - only shown on mobile */}
       {isMobile && (
         <>
-          <TaskCardswipeIndicator 
+          <TaskCardSwipeIndicator 
             swiping={isSwipingLeft}
             swipeOffset={swipePosition}
             isCompleted={task.completed}
             isMobile={isMobile}
           />
-          <TaskCardswipeIndicator 
+          <TaskCardSwipeIndicator 
             swiping={isSwipingRight}
             swipeOffset={swipePosition}
             isCompleted={task.completed}
             isMobile={isMobile}
-  />
+          />
         </>
   
       )}
