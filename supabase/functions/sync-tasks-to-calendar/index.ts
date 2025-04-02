@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -184,18 +185,19 @@ serve(async (req) => {
     // Fetch task(s) to sync
     let tasksQuery = supabase
       .from("tasks")
-      .select("id, title, due_date, updated_at, google_calendar_event_id, last_synced_at, description, priority, start_time, end_time, is_all_day")
+      .select("id, title, due_date, updated_at, google_calendar_event_id, last_synced_at, description, priority, start_time, end_time, is_all_day, google_calendar_id, user_id")
       .eq("user_id", userId);
     
     // If taskId is provided, only sync that specific task
     if (taskId) {
+      console.log(`Syncing specific task with ID: ${taskId}`);
       tasksQuery = tasksQuery.eq("id", taskId);
     } else {
-      // Simplified query - only look for tasks without Google Calendar event ID or last_synced_at
+      // For batch sync, focus on tasks that need syncing
       tasksQuery = tasksQuery.or('google_calendar_event_id.is.null,last_synced_at.is.null');
+      console.log("Batch syncing tasks that need initial sync");
     }
     
-    console.log("Running tasks query with simplified filters");
     const { data: tasks, error: tasksError } = await tasksQuery;
     
     if (tasksError) {
@@ -206,10 +208,7 @@ serve(async (req) => {
       );
     }
     
-    console.log("Fetched Tasks:", tasks);
-    if (tasks) {
-      tasks.forEach(task => console.log(`Task ID: ${task.id}, Title: ${task.title}, Due Date: ${task.due_date}, Is All Day: ${task.is_all_day}, Start Time: ${task.start_time}, End Time: ${task.end_time}`));
-    }
+    console.log(`Fetched ${tasks?.length || 0} tasks to sync`);
     
     if (!tasks || tasks.length === 0) {
       console.log("No tasks to sync");
@@ -218,8 +217,6 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
-    console.log(`Found ${tasks.length} tasks to sync`);
     
     // Process each task
     const results = await Promise.all(tasks.map(async (task) => {
@@ -299,23 +296,69 @@ serve(async (req) => {
         
         // If task already has a Google Calendar event ID, update it
         if (task.google_calendar_event_id) {
-          console.log(`Updating event for task ${task.id}: ${task.title}`);
+          console.log(`Updating existing event for task ${task.id}: ${task.title} with event ID: ${task.google_calendar_event_id}`);
           
+          // Determine which calendar to use
           const calendarId = task.google_calendar_id || defaultCalendarId;
+          console.log(`Using calendar ID: ${calendarId} for update`);
           
-          response = await fetch(
-            `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${task.google_calendar_event_id}`,
-            {
-              method: "PUT",
-              headers: {
-                "Authorization": `Bearer ${accessToken}`,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(eventData)
+          // For debugging, try to get the event first to make sure it exists
+          try {
+            const checkResponse = await fetch(
+              `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${task.google_calendar_event_id}`,
+              {
+                method: "GET",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                  "Content-Type": "application/json"
+                }
+              }
+            );
+            
+            if (!checkResponse.ok) {
+              console.log(`Event not found or inaccessible. Status: ${checkResponse.status}`);
+              if (checkResponse.status === 404) {
+                // Event doesn't exist, create a new one instead
+                console.log("Event not found, will create a new one instead");
+                // Clear the event ID so we create a new one below
+                task.google_calendar_event_id = null;
+                task.google_calendar_id = null;
+              } else {
+                const errorData = await checkResponse.json();
+                console.error("Error checking event:", errorData);
+              }
+            } else {
+              console.log("Event exists, proceeding with update");
             }
-          );
-        } else {
-          // Otherwise create a new event
+          } catch (checkErr) {
+            console.error("Error checking event existence:", checkErr);
+          }
+          
+          // If we still have a valid event ID, update it
+          if (task.google_calendar_event_id) {
+            response = await fetch(
+              `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${task.google_calendar_event_id}`,
+              {
+                method: "PUT",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify(eventData)
+              }
+            );
+            
+            // If update fails with 404, the event might have been deleted
+            if (response.status === 404) {
+              console.log("Event not found on update, will create a new one");
+              task.google_calendar_event_id = null;
+              task.google_calendar_id = null;
+            }
+          }
+        }
+        
+        // If no event ID or the update failed with 404, create a new event
+        if (!task.google_calendar_event_id) {
           console.log(`Creating new event for task ${task.id}: ${task.title}`);
           
           response = await fetch(
@@ -331,8 +374,8 @@ serve(async (req) => {
           );
         }
         
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (!response!.ok) {
+          const errorData = await response!.json();
           console.error(`Error syncing task ${task.id}:`, errorData);
           return {
             taskId: task.id,
@@ -341,7 +384,7 @@ serve(async (req) => {
           };
         }
         
-        const eventData2 = await response.json();
+        const eventResult = await response!.json();
         
         // Create an ISO timestamp for the last_synced_at value
         const nowISOString = new Date().toISOString();
@@ -350,8 +393,8 @@ serve(async (req) => {
         const { error: updateError } = await supabase
           .from("tasks")
           .update({
-            google_calendar_event_id: eventData2.id,
-            google_calendar_id: eventData2.organizer?.email || defaultCalendarId,
+            google_calendar_event_id: eventResult.id,
+            google_calendar_id: eventResult.organizer?.email || defaultCalendarId,
             last_synced_at: nowISOString,
             sync_source: "app"
           })
@@ -363,7 +406,7 @@ serve(async (req) => {
             taskId: task.id,
             success: true,
             warning: "Event created but failed to update task record",
-            eventId: eventData2.id
+            eventId: eventResult.id
           };
         }
         
@@ -372,7 +415,7 @@ serve(async (req) => {
           await supabase
             .from("task_history")
             .insert({
-              user_id: userId,
+              user_id: task.user_id,
               task_id: task.id,
               task_title: task.title,
               action: "synced",
@@ -387,7 +430,7 @@ serve(async (req) => {
         return {
           taskId: task.id,
           success: true,
-          eventId: eventData2.id
+          eventId: eventResult.id
         };
       } catch (error) {
         console.error(`Error processing task ${task.id}:`, error);
@@ -410,8 +453,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.log("Incoming payload:", req.body); // db log
-    console.error("Sync Tasks to Calendar Error:", error);
+    console.log("Sync Tasks to Calendar Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Unknown error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -25,14 +25,9 @@ const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
     e.stopPropagation();
     const today = new Date();
     console.log("Rescheduling to today:", today);
-    onReschedule(today);
     
-    // Sync the change to Google Calendar after rescheduling
-    try {
-      await syncTaskToCalendar(id);
-    } catch (error) {
-      console.error("Error syncing rescheduled task:", error);
-    }
+    // Call parent onReschedule which will handle the database update
+    await onReschedule(today);
     
     // Close the popover
     const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
@@ -45,14 +40,9 @@ const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
     e.stopPropagation();
     const tomorrow = addDays(new Date(), 1);
     console.log("Rescheduling to tomorrow:", tomorrow);
-    onReschedule(tomorrow);
     
-    // Sync the change to Google Calendar after rescheduling
-    try {
-      await syncTaskToCalendar(id);
-    } catch (error) {
-      console.error("Error syncing rescheduled task:", error);
-    }
+    // Call parent onReschedule which will handle the database update
+    await onReschedule(tomorrow);
     
     // Close the popover
     const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
@@ -63,16 +53,9 @@ const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
   
   const handleCalendarSelect = async (date: Date | undefined) => {
     console.log("Calendar date selected:", date);
-    onReschedule(date);
     
-    // Sync the change to Google Calendar after rescheduling
-    if (date) {
-      try {
-        await syncTaskToCalendar(id);
-      } catch (error) {
-        console.error("Error syncing rescheduled task:", error);
-      }
-    }
+    // Call parent onReschedule which will handle the database update
+    await onReschedule(date);
     
     // Close the popover
     const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
