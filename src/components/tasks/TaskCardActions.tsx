@@ -31,13 +31,20 @@ const TaskCardActions = ({
   onReschedule,
   isMobile
 }: TaskCardActionsProps) => {
-  const { updateTask } = useTasksContext();
+  const { updateTask, syncTaskToCalendar } = useTasksContext();
     
-  const handleReschedule = (date: Date | undefined) => {
+  const handleReschedule = async (date: Date | undefined) => {
     if (date) {
       console.log("Rescheduling task", id, "to date:", date);
       // Actually update the task in the database
-      updateTask(id, { dueDate: date });
+      const updatedTask = await updateTask(id, { dueDate: date });
+      
+      // Trigger sync with Google Calendar if the task has a calendar event
+      if (updatedTask && updatedTask.googleCalendarEventId) {
+        await syncTaskToCalendar(id);
+      }
+      
+      // Notify parent component
       onReschedule(date);
     }
   };

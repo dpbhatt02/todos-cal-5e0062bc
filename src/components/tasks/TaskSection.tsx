@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TaskProps } from './types';
 import TaskCard from './TaskCard';
@@ -22,7 +21,8 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     handleDragOver, 
     handleDragLeave, 
     handleDrop, 
-    handleDragEnd 
+    handleDragEnd,
+    syncTaskToCalendar 
   } = useTasksContext();
   
   const [editingTask, setEditingTask] = useState<TaskProps | null>(null);
@@ -109,7 +109,13 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     
     // If it's not a recurring task or we're unchecking or completing forever, just update normally
     if (!task.recurring || !completed || completeForever) {
-      await updateTask(taskId, { completed });
+      const updatedTask = await updateTask(taskId, { completed });
+      
+      // Sync to Google Calendar if the task has a calendar event
+      if (updatedTask && updatedTask.googleCalendarEventId) {
+        await syncTaskToCalendar(taskId);
+      }
+      
       return;
     }
     
@@ -120,12 +126,17 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
     // First, mark current as completed
     await updateTask(taskId, { completed: true });
     
+    // Sync to Google Calendar if the task has a calendar event
+    if (task.googleCalendarEventId) {
+      await syncTaskToCalendar(taskId);
+    }
+    
     // Then schedule next occurrence
     const nextTask = await scheduleNextOccurrence(task);
     if (nextTask) {
       console.log('Creating next occurrence for task:', taskId);
       // Ensure we explicitly pass all time-related fields when updating
-      await updateTask(taskId, {
+      const updatedTask = await updateTask(taskId, {
         ...nextTask,
         dueDate: nextTask.dueDate,
         startTime: nextTask.startTime || null,
@@ -133,6 +144,11 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
         isAllDay: nextTask.isAllDay !== undefined ? nextTask.isAllDay : true,
         completed: false
       });
+      
+      // Sync the new occurrence to Google Calendar if needed
+      if (updatedTask && updatedTask.googleCalendarEventId) {
+        await syncTaskToCalendar(taskId);
+      }
     } else {
       console.log('No more occurrences for recurring task:', taskId);
       // This was the last occurrence, nothing more to do
@@ -158,7 +174,12 @@ const TaskSection = ({ title, tasks, sortOption, selectedDate }: TaskSectionProp
 
   const handleTaskReschedule = async (taskId: string, newDate: Date) => {
     console.log("Reschedule task requested for:", taskId, "to date:", newDate);
-    await updateTask(taskId, { dueDate: newDate });
+    const updatedTask = await updateTask(taskId, { dueDate: newDate });
+    
+    // Sync to Google Calendar if the task has a calendar event
+    if (updatedTask && updatedTask.googleCalendarEventId) {
+      await syncTaskToCalendar(taskId);
+    }
   };
 
   return (

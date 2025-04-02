@@ -19,26 +19,20 @@ interface TaskActionsProps {
 }
 
 const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
-  const { deleteTask } = useTasksContext();
+  const { deleteTask, syncTaskToCalendar } = useTasksContext();
   
-  const handleRescheduleToday = (e: React.MouseEvent) => {
+  const handleRescheduleToday = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const today = new Date();
     console.log("Rescheduling to today:", today);
     onReschedule(today);
     
-    // Close the popover
-    const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
-    if (popoverTrigger) {
-      popoverTrigger.click(); // Close the popover
+    // Sync the change to Google Calendar after rescheduling
+    try {
+      await syncTaskToCalendar(id);
+    } catch (error) {
+      console.error("Error syncing rescheduled task:", error);
     }
-  };
-  
-  const handleRescheduleTomorrow = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const tomorrow = addDays(new Date(), 1);
-    console.log("Rescheduling to tomorrow:", tomorrow);
-    onReschedule(tomorrow);
     
     // Close the popover
     const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
@@ -47,9 +41,38 @@ const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
     }
   };
   
-  const handleCalendarSelect = (date: Date | undefined) => {
+  const handleRescheduleTomorrow = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const tomorrow = addDays(new Date(), 1);
+    console.log("Rescheduling to tomorrow:", tomorrow);
+    onReschedule(tomorrow);
+    
+    // Sync the change to Google Calendar after rescheduling
+    try {
+      await syncTaskToCalendar(id);
+    } catch (error) {
+      console.error("Error syncing rescheduled task:", error);
+    }
+    
+    // Close the popover
+    const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
+    if (popoverTrigger) {
+      popoverTrigger.click(); // Close the popover
+    }
+  };
+  
+  const handleCalendarSelect = async (date: Date | undefined) => {
     console.log("Calendar date selected:", date);
     onReschedule(date);
+    
+    // Sync the change to Google Calendar after rescheduling
+    if (date) {
+      try {
+        await syncTaskToCalendar(id);
+      } catch (error) {
+        console.error("Error syncing rescheduled task:", error);
+      }
+    }
     
     // Close the popover
     const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
