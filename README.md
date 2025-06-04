@@ -68,3 +68,39 @@ Simply open [Lovable](https://lovable.dev/projects/9d677506-774d-4d7a-b266-624cb
 ## I want to use a custom domain - is that possible?
 
 We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+
+## Masterplan Overview
+
+### Goals
+- Provide a centralized schedule by integrating tasks with Google Calendar.
+- Support one-time and recurring tasks with overdue management.
+- Multi-device sync for web and mobile.
+
+### Target Audience
+- Freelancers, students, and professionals needing unified tasks and events.
+- Anyone struggling with event-task overlaps.
+
+### Key Features
+- Task CRUD with drag and drop.
+- Full-day and time-slot tasks.
+- Recurring tasks.
+- Overdue task accordion.
+- Google Calendar two-way sync with selected calendar.
+- Google OAuth and email signup.
+- Multiple views: list, calendar, Kanban.
+- Theme and color-coded priority, filtering, and search.
+
+### Tech Stack
+- Frontend: React, TypeScript, Tailwind CSS.
+- Backend: Node.js with Express, Supabase.
+- Google Calendar API with OAuth 2.0.
+
+### Development Phases
+1. MVP – basic tasks and calendar integration.
+2. Advanced features – two-way sync and recurring tasks.
+3. Monetization – premium features and integrations.
+
+### Future Enhancements
+- Collaboration features.
+- Mobile app with React Native.
+- Integrations with tools like Notion or Slack.
