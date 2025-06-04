@@ -113,8 +113,8 @@ export const convertTo24HourFormat = (timeString: string): string => {
         console.log('am hour num:',hoursNum);
       }
       
-      // Format as HH:MM
-      return `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
+      // Format as HH:MM, padding minutes to two digits
+      return `${hoursNum.toString().padStart(2, '0')}:${minutes.padStart(2, '0')}`;
     }
     
     // If the first pattern didn't match, try a more lenient approach
