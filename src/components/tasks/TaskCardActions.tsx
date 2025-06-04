@@ -3,8 +3,8 @@ import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { TaskProps } from './types';
 import TaskActions from './TaskActions';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useTasksContext } from '@/contexts/TasksContext';
+import { toast } from 'sonner';
 
 interface TaskCardActionsProps {
   id: string;
@@ -34,26 +34,46 @@ const TaskCardActions = ({
   const { updateTask, syncTaskToCalendar } = useTasksContext();
     
   const handleReschedule = async (date: Date | undefined) => {
-    if (date) {
-      console.log("Rescheduling task", id, "to date:", date);
-      try {
-        // Actually update the task in the database
-        const updatedTask = await updateTask(id, { dueDate: date });
-        
-        // Trigger sync with Google Calendar if the task has a calendar event
-        if (updatedTask && updatedTask.googleCalendarEventId) {
+    if (!date) return;
+    
+    console.log("Rescheduling task", id, "to date:", date);
+    
+    try {
+      // Show loading state
+      const loadingToast = toast.loading("Rescheduling task...");
+      
+      // Update the task in the database
+      const updatedTask = await updateTask(id, { dueDate: date });
+      
+      if (updatedTask) {
+        // Sync with Google Calendar if the task has a calendar event
+        if (updatedTask.googleCalendarEventId) {
           console.log("Task has Google Calendar event, syncing to calendar...");
-          await syncTaskToCalendar(id);
-          console.log("Calendar sync completed for task", id);
+          const syncSuccess = await syncTaskToCalendar(id);
+          
+          if (syncSuccess) {
+            console.log("Calendar sync completed for task", id);
+            toast.success("Task rescheduled and synced to calendar");
+          } else {
+            console.log("Calendar sync failed for task", id);
+            toast.warning("Task rescheduled but calendar sync failed");
+          }
         } else {
           console.log("Task has no Google Calendar event ID, skipping sync");
+          toast.success("Task rescheduled successfully");
         }
         
         // Notify parent component
         onReschedule(date);
-      } catch (error) {
-        console.error("Error rescheduling task:", error);
+      } else {
+        throw new Error("Failed to update task");
       }
+      
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+    } catch (error) {
+      console.error("Error rescheduling task:", error);
+      toast.error("Failed to reschedule task");
     }
   };
 
@@ -76,7 +96,7 @@ const TaskCardActions = ({
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          onEdit(); // Call onEdit which will trigger the modal to open
+          onEdit();
         }}
       >
         <ArrowRight className={isMobile ? "h-3 w-3" : "h-4 w-4"} />

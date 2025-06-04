@@ -20,19 +20,25 @@ interface TaskActionsProps {
 
 const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
   const { deleteTask, syncTaskToCalendar } = useTasksContext();
+  const [isOpen, setIsOpen] = React.useState(false);
   
   const handleRescheduleToday = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const today = new Date();
     console.log("Rescheduling to today:", today);
     
-    // Call parent onReschedule which will handle the database update
-    await onReschedule(today);
-    
-    // Close the popover
-    const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
-    if (popoverTrigger) {
-      popoverTrigger.click(); // Close the popover
+    try {
+      // Call parent onReschedule which will handle the database update
+      await onReschedule(today);
+      
+      // Sync with calendar after rescheduling
+      await syncTaskToCalendar(id);
+      
+      // Close the popover
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Error rescheduling task:", error);
+      toast.error("Failed to reschedule task");
     }
   };
   
@@ -41,36 +47,47 @@ const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
     const tomorrow = addDays(new Date(), 1);
     console.log("Rescheduling to tomorrow:", tomorrow);
     
-    // Call parent onReschedule which will handle the database update
-    await onReschedule(tomorrow);
-    
-    // Close the popover
-    const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
-    if (popoverTrigger) {
-      popoverTrigger.click(); // Close the popover
+    try {
+      // Call parent onReschedule which will handle the database update
+      await onReschedule(tomorrow);
+      
+      // Sync with calendar after rescheduling
+      await syncTaskToCalendar(id);
+      
+      // Close the popover
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Error rescheduling task:", error);
+      toast.error("Failed to reschedule task");
     }
   };
   
   const handleCalendarSelect = async (date: Date | undefined) => {
     console.log("Calendar date selected:", date);
     
-    // Call parent onReschedule which will handle the database update
-    await onReschedule(date);
-    
-    // Close the popover
-    const popoverTrigger = document.querySelector(`[data-trigger-for="${id}"]`) as HTMLButtonElement;
-    if (popoverTrigger) {
-      popoverTrigger.click(); // Close the popover
+    try {
+      // Call parent onReschedule which will handle the database update
+      await onReschedule(date);
+      
+      // Sync with calendar after rescheduling
+      if (date) {
+        await syncTaskToCalendar(id);
+      }
+      
+      // Close the popover
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Error rescheduling task:", error);
+      toast.error("Failed to reschedule task");
     }
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent opening the modal
-    e.preventDefault(); // Prevent other events
+    e.stopPropagation();
+    e.preventDefault();
     console.log("Delete button clicked for task:", id);
     
     try {
-      // Delete the task from the database
       const success = await deleteTask(id);
       if (success) {
         toast.success('Task deleted successfully');
@@ -83,13 +100,12 @@ const TaskActions = ({ id, selectedDate, onReschedule }: TaskActionsProps) => {
 
   return (
     <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
-      <Popover>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <button 
             className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
             aria-label="Reschedule task"
             type="button"
-            data-trigger-for={id}
             onClick={(e) => e.stopPropagation()}
           >
             <Calendar className="h-4 w-4" />
