@@ -296,7 +296,6 @@ serve(async (req) => {
         console.log("Event data prepared:", eventData);
         
         let response;
-        let isUpdating = false;
         
         // If task already has a Google Calendar event ID, update it
         if (task.google_calendar_event_id) {
@@ -327,10 +326,6 @@ serve(async (req) => {
                 // Clear the event ID so we create a new one below
                 task.google_calendar_event_id = null;
                 task.google_calendar_id = null;
-              } else if (checkResponse.status === 403) {
-                console.log("Access denied to calendar event, will create new one");
-                task.google_calendar_event_id = null;
-                task.google_calendar_id = null;
               } else {
                 const errorData = await checkResponse.json();
                 console.error("Error checking event:", errorData);
@@ -348,18 +343,14 @@ serve(async (req) => {
                 };
               } else {
                 console.log("Event exists, proceeding with update");
-                isUpdating = true;
               }
             }
           } catch (checkErr) {
             console.error("Error checking event existence:", checkErr);
-            // Continue to try creating a new event
-            task.google_calendar_event_id = null;
-            task.google_calendar_id = null;
           }
 
-          // If event exists but there's no local change, skip unless it's a specific task sync
-          if (task.google_calendar_event_id && !syncNeeded && !taskId) {
+          // If event exists but there's no local change, skip
+          if (task.google_calendar_event_id && !syncNeeded) {
             return {
               taskId: task.id,
               success: true,
@@ -368,7 +359,7 @@ serve(async (req) => {
           }
 
           // If we still have a valid event ID and sync is needed, update it
-          if (task.google_calendar_event_id && (syncNeeded || taskId)) {
+          if (task.google_calendar_event_id && syncNeeded) {
             response = await fetch(
               `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${task.google_calendar_event_id}`,
               {
@@ -382,16 +373,15 @@ serve(async (req) => {
             );
             
             // If update fails with 404, the event might have been deleted
-            if (response.status === 404 || response.status === 403) {
-              console.log("Event not found or access denied on update, will create a new one");
+            if (response.status === 404) {
+              console.log("Event not found on update, will create a new one");
               task.google_calendar_event_id = null;
               task.google_calendar_id = null;
-              isUpdating = false;
             }
           }
         }
         
-        // If no event ID or the update failed with 404/403, create a new event
+        // If no event ID or the update failed with 404, create a new event
         if (!task.google_calendar_event_id) {
           console.log(`Creating new event for task ${task.id}: ${task.title}`);
           
@@ -408,19 +398,9 @@ serve(async (req) => {
           );
         }
         
-        if (!response || !response.ok) {
-          const errorData = response ? await response.json() : { error: "No response" };
+        if (!response!.ok) {
+          const errorData = await response!.json();
           console.error(`Error syncing task ${task.id}:`, errorData);
-          
-          // Handle specific error cases
-          if (response?.status === 403) {
-            return {
-              taskId: task.id,
-              success: false,
-              error: "Calendar access denied. Please reconnect your Google Calendar."
-            };
-          }
-          
           return {
             taskId: task.id,
             success: false,
@@ -428,7 +408,7 @@ serve(async (req) => {
           };
         }
         
-        const eventResult = await response.json();
+        const eventResult = await response!.json();
         
         // Create an ISO timestamp for the last_synced_at value
         const nowISOString = new Date().toISOString();
@@ -463,7 +443,7 @@ serve(async (req) => {
               task_id: task.id,
               task_title: task.title,
               action: "synced",
-              details: isUpdating ? "Task updated in Google Calendar" : "Task synced to Google Calendar",
+              details: "Task synced to Google Calendar",
               timestamp: nowISOString
             });
         } catch (historyError) {
@@ -474,8 +454,7 @@ serve(async (req) => {
         return {
           taskId: task.id,
           success: true,
-          eventId: eventResult.id,
-          action: isUpdating ? "updated" : "created"
+          eventId: eventResult.id
         };
       } catch (error) {
         console.error(`Error processing task ${task.id}:`, error);
@@ -488,22 +467,11 @@ serve(async (req) => {
     }));
     
     const successCount = results.filter(r => r.success).length;
-    const createdCount = results.filter(r => r.success && r.action === "created").length;
-    const updatedCount = results.filter(r => r.success && r.action === "updated").length;
-    
-    let message = `Synced ${successCount} of ${tasks.length} tasks to Google Calendar`;
-    if (createdCount > 0 && updatedCount > 0) {
-      message += ` (${createdCount} created, ${updatedCount} updated)`;
-    } else if (createdCount > 0) {
-      message += ` (${createdCount} created)`;
-    } else if (updatedCount > 0) {
-      message += ` (${updatedCount} updated)`;
-    }
     
     return new Response(
       JSON.stringify({
         success: true,
-        message,
+        message: `Synced ${successCount} of ${tasks.length} tasks to Google Calendar`,
         results
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
