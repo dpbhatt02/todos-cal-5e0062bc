@@ -156,8 +156,10 @@ const TasksContent = ({
       // Set a new timeout to trigger sync after a short delay
       // This debounces multiple rapid changes
       syncTimeoutRef.current = window.setTimeout(() => {
-        console.log('Debounced sync triggered by operation:', lastOperation);
-        synchronizeWithCalendar();
+        if (document.visibilityState === 'visible') {
+          console.log('Debounced sync triggered by operation:', lastOperation);
+          synchronizeWithCalendar();
+        }
         setLastOperation(null);
         syncTimeoutRef.current = null;
       }, 3000); // 3 second debounce

@@ -456,7 +456,7 @@ export const useTaskOperations = (user: any) => {
               }
             }
           );
-          
+
           if (syncError) {
             console.error('Error syncing task completion to calendar:', syncError);
           } else {
@@ -464,6 +464,33 @@ export const useTaskOperations = (user: any) => {
           }
         } catch (syncErr) {
           console.error('Exception syncing task completion to calendar:', syncErr);
+        }
+      }
+
+      // If rescheduling-related fields changed and the task has a calendar event, sync it
+      if (
+        (updates.dueDate !== undefined || updates.startTime !== undefined || updates.endTime !== undefined) &&
+        existingTask?.google_calendar_event_id &&
+        existingTask?.google_calendar_id
+      ) {
+        try {
+          const { data: syncResult, error: syncError } = await supabase.functions.invoke(
+            'sync-tasks-to-calendar',
+            {
+              body: {
+                userId: user.id,
+                taskId: id
+              }
+            }
+          );
+
+          if (syncError) {
+            console.error('Error syncing rescheduled task to calendar:', syncError);
+          } else {
+            console.log('Rescheduled task synced to calendar:', syncResult);
+          }
+        } catch (syncErr) {
+          console.error('Exception syncing rescheduled task to calendar:', syncErr);
         }
       }
 
