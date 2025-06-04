@@ -62,22 +62,22 @@ serve(async (req) => {
           };
         }
         
-        // Check if we should sync based on the last sync time and sync interval
+        // Check if we should sync based on the last sync time and sync frequency
         const userId = setting.user_id;
         const lastSynced = new Date(setting.last_synced_at || 0);
         const now = new Date();
-        const syncIntervalMinutes = setting.sync_interval || 30; // Default to 30 minutes if not set
-        const syncIntervalMs = syncIntervalMinutes * 60 * 1000;
+        const syncFrequencyMinutes = setting.sync_frequency_minutes || 30; // Default to 30 minutes if not set
+        const syncFrequencyMs = syncFrequencyMinutes * 60 * 1000;
         const timeSinceLastSync = now.getTime() - lastSynced.getTime();
-        
+
         // Only sync if enough time has passed since the last sync
-        if (timeSinceLastSync < syncIntervalMs) {
-          console.log(`Skipping sync for user ${userId} - last sync was ${Math.floor(timeSinceLastSync / 60000)}m ago, interval is ${syncIntervalMinutes}m`);
+        if (timeSinceLastSync < syncFrequencyMs) {
+          console.log(`Skipping sync for user ${userId} - last sync was ${Math.floor(timeSinceLastSync / 60000)}m ago, frequency is ${syncFrequencyMinutes}m`);
           return {
             userId,
             success: true,
             skipped: true,
-            message: `Sync not due yet (last sync: ${Math.floor(timeSinceLastSync / 60000)}m ago, interval: ${syncIntervalMinutes}m)`
+            message: `Sync not due yet (last sync: ${Math.floor(timeSinceLastSync / 60000)}m ago, frequency: ${syncFrequencyMinutes}m)`
           };
         }
         
