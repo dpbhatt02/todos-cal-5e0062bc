@@ -14,6 +14,10 @@ describe('convertTo24HourFormat', () => {
     expect(convertTo24HourFormat('9pm')).toBe('21:00');
   });
 
+  it('pads single digit minutes', () => {
+    expect(convertTo24HourFormat('1:5PM')).toBe('13:05');
+  });
+
   it('returns default for invalid time', () => {
     expect(convertTo24HourFormat('invalid')).toBe('09:00');
   });
