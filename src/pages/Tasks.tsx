@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import TaskList from '@/components/tasks/TaskList';
-import { useIsMobile } from '@/hooks/use-mobile';
-import CreateTaskModal from '@/components/tasks/CreateTaskModal';
-import { useTasksContext } from '@/contexts/TasksContext';
-import { TaskProps } from '@/components/tasks/types';
-import { TasksProvider } from '@/contexts/TasksContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { useState, useEffect, useRef } from "react";
+import TaskList from "@/components/tasks/TaskList";
+import { useIsMobile } from "@/hooks/use-mobile";
+import CreateTaskModal from "@/components/tasks/CreateTaskModal";
+import { useTasksContext } from "@/contexts/TasksContext";
+import { TaskProps } from "@/components/tasks/types";
+import { TasksProvider } from "@/contexts/TasksContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { usePulseSync } from "@/hooks/use-pulse-sync";
 
 // Define a simple interface for sync settings
 interface CalendarSyncSettings {
@@ -30,10 +31,12 @@ const Tasks = () => {
       <div className="container">
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-4">Please Log In</h2>
-          <p className="text-muted-foreground">You need to be logged in to view your tasks.</p>
+          <p className="text-muted-foreground">
+            You need to be logged in to view your tasks.
+          </p>
           <button
             className="btn btn-primary mt-4"
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate("/auth")}
           >
             Go to Login
           </button>
@@ -44,7 +47,7 @@ const Tasks = () => {
 
   return (
     <TasksProvider>
-      <TasksContent 
+      <TasksContent
         isMobile={isMobile}
         isCreateModalOpen={isCreateModalOpen}
         setIsCreateModalOpen={setIsCreateModalOpen}
@@ -54,80 +57,81 @@ const Tasks = () => {
 };
 
 // This component is inside the TasksProvider and can safely use useTasksContext
-const TasksContent = ({ 
-  isMobile, 
-  isCreateModalOpen, 
-  setIsCreateModalOpen 
-}: { 
-  isMobile: boolean; 
-  isCreateModalOpen: boolean; 
+const TasksContent = ({
+  isMobile,
+  isCreateModalOpen,
+  setIsCreateModalOpen,
+}: {
+  isMobile: boolean;
+  isCreateModalOpen: boolean;
   setIsCreateModalOpen: (isOpen: boolean) => void;
 }) => {
-  const { 
-    createTask, 
-    syncing, 
-    synchronizeWithCalendar, 
-    isCalendarConnected 
-  } = useTasksContext();
+  const { createTask, syncing, synchronizeWithCalendar, isCalendarConnected } =
+    useTasksContext();
   const { user } = useAuth();
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [lastOperation, setLastOperation] = useState<string | null>(null);
   const syncTimeoutRef = useRef<number | null>(null);
   const initialSyncRef = useRef(false);
-  const [selectedTaskDate, setSelectedTaskDate] = useState<Date | undefined>(undefined);
-  
+  const [selectedTaskDate, setSelectedTaskDate] = useState<Date | undefined>(
+    undefined,
+  );
+
+  // Periodic pulse sync while the page is open
+  usePulseSync(!!user && isCalendarConnected, synchronizeWithCalendar, 60000);
+
   // Check for auto-sync settings and set up periodic sync if enabled
   useEffect(() => {
     if (!user || !isCalendarConnected) return;
-    
+
     let syncInterval: number | null = null;
-    
+
     const checkAutoSyncSettings = async () => {
       try {
         const { data, error } = await supabase.rpc(
-          'get_calendar_sync_settings', 
-          { user_id_param: user.id }
+          "get_calendar_sync_settings",
+          { user_id_param: user.id },
         );
-          
+
         if (error) {
-          console.error('Error fetching auto-sync settings:', error);
+          console.error("Error fetching auto-sync settings:", error);
           return;
         }
-        
-        console.log('Auto-sync settings:', data);
+
+        console.log("Auto-sync settings:", data);
         setAutoSyncEnabled(data?.auto_sync_enabled || false);
-        
+
         if (data && data.auto_sync_enabled) {
           // Clear any existing interval
           if (syncInterval) {
             clearInterval(syncInterval);
           }
-          
+
           // Set up new interval based on settings
           const minutes = data.sync_frequency_minutes || 30;
           const milliseconds = minutes * 60 * 1000;
-          
+
           console.log(`Setting up auto-sync every ${minutes} minutes`);
-          
+
           // Only perform an initial sync if it hasn't been done
           if (!initialSyncRef.current) {
             await synchronizeWithCalendar();
             initialSyncRef.current = true;
           }
-          
+
           // Set up the interval for future syncs
           syncInterval = window.setInterval(() => {
-            console.log('Auto-sync triggered by interval');
+            console.log("Auto-sync triggered by interval");
             synchronizeWithCalendar();
           }, milliseconds);
         }
       } catch (err) {
-        console.error('Error setting up auto-sync:', err);
+        console.error("Error setting up auto-sync:", err);
       }
     };
-    
+
     checkAutoSyncSettings();
-    
+
     // Clean up the interval when the component unmounts
     return () => {
       if (syncInterval) {
@@ -152,19 +156,19 @@ const TasksContent = ({
       if (syncTimeoutRef.current) {
         window.clearTimeout(syncTimeoutRef.current);
       }
-      
+
       // Set a new timeout to trigger sync after a short delay
       // This debounces multiple rapid changes
       syncTimeoutRef.current = window.setTimeout(() => {
-        if (document.visibilityState === 'visible') {
-          console.log('Debounced sync triggered by operation:', lastOperation);
+        if (document.visibilityState === "visible") {
+          console.log("Debounced sync triggered by operation:", lastOperation);
           synchronizeWithCalendar();
         }
         setLastOperation(null);
         syncTimeoutRef.current = null;
       }, 3000); // 3 second debounce
     }
-    
+
     // Clean up on unmount
     return () => {
       if (syncTimeoutRef.current) {
@@ -177,7 +181,7 @@ const TasksContent = ({
     // Convert the data to the format expected by the createTask function
     const formattedData: Partial<TaskProps> = {
       title: taskData.title,
-      description: taskData.description || '',
+      description: taskData.description || "",
       priority: taskData.priority,
       dueDate: new Date(taskData.dueDate),
       completed: false,
@@ -186,56 +190,64 @@ const TasksContent = ({
     // Add time information if present - ensuring correct time formats
     if (taskData.startTime) {
       formattedData.startTime = taskData.startTime; // Time already converted in CreateTaskModal
-      
-      // If only start time is provided, the backend will automatically set 
+
+      // If only start time is provided, the backend will automatically set
       // end time to start time + 30 minutes
-      if (taskData.endTime) { // Both start and end time provided
+      if (taskData.endTime) {
+        // Both start and end time provided
         formattedData.endTime = taskData.endTime; // Time already converted in CreateTaskModal
       }
     }
-    
+
     if (taskData.isAllDay !== undefined) {
       formattedData.isAllDay = taskData.isAllDay;
     }
 
     // Include recurring data if present
-    if (taskData.recurring && taskData.recurring !== 'none') {
+    if (taskData.recurring && taskData.recurring !== "none") {
       formattedData.recurring = {
-        frequency: taskData.recurring as 'daily' | 'weekly' | 'monthly' | 'custom',
-        customDays: taskData.selectedWeekdays || []
+        frequency: taskData.recurring as
+          | "daily"
+          | "weekly"
+          | "monthly"
+          | "custom",
+        customDays: taskData.selectedWeekdays || [],
       };
 
       // Add end date or count if specified
-      if (taskData.recurrenceEndType === 'date' && taskData.recurrenceEndDate) {
+      if (taskData.recurrenceEndType === "date" && taskData.recurrenceEndDate) {
         formattedData.recurring.endDate = new Date(taskData.recurrenceEndDate);
-      } else if (taskData.recurrenceEndType === 'after' && taskData.recurrenceCount) {
+      } else if (
+        taskData.recurrenceEndType === "after" &&
+        taskData.recurrenceCount
+      ) {
         formattedData.recurring.endAfter = taskData.recurrenceCount;
       }
     }
 
-    console.log('Formatted task data:', formattedData);
-    
-    const newTask = await createTask(formattedData as Omit<TaskProps, 'id'>);
+    console.log("Formatted task data:", formattedData);
+
+    const newTask = await createTask(formattedData as Omit<TaskProps, "id">);
     setIsCreateModalOpen(false);
     setSelectedTaskDate(undefined); // Reset selected date after task creation
-    
+
     // Set last operation to trigger sync
     if (newTask) {
-      setLastOperation('create');
+      setLastOperation("create");
     }
   };
 
   const handleSyncCalendar = () => {
-    console.log('Manual sync button clicked');
+    console.log("Manual sync button clicked");
     synchronizeWithCalendar();
   };
 
   // Updated to accept a date parameter and store it
   const openCreateTaskModal = (date?: Date) => {
-    console.log('Opening create task modal with date:', date);
+    console.log("Opening create task modal with date:", date);
     if (date) {
-      console.log('Date ISO string:', date.toISOString());
-      console.log('Formatted date:', formatDate(date));
+      console.log("Date ISO string:", date.toISOString());
+      console.log("Formatted date:", formatDate(date));
     }
     setSelectedTaskDate(date);
     setIsCreateModalOpen(true);
@@ -248,10 +260,10 @@ const TasksContent = ({
   };
 
   return (
-    <div className={`container ${isMobile ? 'px-2 sm:px-4' : 'py-6'}`}>
-      <TaskList 
-        onTaskEdited={() => setLastOperation('edit')}
-        onTaskDeleted={() => setLastOperation('delete')}
+    <div className={`container ${isMobile ? "px-2 sm:px-4" : "py-6"}`}>
+      <TaskList
+        onTaskEdited={() => setLastOperation("edit")}
+        onTaskDeleted={() => setLastOperation("delete")}
         onCreateTask={openCreateTaskModal}
         onSyncCalendar={handleSyncCalendar}
         syncing={syncing}
@@ -261,8 +273,10 @@ const TasksContent = ({
         isOpen={isCreateModalOpen}
         onClose={handleCloseModal}
         onSubmit={handleCreateTask}
-        initialData={selectedTaskDate ? { dueDate: formatDate(selectedTaskDate) } : {}}
-        key={selectedTaskDate ? selectedTaskDate.toISOString() : 'default'} // Add key to force re-render with fresh state
+        initialData={
+          selectedTaskDate ? { dueDate: formatDate(selectedTaskDate) } : {}
+        }
+        key={selectedTaskDate ? selectedTaskDate.toISOString() : "default"} // Add key to force re-render with fresh state
       />
     </div>
   );
@@ -270,9 +284,9 @@ const TasksContent = ({
 
 // Helper function to format date to YYYY-MM-DD
 function formatDate(date: Date) {
-  console.log('Formatting date:', date);
-  const formatted = format(date, 'yyyy-MM-dd');
-  console.log('Formatted result:', formatted);
+  console.log("Formatting date:", date);
+  const formatted = format(date, "yyyy-MM-dd");
+  console.log("Formatted result:", formatted);
   return formatted;
 }
 
