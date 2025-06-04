@@ -29,7 +29,7 @@ export function useTasks() {
   const [error, setError] = useState<Error | null>(null);
   const [syncing, setSyncing] = useState(false);
   const { user } = useAuth();
-  const { operationLoading, createTask, updateTask, deleteTask } = useTaskOperations(user);
+  const { operationLoading, createTask: createTaskOperation, updateTask: updateTaskOperation, deleteTask } = useTaskOperations(user);
 
   // Check if user has Google Calendar connected
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
@@ -405,8 +405,20 @@ export function useTasks() {
     tasks,
     loading,
     error: error || null,
-    createTask,
-    updateTask,
+    createTask: async (data: Omit<TaskProps, 'id'>) => {
+      const newTask = await createTaskOperation(data);
+      if (newTask) {
+        setTasks(prev => [...prev, newTask]);
+      }
+      return newTask;
+    },
+    updateTask: async (id: string, updates: Partial<TaskProps>) => {
+      const updated = await updateTaskOperation(id, updates);
+      if (updated) {
+        setTasks(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+      }
+      return updated;
+    },
     deleteTask: async (id: string) => {
       // Wrap the deleteTask function to ensure proper state updating
       const result = await deleteTask(id);
