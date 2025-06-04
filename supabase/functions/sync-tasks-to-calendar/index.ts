@@ -18,7 +18,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { userId, taskId } = body;
     
-    console.log('db log of sync tasks to calender userId:'+ userId);
+    console.log('db log of sync tasks to calendar userId:'+ userId);
     
     if (!userId) {
       return new Response(
