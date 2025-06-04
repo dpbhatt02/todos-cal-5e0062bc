@@ -78,7 +78,7 @@ const TagTaskList = ({
 
   // Handler for clicking the "Add Task" button for a specific date
   const handleAddTaskForDate = (date: Date) => {
-    // Add debug logs to see what date is being passed
+    // Debug: log selected date information
     console.log('Add task clicked for date:', date);
     console.log('Date string format:', date.toISOString());
     console.log('Date local string:', date.toLocaleDateString());
