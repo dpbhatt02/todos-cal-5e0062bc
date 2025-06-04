@@ -193,9 +193,8 @@ serve(async (req) => {
       console.log(`Syncing specific task with ID: ${taskId}`);
       tasksQuery = tasksQuery.eq("id", taskId);
     } else {
-      // For batch sync, focus on tasks that need syncing
-      tasksQuery = tasksQuery.or('google_calendar_event_id.is.null,last_synced_at.is.null');
-      console.log("Batch syncing tasks that need initial sync");
+      // For batch sync, fetch all tasks and we'll determine if they need syncing in code
+      console.log("Batch syncing tasks - evaluating sync need per task");
     }
     
     const { data: tasks, error: tasksError } = await tasksQuery;
@@ -230,7 +229,11 @@ serve(async (req) => {
             message: "Task has no due date"
           };
         }
-        
+
+        const lastSynced = task.last_synced_at ? new Date(task.last_synced_at) : null;
+        const taskUpdated = new Date(task.updated_at);
+        let syncNeeded = !lastSynced || taskUpdated > lastSynced;
+
         console.log(`Processing task: ${task.title}, Due date: ${task.due_date}, Is All Day: ${task.is_all_day}, Start: ${task.start_time}, End: ${task.end_time}`);
         
         // Prepare event data for Google Calendar
@@ -314,7 +317,7 @@ serve(async (req) => {
                 }
               }
             );
-            
+
             if (!checkResponse.ok) {
               console.log(`Event not found or inaccessible. Status: ${checkResponse.status}`);
               if (checkResponse.status === 404) {
@@ -328,14 +331,35 @@ serve(async (req) => {
                 console.error("Error checking event:", errorData);
               }
             } else {
-              console.log("Event exists, proceeding with update");
+              const existingEvent = await checkResponse.json();
+              const eventUpdated = new Date(existingEvent.updated);
+
+              if (eventUpdated > taskUpdated && (!lastSynced || eventUpdated > lastSynced)) {
+                console.log(`Skipping update for task ${task.id} - calendar event is newer`);
+                return {
+                  taskId: task.id,
+                  success: true,
+                  message: "Skipped - event newer"
+                };
+              } else {
+                console.log("Event exists, proceeding with update");
+              }
             }
           } catch (checkErr) {
             console.error("Error checking event existence:", checkErr);
           }
-          
-          // If we still have a valid event ID, update it
-          if (task.google_calendar_event_id) {
+
+          // If event exists but there's no local change, skip
+          if (task.google_calendar_event_id && !syncNeeded) {
+            return {
+              taskId: task.id,
+              success: true,
+              message: "Skipped - no local changes"
+            };
+          }
+
+          // If we still have a valid event ID and sync is needed, update it
+          if (task.google_calendar_event_id && syncNeeded) {
             response = await fetch(
               `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${task.google_calendar_event_id}`,
               {
